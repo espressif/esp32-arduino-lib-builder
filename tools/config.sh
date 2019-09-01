@@ -48,3 +48,11 @@ function get_os(){
 }
 
 AR_OS=`get_os`
+
+export SED="sed"
+export SSTAT="stat -c %s"
+
+if [[ "$AR_OS" == "macos" ]]; then
+	export SED="gsed"
+	export SSTAT="stat -f %z"
+fi

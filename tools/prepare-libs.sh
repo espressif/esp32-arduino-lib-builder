@@ -57,8 +57,7 @@ minlsize=8
 #idf libs
 mkdir -p $AR_SDK/lib && \
 for lib in `find $IDF_COMPS -name '*.a' | grep -v libg | grep -v libc_rom | grep -v workaround | grep -v libc-minusrom`; do
-    lsize=$(stat -f %z "$lib")
-    #lsize=$(stat -c %s "$lib")
+    lsize=$($SSTAT "$lib")
     if (( lsize > minlsize )); then
         cp -f $lib $AR_SDK/lib/
     else
@@ -68,8 +67,7 @@ done
 
 #component libs
 for lib in `find components -name '*.a' | grep -v arduino`; do
-    lsize=$(stat -f %z "$lib")
-    #lsize=$(stat -c %s "$lib")
+    lsize=$($SSTAT "$lib")
     if (( lsize > minlsize )); then
         cp -f $lib $AR_SDK/lib/
     else
@@ -79,8 +77,7 @@ done
 
 #compiled libs
 for lib in `find build -name '*.a' | grep -v bootloader | grep -v libmain | grep -v idf_test | grep -v aws_iot | grep -v libmicro | grep -v libarduino`; do
-    lsize=$(stat -f %z "$lib")
-    #lsize=$(stat -c %s "$lib")
+    lsize=$($SSTAT "$lib")
     if (( lsize > minlsize )); then
         cp -f $lib $AR_SDK/lib/
     else
@@ -121,9 +118,9 @@ rm 1pio_end.txt
 
 #arduino platform.txt
 awk "/compiler.cpreprocessor.flags\=/{n++}{print>n\"platform_start.txt\"}" $AR_COMPS/arduino/platform.txt
-gsed -i '/compiler.cpreprocessor.flags\=/d' 1platform_start.txt
+$SED -i '/compiler.cpreprocessor.flags\=/d' 1platform_start.txt
 awk "/compiler.c.elf.libs\=/{n++}{print>n\"platform_mid.txt\"}" 1platform_start.txt
-gsed -i '/compiler.c.elf.libs\=/d' 1platform_mid.txt
+$SED -i '/compiler.c.elf.libs\=/d' 1platform_mid.txt
 rm 1platform_start.txt
 cat platform_start.txt > "$AR_PLATFORM_TXT"
 echo "compiler.cpreprocessor.flags=$AR_INC" >> "$AR_PLATFORM_TXT"

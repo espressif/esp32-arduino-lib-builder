@@ -2,6 +2,11 @@
 
 source ./tools/config.sh
 
+if ! [ -x "$(command -v $SED)" ]; then
+  	echo "ERROR: $SED is not installed! Please install $SED first."
+  	exit 1
+fi
+
 if [ -z "$IDF_PATH" ]; then
 	echo "ESP-IDF is not installed! Installing local copy"
 	if ! [ -d esp-idf ]; then
@@ -11,6 +16,7 @@ if [ -z "$IDF_PATH" ]; then
 	cd $IDF_PATH
 	git fetch origin && git pull origin $IDF_BRANCH
 	git submodule update --init --recursive
+	python -m pip install --user -r requirements.txt
 	cd "$AR_ROOT"
 fi
 
