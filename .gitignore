@@ -1,0 +1,8 @@
+sdkconfig.old
+.DS_Store
+components/arduino/
+components/esp-face/
+components/esp32-camera/
+out/
+build/
+xtensa-esp32-elf/

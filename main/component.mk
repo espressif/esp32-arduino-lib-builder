@@ -1,0 +1,1 @@
+CXXFLAGS += -fno-rtti
