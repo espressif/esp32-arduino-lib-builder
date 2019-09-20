@@ -130,6 +130,8 @@ cat 1platform_mid.txt >> "$AR_PLATFORM_TXT"
 rm platform_start.txt platform_mid.txt 1platform_mid.txt
 
 #sdkconfig
+IDF_COMMIT=$(git -C $IDF_PATH rev-parse --short HEAD)
+echo #define CONFIG_ARDUINO_IDF_COMMIT "$IDF_COMMIT">> build/include/sdkconfig.h
 mkdir -p $AR_SDK/include/config && cp -f build/include/sdkconfig.h $AR_SDK/include/config/sdkconfig.h
 cp -f sdkconfig $AR_SDK/sdkconfig
 
