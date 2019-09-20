@@ -20,6 +20,11 @@ if [ -z "$IDF_PATH" ]; then
 	cd "$AR_ROOT"
 fi
 
+if [ "$IDF_COMMIT" ]; then
+    git -C $IDF_PATH checkout $IDF_COMMIT
+    git -C $IDF_PATH submodule update
+fi
+
 if ! [ -x "$(command -v $IDF_TOOLCHAIN-gcc)" ]; then
   	echo "GCC toolchain is not installed! Installing local copy"
 
