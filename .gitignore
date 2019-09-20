@@ -3,6 +3,7 @@ sdkconfig.old
 components/arduino/
 components/esp-face/
 components/esp32-camera/
+esp-idf/
 out/
 build/
 xtensa-esp32-elf/
