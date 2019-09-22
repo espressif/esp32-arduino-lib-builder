@@ -16,6 +16,8 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install dependencies
       run: sudo apt-get install git wget curl libssl-dev libncurses-dev flex bison gperf python python-pip python-setuptools python-serial python-click python-cryptography python-future python-pyparsing python-pyelftools cmake ninja-build ccache
+    - name: Install Python Wheel
+      run: pip install wheel
     - name: Build Arduino Libs
       env:
         TRAVIS_BUILD_DIR: ${{ github.workspace }}
