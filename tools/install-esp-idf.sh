@@ -16,7 +16,7 @@ if [ -z "$IDF_PATH" ]; then
 	cd $IDF_PATH
 	git fetch origin && git pull origin $IDF_BRANCH
 	git submodule update --init --recursive
-	python -m pip install --user -r requirements.txt
+	python -m pip install -r requirements.txt
 	cd "$AR_ROOT"
 fi
 
