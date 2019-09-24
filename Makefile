@@ -14,4 +14,5 @@ PROJ_INCLUDES = $(filter-out $(PROJECT_PATH)/components/arduino/%,$(filter $(PRO
 PROJ_OUT = $(patsubst $(PROJECT_PATH)/components/%,%,$(PROJ_INCLUDES))
 
 idf-libs: all
+	@echo "All Includes: "$(COMPONENT_INCLUDES)
 	@$(PROJECT_PATH)/tools/prepare-libs.sh $(IDF_OUT) $(PROJ_OUT)
