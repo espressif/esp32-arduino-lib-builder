@@ -22,3 +22,8 @@ jobs:
       env:
         TRAVIS_BUILD_DIR: ${{ github.workspace }}
       run: bash $TRAVIS_BUILD_DIR/build.sh
+    - name: Archive libs
+      uses: actions/upload-artifact@v1
+      with:
+        name: arduino-libs
+        path: out
