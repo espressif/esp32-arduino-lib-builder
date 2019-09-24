@@ -26,4 +26,4 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: arduino-libs
-        path: out
+        path: dist
