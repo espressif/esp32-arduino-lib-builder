@@ -7,3 +7,4 @@ esp-idf/
 out/
 build/
 xtensa-esp32-elf/
+dist/

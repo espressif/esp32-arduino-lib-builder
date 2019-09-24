@@ -35,21 +35,25 @@ if ! [ -x "$(command -v stat)" ]; then
   	exit 1
 fi
 
-#install esp-idf and gcc toolchain
+# install esp-idf and gcc toolchain
 source ./tools/install-esp-idf.sh
 if [ $? -ne 0 ]; then exit 1; fi
 
-#update components from git
+# update components from git
 ./tools/update-components.sh
 if [ $? -ne 0 ]; then exit 1; fi
 
-#build and prepare libs
+# build and prepare libs
 ./tools/build-libs.sh
 if [ $? -ne 0 ]; then exit 1; fi
 
-#bootloader
+# bootloader
 ./tools/build-bootloaders.sh
 if [ $? -ne 0 ]; then exit 1; fi
 
-#POST Build
+# archive the build
+./tools/archive-build.sh
+if [ $? -ne 0 ]; then exit 1; fi
+
+# POST Build
 #./tools/copy-to-arduino.sh

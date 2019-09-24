@@ -25,6 +25,9 @@ if [ "$IDF_COMMIT" ]; then
     git -C $IDF_PATH submodule update
 fi
 
+export IDF_COMMIT=$(git -C $IDF_PATH rev-parse --short HEAD)
+export IDF_BRANCH=$(git -C $IDF_PATH symbolic-ref --short HEAD)
+
 if ! [ -x "$(command -v $IDF_TOOLCHAIN-gcc)" ]; then
   	echo "GCC toolchain is not installed! Installing local copy"
 

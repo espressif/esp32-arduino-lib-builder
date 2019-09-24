@@ -1,21 +1,21 @@
 #!/bin/bash
-#config
+# config
 source ./tools/config.sh
 
-#clean previous
+# clean previous
 if [ -e "$AR_TOOLS" ]; then
 	rm -rf "$AR_TOOLS"
 fi
 mkdir -p "$AR_SDK"
 
-#start generation of platformio-build.py
+# start generation of platformio-build.py
 awk "/CPPPATH\=\[/{n++}{print>n\"pio_start.txt\"}" $AR_COMPS/arduino/tools/platformio-build.py
 awk "/LIBSOURCE_DIRS\=\[/{n++}{print>n\"pio_end.txt\"}" 1pio_start.txt
 cat 2pio_start.txt >> 1pio_end.txt
 cat pio_start.txt > "$AR_PLATFORMIO_PY"
 rm pio_end.txt 1pio_start.txt 2pio_start.txt pio_start.txt
 
-#include dirs
+# include dirs
 AR_INC="-DESP_PLATFORM -DMBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\" -DHAVE_CONFIG_H \"-I{compiler.sdk.path}/include/config\""
 echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY" && echo "       join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"include\", \"config\")," >> "$AR_PLATFORMIO_PY"
 while [ "$1" != "" ]; do
@@ -54,7 +54,7 @@ echo "" >> "$AR_PLATFORMIO_PY"
 
 minlsize=8
 
-#idf libs
+# idf libs
 mkdir -p $AR_SDK/lib && \
 for lib in `find $IDF_COMPS -name '*.a' | grep -v libg | grep -v libc_rom | grep -v workaround | grep -v libc-minusrom`; do
     lsize=$($SSTAT "$lib")
@@ -65,7 +65,7 @@ for lib in `find $IDF_COMPS -name '*.a' | grep -v libg | grep -v libc_rom | grep
     fi
 done
 
-#component libs
+# component libs
 for lib in `find components -name '*.a' | grep -v arduino`; do
     lsize=$($SSTAT "$lib")
     if (( lsize > minlsize )); then
@@ -75,7 +75,7 @@ for lib in `find components -name '*.a' | grep -v arduino`; do
     fi
 done
 
-#compiled libs
+# compiled libs
 for lib in `find build -name '*.a' | grep -v bootloader | grep -v libmain | grep -v idf_test | grep -v aws_iot | grep -v libmicro | grep -v libarduino`; do
     lsize=$($SSTAT "$lib")
     if (( lsize > minlsize )); then
@@ -87,10 +87,10 @@ done
 cp build/bootloader_support/libbootloader_support.a $AR_SDK/lib/
 cp build/micro-ecc/libmicro-ecc.a $AR_SDK/lib/
 
-#remove liblib.a from esp-face (empty and causing issues on Windows)
+# remove liblib.a from esp-face (empty and causing issues on Windows)
 rm -rf $AR_SDK/lib/liblib.a
 
-#generate Arduino and PIO configs
+# generate Arduino and PIO configs
 AR_LIBS=""
 PIO_LIBS="\"-lgcc\""
 cd "$AR_SDK/lib/"
@@ -112,11 +112,11 @@ echo "        $PIO_LIBS" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
-#end generation of platformio-build.py
+# end generation of platformio-build.py
 cat 1pio_end.txt >> "$AR_PLATFORMIO_PY"
 rm 1pio_end.txt
 
-#arduino platform.txt
+# arduino platform.txt
 awk "/compiler.cpreprocessor.flags\=/{n++}{print>n\"platform_start.txt\"}" $AR_COMPS/arduino/platform.txt
 $SED -i '/compiler.cpreprocessor.flags\=/d' 1platform_start.txt
 awk "/compiler.c.elf.libs\=/{n++}{print>n\"platform_mid.txt\"}" 1platform_start.txt
@@ -129,25 +129,23 @@ echo "compiler.c.elf.libs=-lgcc $AR_LIBS -lstdc++" >> "$AR_PLATFORM_TXT"
 cat 1platform_mid.txt >> "$AR_PLATFORM_TXT"
 rm platform_start.txt platform_mid.txt 1platform_mid.txt
 
-#sdkconfig
-IDF_COMMIT=$(git -C $IDF_PATH rev-parse --short HEAD)
-IDF_BRANCH=$(git -C $IDF_PATH symbolic-ref --short HEAD)
-echo "#define CONFIG_ARDUINO_IDF_COMMIT \"$IDF_COMMIT\"" >> build/include/sdkconfig.h
-echo "#define CONFIG_ARDUINO_IDF_BRANCH \"$IDF_BRANCH\"" >> build/include/sdkconfig.h
+# sdkconfig
 mkdir -p $AR_SDK/include/config && cp -f build/include/sdkconfig.h $AR_SDK/include/config/sdkconfig.h
 cp -f sdkconfig $AR_SDK/sdkconfig
 
-#esptool.py
+# esptool.py
 cp $IDF_COMPS/esptool_py/esptool/esptool.py $AR_ESPTOOL_PY
 
-#gen_esp32part.py
+# gen_esp32part.py
 cp $IDF_COMPS/partition_table/gen_esp32part.py $AR_GEN_PART_PY
 
-#idf ld scripts
+# idf ld scripts
 mkdir -p $AR_SDK/ld && find $IDF_COMPS/esp32/ld -name '*.ld' -exec cp -f {} $AR_SDK/ld/ \;
 
-#ld script
+# ld script
 cp -f build/esp32/esp32_out.ld $AR_SDK/ld/
 #cp -f build/esp32/esp32.common.ld $AR_SDK/ld/
 
-
+# Add IDF versions to sdkconfig
+echo "#define CONFIG_ARDUINO_IDF_COMMIT \"$IDF_COMMIT\"" >> $AR_SDK/include/config/sdkconfig.h
+echo "#define CONFIG_ARDUINO_IDF_BRANCH \"$IDF_BRANCH\"" >> $AR_SDK/include/config/sdkconfig.h
