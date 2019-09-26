@@ -5,15 +5,15 @@ source ./tools/config.sh
 cd "$AR_COMPS"
 
 if [ ! -d "arduino" ]; then
-	git clone $AR_REPO arduino
+	git clone $AR_REPO_URL arduino
 fi
 
 if [ ! -d "esp32-camera" ]; then
-	git clone $CAMERA_REPO
+	git clone --depth 1 $CAMERA_REPO_URL
 fi
 
 if [ ! -d "esp-face" ]; then
-	git clone $FACE_REPO
+	git clone --depth 1 $FACE_REPO_URL
 fi
 
 cd "$AR_ROOT"

@@ -1,0 +1,39 @@
+name: Cron Build
+
+on: 
+  schedule:
+#             ┌───────────── minute (0 - 59)
+#             │ ┌───────────── hour (0 - 23)
+#             │ │ ┌───────────── day of the month (1 - 31)
+#             │ │ │ ┌───────────── month (1 - 12 or JAN-DEC)
+#             │ │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
+#             │ │ │ │ │                                   
+#             │ │ │ │ │
+#             │ │ │ │ │
+#             * * * * *
+    - cron:  '0 */6 * * *'
+
+jobs:
+  run:
+    name: Build with IDF ${{ matrix.idf_branch }}
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        idf_branch: [release/v3.2]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install dependencies
+      run: sudo apt-get install git wget curl libssl-dev libncurses-dev flex bison gperf python python-pip python-setuptools python-serial python-click python-cryptography python-future python-pyparsing python-pyelftools cmake ninja-build ccache
+    - name: Install Python Wheel
+      run: pip install wheel
+    - name: Build
+      env:
+        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+        IDF_BRANCH: ${{ matrix.idf_branch }}
+      run: bash ./tools/cron.sh
+#     - name: Upload archive
+#       uses: actions/upload-artifact@v1
+#       with:
+#         name: arduino-libs
+#         path: dist
