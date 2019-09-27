@@ -11,45 +11,12 @@ if ! [ -d "$AR_COMPS/arduino" ]; then
 	exit 1
 fi
 
-# # format new branch name and pr title
-# if [ -x $1 ]; then #commit was not specified at build time
-# 	AR_NEW_BRANCH_NAME="idf-$IDF_BRANCH"
-# 	AR_NEW_COMMIT_MESSAGE="IDF $IDF_BRANCH $IDF_COMMIT"
-# 	AR_NEW_PR_TITLE="IDF $IDF_BRANCH"
-# else
-# 	AR_NEW_BRANCH_NAME="idf-$IDF_COMMIT"
-# 	AR_NEW_COMMIT_MESSAGE="IDF $IDF_COMMIT"
-# 	AR_NEW_PR_TITLE="$AR_NEW_COMMIT_MESSAGE"
-# fi
-
-# AR_HAS_COMMIT=`git_commit_exists "$AR_COMPS/arduino" "$AR_NEW_COMMIT_MESSAGE"`
-# AR_HAS_BRANCH=`git_branch_exists "$AR_COMPS/arduino" "$AR_NEW_BRANCH_NAME"`
-# AR_HAS_PR=`git_pr_exists "$AR_NEW_BRANCH_NAME"`
-
 #
-# CREATE/UPDATE BRANCH
+# UPDATE FILES
 #
 
 if [ $AR_HAS_COMMIT == "0" ]; then
 	cd $AR_COMPS/arduino
-
-	# setup git for pushing
-	git config --global github.user "$GITHUB_ACTOR"
-	git config --global user.name "$GITHUB_ACTOR"
-	git config --global user.email "$GITHUB_ACTOR@github.com"
-
-	# create or checkout the branch
-	if [ ! $AR_HAS_BRANCH == "0" ]; then
-		echo "Switching to branch '$AR_NEW_BRANCH_NAME'..."
-		git checkout $AR_NEW_BRANCH_NAME
-	else
-		echo "Creating branch '$AR_NEW_BRANCH_NAME'..."
-		git checkout -b $AR_NEW_BRANCH_NAME
-	fi
-	if [ $? -ne 0 ]; then
-	    echo "ERROR: Checkour of branch '$AR_NEW_BRANCH_NAME' failed"
-		exit 1
-	fi
 
 	# make changes to the files
 	echo "Patching files in branch '$AR_NEW_BRANCH_NAME'..."

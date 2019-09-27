@@ -7,6 +7,10 @@ if ! [ -x "$(command -v $SED)" ]; then
   	exit 1
 fi
 
+#
+# CLONE ESP-IDF
+#
+
 if [ -z "$IDF_PATH" ]; then
 	echo "ESP-IDF is not installed! Installing local copy"
 	idf_was_installed="1"
@@ -17,12 +21,16 @@ if [ -z "$IDF_PATH" ]; then
 fi
 
 if [ "$IDF_COMMIT" ]; then
-    git -C $IDF_PATH checkout $IDF_COMMIT
+    git -C "$IDF_PATH" checkout "$IDF_COMMIT"
     commit_predefined="1"
 fi
 
-export IDF_COMMIT=$(git -C $IDF_PATH rev-parse --short HEAD)
-export IDF_BRANCH=$(git -C $IDF_PATH symbolic-ref --short HEAD)
+export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
+export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD)
+
+#
+# SETUP ARDUINO DEPLOY
+#
 
 if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "repository_dispatch" -a "$GITHUB_EVENT_ACTION" == "deploy" ]; then
 	# format new branch name and pr title
@@ -53,6 +61,24 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 		echo "PR '$AR_NEW_PR_TITLE' Already Exists"
 	fi
 
+	# setup git for pushing
+	git config --global github.user "$GITHUB_ACTOR"
+	git config --global user.name "$GITHUB_ACTOR"
+	git config --global user.email "$GITHUB_ACTOR@github.com"
+
+	# create or checkout the branch
+	if [ ! $AR_HAS_BRANCH == "0" ]; then
+		echo "Switching to arduino branch '$AR_NEW_BRANCH_NAME'..."
+		git -C "$AR_COMPS/arduino" checkout $AR_NEW_BRANCH_NAME
+	else
+		echo "Creating arduino branch '$AR_NEW_BRANCH_NAME'..."
+		git -C "$AR_COMPS/arduino" checkout -b $AR_NEW_BRANCH_NAME
+	fi
+	if [ $? -ne 0 ]; then
+	    echo "ERROR: Checkout of branch '$AR_NEW_BRANCH_NAME' failed"
+		exit 1
+	fi
+
 	export AR_NEW_BRANCH_NAME
 	export AR_NEW_COMMIT_MESSAGE
 	export AR_NEW_PR_TITLE
@@ -62,6 +88,10 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 	export AR_HAS_PR
 fi
 
+#
+# UPDATE IDF MODULES
+#
+
 if [ -x $idf_was_installed ]; then
 	git -C $IDF_PATH fetch origin && git -C $IDF_PATH pull origin $IDF_BRANCH
 	git -C $IDF_PATH submodule update --init --recursive
@@ -69,6 +99,10 @@ else
 	git -C $IDF_PATH submodule update --init --recursive
 	cd $IDF_PATH && python -m pip install -r requirements.txt && cd "$AR_ROOT"
 fi
+
+#
+# INSTALL TOOLCHAIN
+#
 
 if ! [ -x "$(command -v $IDF_TOOLCHAIN-gcc)" ]; then
   	echo "GCC toolchain is not installed! Installing local copy"

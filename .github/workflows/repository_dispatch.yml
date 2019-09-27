@@ -6,7 +6,6 @@ jobs:
   run:
     name: Dispatch Event
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v1
     - name: Install dependencies
@@ -17,3 +16,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
       run: bash ./tools/repository_dispatch.sh
+    - name: Upload archive
+      uses: actions/upload-artifact@v1
+      with:
+        name: artifacts
+        path: dist

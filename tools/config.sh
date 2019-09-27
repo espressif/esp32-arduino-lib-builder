@@ -13,7 +13,7 @@ if [ -z $IDF_BRANCH ]; then
 fi
 
 # Owner of the target ESP32 Arduino repository
-AR_USER="me-no-dev"
+AR_USER="espressif"
 
 # The full name of the repository
 AR_REPO="$AR_USER/arduino-esp32"

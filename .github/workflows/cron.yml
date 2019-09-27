@@ -32,8 +32,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
         IDF_BRANCH: ${{ matrix.idf_branch }}
       run: bash ./tools/cron.sh
-#     - name: Upload archive
-#       uses: actions/upload-artifact@v1
-#       with:
-#         name: arduino-libs
-#         path: dist
+    - name: Upload archive
+      uses: actions/upload-artifact@v1
+      with:
+        name: artifacts
+        path: dist
