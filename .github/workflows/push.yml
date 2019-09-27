@@ -6,7 +6,6 @@ on:
     - master
     - release/*
   pull_request:
-  repository_dispatch:
 
 jobs:
 
@@ -20,11 +19,9 @@ jobs:
     - name: Install Python Wheel
       run: pip install wheel
     - name: Build Arduino Libs
-      env:
-        TRAVIS_BUILD_DIR: ${{ github.workspace }}
-      run: bash $TRAVIS_BUILD_DIR/build.sh
-    - name: Archive libs
+      run: bash ./build.sh
+    - name: Upload archive
       uses: actions/upload-artifact@v1
       with:
-        name: arduino-libs
+        name: artifacts
         path: dist
