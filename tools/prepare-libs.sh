@@ -143,8 +143,7 @@ cp $IDF_COMPS/partition_table/gen_esp32part.py $AR_GEN_PART_PY
 mkdir -p $AR_SDK/ld && find $IDF_COMPS/esp32/ld -name '*.ld' -exec cp -f {} $AR_SDK/ld/ \;
 
 # ld script
-cp -f build/esp32/esp32_out.ld $AR_SDK/ld/
-#cp -f build/esp32/esp32.common.ld $AR_SDK/ld/
+cp -f build/esp32/*.ld $AR_SDK/ld/
 
 # Add IDF versions to sdkconfig
 echo "#define CONFIG_ARDUINO_IDF_COMMIT \"$IDF_COMMIT\"" >> $AR_SDK/include/config/sdkconfig.h
