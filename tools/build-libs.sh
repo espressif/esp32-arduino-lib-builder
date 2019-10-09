@@ -15,5 +15,6 @@ $SED -i '/CONFIG_ESP32_DEFAULT_CPU_FREQ_240/c\CONFIG_ESP32_DEFAULT_CPU_FREQ_240=
 $SED -i '/CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ/c\CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ=240' ./sdkconfig
 
 # make the example
+make defconfig
 make -j8 #fixes make issue where build fails in arduino core subfolder
 make -j8 idf-libs || exit 1
