@@ -22,6 +22,7 @@ $SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=' ./sdkconfig
 echo "******** BUILDING BOOTLOADER QIO 80MHz *******"
+make defconfig
 make -j8 bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_qio_80m.bin
 
@@ -30,6 +31,7 @@ $SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=y' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=' ./sdkconfig
 echo "******** BUILDING BOOTLOADER QOUT 80MHz *******"
+make defconfig
 make -j8 bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_qout_80m.bin
 
@@ -40,6 +42,7 @@ $SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=y' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=' ./sdkconfig
 echo "******** BUILDING BOOTLOADER DIO 80MHz *******"
+make defconfig
 make -j8 bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_dio_80m.bin
 
@@ -48,6 +51,7 @@ $SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=y' ./sdkconfig
 echo "******** BUILDING BOOTLOADER DOUT 80MHz *******"
+make defconfig
 make -j8 bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_dout_80m.bin
 
@@ -62,6 +66,7 @@ $SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=' ./sdkconfig
 echo "******** BUILDING BOOTLOADER QIO 40MHz *******"
+make defconfig
 make -j8 bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_qio_40m.bin
 
@@ -70,6 +75,7 @@ $SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=y' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=' ./sdkconfig
 echo "******** BUILDING BOOTLOADER QOUT 40MHz *******"
+make defconfig
 make -j8 bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_qout_40m.bin
 
@@ -80,6 +86,7 @@ $SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=y' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=' ./sdkconfig
 echo "******** BUILDING BOOTLOADER DIO 40MHz *******"
+make defconfig
 make -j8 bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_dio_40m.bin
 
@@ -88,6 +95,7 @@ $SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=' ./sdkconfig
 $SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=y' ./sdkconfig
 echo "******** BUILDING BOOTLOADER DOUT 40MHz *******"
+make defconfig
 make -j8 bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_dout_40m.bin
 
