@@ -16,7 +16,7 @@ cat pio_start.txt > "$AR_PLATFORMIO_PY"
 rm pio_end.txt 1pio_start.txt 2pio_start.txt pio_start.txt
 
 # include dirs
-AR_INC="-DESP_PLATFORM -DMBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\" -DHAVE_CONFIG_H \"-I{compiler.sdk.path}/include/config\""
+AR_INC="-DESP_PLATFORM -DMBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\" -DHAVE_CONFIG_H -DGCC_NOT_5_2_0=0 -DWITH_POSIX \"-I{compiler.sdk.path}/include/config\""
 echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY" && echo "       join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"include\", \"config\")," >> "$AR_PLATFORMIO_PY"
 while [ "$1" != "" ]; do
 	cpath=$1

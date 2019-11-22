@@ -1,0 +1,23 @@
+name: Remote Trigger
+
+on: repository_dispatch
+
+jobs:
+  run:
+    name: Dispatch Event
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install dependencies
+      run: sudo apt-get install git wget curl libssl-dev libncurses-dev flex bison gperf python python-pip python-setuptools python-serial python-click python-cryptography python-future python-pyparsing python-pyelftools cmake ninja-build ccache
+    - name: Install Python Wheel
+      run: pip install wheel
+    - name: Handle Event
+      env:
+        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+      run: bash ./tools/repository_dispatch.sh
+    - name: Upload archive
+      uses: actions/upload-artifact@v1
+      with:
+        name: artifacts
+        path: dist

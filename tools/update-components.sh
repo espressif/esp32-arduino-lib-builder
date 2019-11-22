@@ -2,29 +2,39 @@
 
 source ./tools/config.sh
 
-cd "$AR_COMPS"
+#
+# CLONE/UPDATE ARDUINO
+#
 
-if [ ! -d "arduino" ]; then
-	git clone $AR_REPO arduino
+if [ ! -d "$AR_COMPS/arduino" ]; then
+	git clone $AR_REPO_URL "$AR_COMPS/arduino"
+else
+	git -C "$AR_COMPS/arduino" fetch origin && \
+	git -C "$AR_COMPS/arduino" pull origin master
 fi
+if [ $? -ne 0 ]; then exit 1; fi
+git -C "$AR_COMPS/arduino" submodule update --init --recursive
 
-if [ ! -d "esp32-camera" ]; then
-	git clone $CAMERA_REPO
+#
+# CLONE/UPDATE ESP32-CAMERA
+#
+
+if [ ! -d "$AR_COMPS/esp32-camera" ]; then
+	git clone $CAMERA_REPO_URL "$AR_COMPS/esp32-camera"
+else
+	git -C "$AR_COMPS/esp32-camera" fetch origin && \
+	git -C "$AR_COMPS/esp32-camera" pull origin master
 fi
+if [ $? -ne 0 ]; then exit 1; fi
 
-if [ ! -d "esp-face" ]; then
-	git clone $FACE_REPO
+#
+# CLONE/UPDATE ESP-FACE
+#
+
+if [ ! -d "$AR_COMPS/esp-face" ]; then
+	git clone $FACE_REPO_URL "$AR_COMPS/esp-face"
+else
+	git -C "$AR_COMPS/esp-face" fetch origin && \
+	git -C "$AR_COMPS/esp-face" pull origin master
 fi
-
-cd "$AR_ROOT"
-
-for component in `ls components`; do
-	cd "$AR_COMPS/$component"
-	if [ -d ".git" ]; then
-		git fetch origin && git pull origin master
-	fi
-done
-
-cd "$AR_COMPS/arduino"
-git submodule update --init --recursive
-cd "$AR_ROOT"
+if [ $? -ne 0 ]; then exit 1; fi
