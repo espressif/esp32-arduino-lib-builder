@@ -20,7 +20,7 @@ jobs:
     
     strategy:
       matrix:
-        idf_branch: [release/v3.2]
+        idf_branch: [release/v3.3]
     steps:
     - uses: actions/checkout@v1
     - name: Install dependencies
