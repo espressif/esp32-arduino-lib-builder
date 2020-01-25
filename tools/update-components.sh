@@ -13,7 +13,7 @@ else
 	git -C "$AR_COMPS/arduino" pull origin master
 fi
 if [ $? -ne 0 ]; then exit 1; fi
-git -C "$AR_COMPS/arduino" submodule update --init --recursive
+#git -C "$AR_COMPS/arduino" submodule update --init --recursive
 
 #
 # CLONE/UPDATE ESP32-CAMERA
