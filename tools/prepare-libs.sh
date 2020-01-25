@@ -16,7 +16,7 @@ cat pio_start.txt > "$AR_PLATFORMIO_PY"
 rm pio_end.txt 1pio_start.txt 2pio_start.txt pio_start.txt
 
 # include dirs
-AR_INC="-DESP_PLATFORM -DMBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\" -DHAVE_CONFIG_H -DGCC_NOT_5_2_0=0 -DWITH_POSIX \"-I{compiler.sdk.path}/include/config\""
+AR_INC="-DESP_PLATFORM -D_GNU_SOURCE -DGCC_NOT_5_2_0=1 -DMBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\" -DHAVE_CONFIG_H \"-I{compiler.sdk.path}/include/config\""
 echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY" && echo "       join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"include\", \"config\")," >> "$AR_PLATFORMIO_PY"
 while [ "$1" != "" ]; do
 	cpath=$1
@@ -141,6 +141,7 @@ cp $IDF_COMPS/partition_table/gen_esp32part.py $AR_GEN_PART_PY
 
 # idf ld scripts
 mkdir -p $AR_SDK/ld && find $IDF_COMPS/esp32/ld -name '*.ld' -exec cp -f {} $AR_SDK/ld/ \;
+mkdir -p $AR_SDK/ld && find $IDF_COMPS/esp_rom/esp32/ld -name '*.ld' -exec cp -f {} $AR_SDK/ld/ \;
 
 # ld script
 cp -f build/esp32/*.ld $AR_SDK/ld/
