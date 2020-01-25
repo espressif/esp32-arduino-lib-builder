@@ -87,6 +87,12 @@ done
 cp build/bootloader_support/libbootloader_support.a $AR_SDK/lib/
 cp build/micro-ecc/libmicro-ecc.a $AR_SDK/lib/
 
+# remove libc.a (use the one in the toolchain)
+rm -rf $AR_SDK/lib/libc.a
+
+# remove libc_nano.a (use libc.a the toolchain)
+rm -rf $AR_SDK/lib/libc_nano.a
+
 # remove liblib.a from esp-face (empty and causing issues on Windows)
 rm -rf $AR_SDK/lib/liblib.a
 
@@ -98,7 +104,7 @@ for lib in `find . -name '*.a'`; do
     AR_LIBS+="-l"$(basename ${lib:5} .a)" "
     PIO_LIBS+=", \"-l"$(basename ${lib:5} .a)"\""
 done
-PIO_LIBS+=", \"-lstdc++\""
+PIO_LIBS+=", \"-lc\", \"-lstdc++\""
 cd "$AR_ROOT"
 
 echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
@@ -125,7 +131,7 @@ rm 1platform_start.txt
 cat platform_start.txt > "$AR_PLATFORM_TXT"
 echo "compiler.cpreprocessor.flags=$AR_INC" >> "$AR_PLATFORM_TXT"
 cat platform_mid.txt >> "$AR_PLATFORM_TXT"
-echo "compiler.c.elf.libs=-lgcc $AR_LIBS -lstdc++" >> "$AR_PLATFORM_TXT"
+echo "compiler.c.elf.libs=-lgcc $AR_LIBS -lc -lstdc++" >> "$AR_PLATFORM_TXT"
 cat 1platform_mid.txt >> "$AR_PLATFORM_TXT"
 rm platform_start.txt platform_mid.txt 1platform_mid.txt
 
