@@ -1,16 +1,20 @@
 #!/bin/bash
 source ./tools/config.sh
 
-if [[ "$AR_OS" == "macos" ]]; then
-	ESP32_ARDUINO="$HOME/Documents/Arduino/hardware/espressif/esp32"
-else
-	ESP32_ARDUINO="$HOME/Arduino/hardware/espressif/esp32"
+if [ -z $ESP32_ARDUINO ]; then
+    if [[ "$AR_OS" == "macos" ]]; then
+    	ESP32_ARDUINO="$HOME/Documents/Arduino/hardware/espressif/esp32"
+    else
+    	ESP32_ARDUINO="$HOME/Arduino/hardware/espressif/esp32"
+    fi
 fi
 
 if ! [ -d "$ESP32_ARDUINO" ]; then
 	echo "ERROR: Target arduino folder does not exist!"
 	exit 1
 fi
+
+echo "Installing new libraries to $ESP32_ARDUINO"
 
 rm -rf $ESP32_ARDUINO/tools/sdk
 cp -Rf $AR_SDK $ESP32_ARDUINO/tools/sdk
