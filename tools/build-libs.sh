@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 #remove previous build
 rm -rf ./out ./build
