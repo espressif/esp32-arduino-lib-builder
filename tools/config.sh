@@ -12,8 +12,11 @@ if [ -z $IDF_BRANCH ]; then
 	IDF_BRANCH="release/v4.0"
 fi
 
+if [ -z $AR ]; then
+    AR="idf-release"
+fi
 # Owner of the target ESP32 Arduino repository
-AR_USER="espressif"
+AR_USER="sweetymhaiske"
 
 # The full name of the repository
 AR_REPO="$AR_USER/arduino-esp32"
@@ -21,6 +24,7 @@ AR_REPO="$AR_USER/arduino-esp32"
 IDF_REPO_URL="https://github.com/espressif/esp-idf.git"
 CAMERA_REPO_URL="https://github.com/espressif/esp32-camera.git"
 FACE_REPO_URL="https://github.com/espressif/esp-face.git"
+RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
 AR_REPO_URL="https://github.com/$AR_REPO.git"
 
 if [ -n $GITHUB_TOKEN ]; then

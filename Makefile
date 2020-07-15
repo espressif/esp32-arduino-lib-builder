@@ -4,6 +4,14 @@ EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-face/lib
 EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-face/image_util
 EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-face/face_detection
 EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-face/face_recognition
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp_rmaker_core
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp_rmaker_ota
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/json_generator
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp_rmaker_mqtt
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp_rmaker_standard_types
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/json_parser
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/qrcode
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp_rmaker_console
 
 include $(IDF_PATH)/make/project.mk
 
