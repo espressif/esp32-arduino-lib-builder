@@ -9,7 +9,7 @@ IDF_TOOLCHAIN_WIN32="https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_2_0-esp-2
 IDF_TOOLCHAIN_MACOS="https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_2_0-esp-2019r2-macos.tar.gz"
 
 if [ -z $IDF_BRANCH ]; then
-	IDF_BRANCH="release/v4.0"
+	IDF_BRANCH="master"
 fi
 
 # Owner of the target ESP32 Arduino repository
@@ -21,6 +21,7 @@ AR_REPO="$AR_USER/arduino-esp32"
 IDF_REPO_URL="https://github.com/espressif/esp-idf.git"
 CAMERA_REPO_URL="https://github.com/espressif/esp32-camera.git"
 FACE_REPO_URL="https://github.com/espressif/esp-face.git"
+RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
 AR_REPO_URL="https://github.com/$AR_REPO.git"
 
 if [ -n $GITHUB_TOKEN ]; then
@@ -104,4 +105,3 @@ function git_create_pr(){ # git_create_pr <branch> <title>
 	local done_pr=`echo "$git_create_pr_res" | jq -r '.title'`
 	if [ ! "$done_pr" == "" ] && [ ! "$done_pr" == "null" ]; then echo 1; else echo 0; fi
 }
-
