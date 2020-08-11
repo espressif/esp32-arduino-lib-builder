@@ -38,3 +38,15 @@ else
 	git -C "$AR_COMPS/esp-face" pull origin master
 fi
 if [ $? -ne 0 ]; then exit 1; fi
+
+#
+# CLONE/UPDATE RAINMAKER
+#
+
+if [ ! -d "$AR_COMPS/esp-rainmaker" ]; then
+	git clone $RMAKER_REPO_URL "$AR_COMPS/esp-rainmaker"
+else
+	git -C "$AR_COMPS/esp-rainmaker" fetch origin && \
+	git -C "$AR_COMPS/esp-rainmaker" pull origin master
+fi
+if [ $? -ne 0 ]; then exit 1; fi

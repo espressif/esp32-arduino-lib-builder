@@ -4,6 +4,10 @@ EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-face/lib
 EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-face/image_util
 EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-face/face_detection
 EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-face/face_recognition
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-rainmaker/components/esp_rainmaker
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-rainmaker/components/json_generator
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-rainmaker/components/json_parser
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-rainmaker/components/qrcode
 
 include $(IDF_PATH)/make/project.mk
 
