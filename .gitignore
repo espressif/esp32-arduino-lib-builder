@@ -8,3 +8,5 @@ out/
 build/
 xtensa-esp32-elf/
 dist/
+env.sh
+sdkconfig

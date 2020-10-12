@@ -1,16 +1,23 @@
 #!/bin/bash
 
 IDF_COMPS="$IDF_PATH/components"
-IDF_TOOLCHAIN="xtensa-esp32-elf"
-IDF_TOOLCHAIN_LINUX_ARMEL="https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_2_0-esp-2019r2-linux-armel.tar.gz"
-IDF_TOOLCHAIN_LINUX32="https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_2_0-esp-2019r2-linux-i686.tar.gz"
-IDF_TOOLCHAIN_LINUX64="https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_2_0-esp-2019r2-linux-amd64.tar.gz"
-IDF_TOOLCHAIN_WIN32="https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_2_0-esp-2019r2-win32.zip"
-IDF_TOOLCHAIN_MACOS="https://dl.espressif.com/dl/xtensa-esp32-elf-gcc8_2_0-esp-2019r2-macos.tar.gz"
 
 if [ -z $IDF_BRANCH ]; then
-	IDF_BRANCH="release/v4.0"
+	IDF_BRANCH="release/v4.2"
 fi
+
+if [ -z $IDF_TARGET ]; then
+	if [ -f sdkconfig ]; then
+		IDF_TARGET=`cat sdkconfig | grep CONFIG_IDF_TARGET= | cut -d'"' -f2`
+		if [ "$IDF_TARGET" = "" ]; then
+			IDF_TARGET="esp32"
+		fi
+	else
+		IDF_TARGET="esp32"
+	fi
+fi
+
+IDF_TOOLCHAIN="xtensa-$IDF_TARGET-elf"
 
 # Owner of the target ESP32 Arduino repository
 AR_USER="espressif"
@@ -32,10 +39,9 @@ AR_COMPS="$AR_ROOT/components"
 AR_OUT="$AR_ROOT/out"
 AR_TOOLS="$AR_OUT/tools"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
-AR_PLATFORMIO_PY="$AR_TOOLS/platformio-build.py"
 AR_ESPTOOL_PY="$AR_TOOLS/esptool.py"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
-AR_SDK="$AR_TOOLS/sdk"
+AR_SDK="$AR_TOOLS/sdk/$IDF_TARGET"
 
 function get_os(){
   	OSBITS=`arch`
