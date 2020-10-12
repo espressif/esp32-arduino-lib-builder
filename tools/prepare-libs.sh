@@ -76,7 +76,9 @@ for item in "${@:2:${#@}-5}"; do
 			INCLUDES+="$item "
 		fi
 	elif [ "$prefix" = "-D" ]; then
-		DEFINES+="$item "
+		if [[ "${item:2:7}" != "ARDUINO" ]] && [[ "$item" != "-DESP32" ]]; then #skip ARDUINO defines
+			DEFINES+="$item "
+		fi
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
 		C_FLAGS+="$item "
 	fi
@@ -335,22 +337,20 @@ echo "    CPPDEFINES=[" >> "$AR_PLATFORMIO_PY"
 set -- $DEFINES
 for item; do
 	item="${item:2}" #remove -D
-	if [[ "${item:0:7}" != "ARDUINO" ]] && [[ "$item" != "ESP32" ]]; then #skip ARDUINO defines
-		if [[ $item == *"="* ]]; then
-			item=(${item//=/ })
-			re='^[+-]?[0-9]+([.][0-9]+)?$'
-			if [[ ${item[1]} =~ $re ]]; then
-				echo "        (\"${item[0]}\", ${item[1]})," >> "$AR_PLATFORMIO_PY"
-			else
-				echo "        (\"${item[0]}\", '${item[1]}')," >> "$AR_PLATFORMIO_PY"
-			fi
+	if [[ $item == *"="* ]]; then
+		item=(${item//=/ })
+		re='^[+-]?[0-9]+([.][0-9]+)?$'
+		if [[ ${item[1]} =~ $re ]]; then
+			echo "        (\"${item[0]}\", ${item[1]})," >> "$AR_PLATFORMIO_PY"
 		else
-			echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+			echo "        (\"${item[0]}\", '${item[1]}')," >> "$AR_PLATFORMIO_PY"
 		fi
+	else
+		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
 	fi
 done
 
-# remobe backslashes for Arduino
+# remove backslashes for Arduino
 DEFINES=`echo "$DEFINES" | tr -d '\\'`
 
 
