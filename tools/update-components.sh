@@ -8,6 +8,9 @@ source ./tools/config.sh
 
 if [ ! -d "$AR_COMPS/arduino" ]; then
 	git clone $AR_REPO_URL "$AR_COMPS/arduino"
+	if [ "$AR_BRANCH" ]; then
+		git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH"
+	fi
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 

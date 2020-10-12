@@ -11,6 +11,7 @@ payload=`echo "$EVENT_JSON" | jq -r '.client_payload'`
 branch=`echo "$payload" | jq -r '.branch'`
 commit=`echo "$payload" | jq -r '.commit'`
 builder=`echo "$payload" | jq -r '.builder'`
+arduino=`echo "$payload" | jq -r '.arduino'`
 
 echo "Action: $action, Branch: $branch, Commit: $commit, Builder: $builder"
 
@@ -32,6 +33,10 @@ fi
 
 if [ ! "$builder" == "" ] && [ ! "$builder" == "null" ]; then
     git checkout "$builder"
+fi
+
+if [ ! "$arduino" == "" ] && [ ! "$arduino" == "null" ]; then
+    export AR_BRANCH="$arduino"
 fi
 
 source ./build.sh
