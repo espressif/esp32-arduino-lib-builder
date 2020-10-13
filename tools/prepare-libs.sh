@@ -268,38 +268,41 @@ AR_INC=""
 echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY"
 
 set -- $INCLUDES
+
 for item; do
-	ipath="$item"
-	fname=`basename "$ipath"`
-	dname=`basename $(dirname "$ipath")`
-	while [[ "$dname" != "components" && "$dname" != "build" ]]; do
-		ipath=`dirname "$ipath"`
+	if [[ "$item" != $PWD ]]; then
+		ipath="$item"
 		fname=`basename "$ipath"`
 		dname=`basename $(dirname "$ipath")`
-	done
+		while [[ "$dname" != "components" && "$dname" != "build" ]]; do
+			ipath=`dirname "$ipath"`
+			fname=`basename "$ipath"`
+			dname=`basename $(dirname "$ipath")`
+		done
 
-	out_sub="${item#*$ipath}"
-	out_cpath="$AR_SDK/include/$fname$out_sub"
-	AR_INC+=" \"-I{compiler.sdk.path}/include/$fname$out_sub\""
-	if [ "$out_sub" = "" ]; then
-		echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
-	else
-		pio_sub="${out_sub:1}"
-		pio_sub=`echo $pio_sub | sed 's/\//\\", \\"/g'`
-		echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
+		out_sub="${item#*$ipath}"
+		out_cpath="$AR_SDK/include/$fname$out_sub"
+		AR_INC+=" \"-I{compiler.sdk.path}/include/$fname$out_sub\""
+		if [ "$out_sub" = "" ]; then
+			echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
+		else
+			pio_sub="${out_sub:1}"
+			pio_sub=`echo $pio_sub | sed 's/\//\\", \\"/g'`
+			echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
+		fi
+		for f in `find "$item" -name '*.h'`; do
+			rel_f=${f#*$item}
+			rel_p=${rel_f%/*}
+			mkdir -p "$out_cpath$rel_p"
+			cp -n $f "$out_cpath$rel_p/"
+		done
+		for f in `find "$item" -name '*.hpp'`; do
+			rel_f=${f#*$item}
+			rel_p=${rel_f%/*}
+			mkdir -p "$out_cpath$rel_p"
+			cp -n $f "$out_cpath$rel_p/"
+		done
 	fi
-	for f in `find "$item" -name '*.h'`; do
-		rel_f=${f#*$item}
-		rel_p=${rel_f%/*}
-		mkdir -p "$out_cpath$rel_p"
-		cp -n $f "$out_cpath$rel_p/"
-	done
-	for f in `find "$item" -name '*.hpp'`; do
-		rel_f=${f#*$item}
-		rel_p=${rel_f%/*}
-		mkdir -p "$out_cpath$rel_p"
-		cp -n $f "$out_cpath$rel_p/"
-	done
 done
 echo "        join(FRAMEWORK_DIR, \"cores\", env.BoardConfig().get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
