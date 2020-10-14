@@ -1,4 +1,3 @@
-sdkconfig.old
 .DS_Store
 .vscode
 components/arduino/
@@ -7,7 +6,8 @@ components/esp32-camera/
 esp-idf/
 out/
 build/
-xtensa-esp32-elf/
 dist/
 env.sh
 sdkconfig
+sdkconfig.old
+version.txt

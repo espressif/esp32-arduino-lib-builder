@@ -22,6 +22,8 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 TARGETS="esp32s2 esp32"
 
+echo $(git -C $AR_COMPS/arduino describe --all --long) > version.txt
+
 rm -rf out build sdkconfig sdkconfig.old
 
 for target in $TARGETS; do
