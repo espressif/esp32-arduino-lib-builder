@@ -11,6 +11,7 @@ if [ ! -d "$AR_COMPS/arduino" ]; then
 	if [ "$AR_BRANCH" ]; then
 		git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH"
 	fi
+    #git -C "$AR_COMPS/arduino" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
@@ -29,5 +30,15 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 if [ ! -d "$AR_COMPS/esp-face" ]; then
 	git clone $FACE_REPO_URL "$AR_COMPS/esp-face"
+fi
+if [ $? -ne 0 ]; then exit 1; fi
+
+#
+# CLONE/UPDATE ESP-LITTLEFS
+#
+
+if [ ! -d "$AR_COMPS/esp_littlefs" ]; then
+	git clone $LITTLEFS_REPO_URL "$AR_COMPS/esp_littlefs"
+    git -C "$AR_COMPS/esp_littlefs" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi

@@ -3,6 +3,7 @@
 components/arduino/
 components/esp-face/
 components/esp32-camera/
+components/esp_littlefs/
 esp-idf/
 out/
 build/
