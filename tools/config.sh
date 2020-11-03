@@ -30,6 +30,7 @@ CAMERA_REPO_URL="https://github.com/espressif/esp32-camera.git"
 FACE_REPO_URL="https://github.com/espressif/esp-face.git"
 LITTLEFS_REPO_URL="https://github.com/joltwallet/esp_littlefs.git"
 AR_REPO_URL="https://github.com/$AR_REPO.git"
+RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
 
 if [ -n $GITHUB_TOKEN ]; then
 	AR_REPO_URL="https://$GITHUB_TOKEN@github.com/$AR_REPO.git"

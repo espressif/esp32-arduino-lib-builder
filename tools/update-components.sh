@@ -42,3 +42,13 @@ if [ ! -d "$AR_COMPS/esp_littlefs" ]; then
     git -C "$AR_COMPS/esp_littlefs" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
+
+#
+# CLONE/UPDATE ESP-RAINMAKER
+#
+
+if [ ! -d "$AR_COMPS/esp-rainmaker" ]; then
+    git clone $RMAKER_REPO_URL "$AR_COMPS/esp-rainmaker"
+fi
+if [ $? -ne 0 ]; then exit 1; fi
+
