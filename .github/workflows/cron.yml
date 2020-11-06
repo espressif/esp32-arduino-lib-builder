@@ -20,7 +20,7 @@ jobs:
     
     strategy:
       matrix:
-        idf_branch: [release/v4.0]
+        idf_branch: [release/v3.3]
         #idf_branch: [release/v3.3, release/v4.0]
     steps:
     - uses: actions/checkout@v1
