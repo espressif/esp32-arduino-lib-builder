@@ -38,7 +38,7 @@ AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/sdk"
 
 function get_os(){
-  	OSBITS=`arch`
+  	OSBITS=`uname -m`
   	if [[ "$OSTYPE" == "linux"* ]]; then
         if [[ "$OSBITS" == "i686" ]]; then
         	echo "linux32"
