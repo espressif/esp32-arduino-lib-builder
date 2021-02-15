@@ -36,9 +36,9 @@ AR_PLATFORMIO_PY="$AR_TOOLS/platformio-build.py"
 AR_ESPTOOL_PY="$AR_TOOLS/esptool.py"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/sdk"
+OSBITS=`arch`
 
 function get_os(){
-  	OSBITS=`arch`
   	if [[ "$OSTYPE" == "linux"* ]]; then
         if [[ "$OSBITS" == "i686" ]]; then
         	echo "linux32"
@@ -62,13 +62,16 @@ function get_os(){
 }
 
 AR_OS=`get_os`
+echo "OSTYPE: $OSTYPE, OSBITS: $OSBITS, OS: $AR_OS"
 
+export AWK="awk"
 export SED="sed"
 export SSTAT="stat -c %s"
 
 if [[ "$AR_OS" == "macos" ]]; then
 	export SED="gsed"
 	export SSTAT="stat -f %z"
+	export AWK="gawk"
 fi
 
 function git_commit_exists(){ #git_commit_exists <repo-path> <commit-message>

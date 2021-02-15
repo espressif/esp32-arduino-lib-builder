@@ -9,8 +9,8 @@ fi
 mkdir -p "$AR_SDK"
 
 # start generation of platformio-build.py
-awk "/CPPPATH\=\[/{n++}{print>n\"pio_start.txt\"}" $AR_COMPS/arduino/tools/platformio-build.py
-awk "/LIBSOURCE_DIRS\=\[/{n++}{print>n\"pio_end.txt\"}" 1pio_start.txt
+$AWK "/CPPPATH\=\[/{n++}{print>n\"pio_start.txt\"}" $AR_COMPS/arduino/tools/platformio-build.py
+$AWK "/LIBSOURCE_DIRS\=\[/{n++}{print>n\"pio_end.txt\"}" 1pio_start.txt
 cat 2pio_start.txt >> 1pio_end.txt
 cat pio_start.txt > "$AR_PLATFORMIO_PY"
 rm pio_end.txt 1pio_start.txt 2pio_start.txt pio_start.txt
@@ -117,9 +117,9 @@ cat 1pio_end.txt >> "$AR_PLATFORMIO_PY"
 rm 1pio_end.txt
 
 # arduino platform.txt
-awk "/compiler.cpreprocessor.flags\=/{n++}{print>n\"platform_start.txt\"}" $AR_COMPS/arduino/platform.txt
+$AWK "/compiler.cpreprocessor.flags\=/{n++}{print>n\"platform_start.txt\"}" $AR_COMPS/arduino/platform.txt
 $SED -i '/compiler.cpreprocessor.flags\=/d' 1platform_start.txt
-awk "/compiler.c.elf.libs\=/{n++}{print>n\"platform_mid.txt\"}" 1platform_start.txt
+$AWK "/compiler.c.elf.libs\=/{n++}{print>n\"platform_mid.txt\"}" 1platform_start.txt
 $SED -i '/compiler.c.elf.libs\=/d' 1platform_mid.txt
 rm 1platform_start.txt
 cat platform_start.txt > "$AR_PLATFORM_TXT"

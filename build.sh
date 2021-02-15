@@ -35,6 +35,16 @@ if ! [ -x "$(command -v stat)" ]; then
   	exit 1
 fi
 
+awk="awk"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  awk="gawk"
+fi
+
+if ! [ -x "$(command -v $awk)" ]; then
+    echo "ERROR: $awk is not installed! Please install $awk first."
+    exit 1
+fi
+
 mkdir -p dist
 
 # update components from git
