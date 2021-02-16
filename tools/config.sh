@@ -36,7 +36,7 @@ AR_PLATFORMIO_PY="$AR_TOOLS/platformio-build.py"
 AR_ESPTOOL_PY="$AR_TOOLS/esptool.py"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/sdk"
-OSBITS=`arch`
+OSBITS=`uname -m`
 
 function get_os(){
   	if [[ "$OSTYPE" == "linux"* ]]; then
