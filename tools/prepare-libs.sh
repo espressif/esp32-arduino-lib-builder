@@ -99,6 +99,17 @@ for lib in `find . -name '*.a'`; do
     PIO_LIBS+=", \"-l"$(basename ${lib:5} .a)"\""
 done
 PIO_LIBS+=", \"-lstdc++\""
+
+# copy libs for psram workaround
+for lib in `find $IDF_COMPS/newlib/lib -name '*-psram-workaround.a'`; do
+    lsize=$($SSTAT "$lib")
+    if (( lsize > minlsize )); then
+        cp -f $lib $AR_SDK/lib/
+    else
+        echo "skipping $lib: size too small $lsize"
+    fi
+done
+
 cd "$AR_ROOT"
 
 echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
