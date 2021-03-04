@@ -21,31 +21,33 @@ echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY" && echo "       join(FRAMEWORK_DIR, 
 while [ "$1" != "" ]; do
 	cpath=$1
 	cname=$(echo $cpath| cut -d'/' -f 1)
-	if [ -d "$AR_COMPS/$cpath" ]; then
-		full_cpath="$AR_COMPS/$cpath"
-	else
-		full_cpath="$IDF_COMPS/$cpath"
+	if [ "$cname" != "nimble" ]; then
+		if [ -d "$AR_COMPS/$cpath" ]; then
+			full_cpath="$AR_COMPS/$cpath"
+		else
+			full_cpath="$IDF_COMPS/$cpath"
+		fi
+		out_cpath="$AR_SDK/include/$cname"
+		if [ ! -d $out_cpath ]; then
+			#first encounter of this component
+			AR_INC+=" \"-I{compiler.sdk.path}/include/$cname\""
+			echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"include\", \"$cname\")," >> "$AR_PLATFORMIO_PY"
+		fi
+		for f in `find $full_cpath -name '*.h'`; do
+			rel_f=${f#*$cpath/}
+			full_f=/$rel_f
+			rel_p=${full_f%/*}
+			mkdir -p "$out_cpath$rel_p"
+			cp -f $f "$out_cpath$rel_p/"
+		done
+		for f in `find $full_cpath -name '*.hpp'`; do
+			rel_f=${f#*$cpath/}
+			full_f=/$rel_f
+			rel_p=${full_f%/*}
+			mkdir -p "$out_cpath$rel_p"
+			cp -f $f "$out_cpath$rel_p/"
+		done
 	fi
-	out_cpath="$AR_SDK/include/$cname"
-	if [ ! -d $out_cpath ]; then
-		#first encounter of this component
-		AR_INC+=" \"-I{compiler.sdk.path}/include/$cname\""
-		echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"include\", \"$cname\")," >> "$AR_PLATFORMIO_PY"
-	fi
-	for f in `find $full_cpath -name '*.h'`; do
-		rel_f=${f#*$cpath/}
-		full_f=/$rel_f
-		rel_p=${full_f%/*}
-		mkdir -p "$out_cpath$rel_p"
-		cp -f $f "$out_cpath$rel_p/"
-	done
-	for f in `find $full_cpath -name '*.hpp'`; do
-		rel_f=${f#*$cpath/}
-		full_f=/$rel_f
-		rel_p=${full_f%/*}
-		mkdir -p "$out_cpath$rel_p"
-		cp -f $f "$out_cpath$rel_p/"
-	done
 	shift
 done
 echo "        join(FRAMEWORK_DIR, \"cores\", env.BoardConfig().get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
