@@ -25,9 +25,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install dependencies
-      run: sudo apt-get install git wget curl libssl-dev libncurses-dev flex bison gperf python python-pip python-setuptools python-serial python-click python-cryptography python-future python-pyparsing python-pyelftools cmake ninja-build ccache
-    - name: Install Python Wheel
-      run: pip install wheel
+      run: bash ./tools/prepare-ci.sh
     - name: Build
       env:
         GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
