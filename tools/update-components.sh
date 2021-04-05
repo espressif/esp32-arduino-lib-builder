@@ -17,6 +17,11 @@ if [ -z $AR_BRANCH ]; then
 	has_ar_branch=`git_branch_exists "$AR_COMPS/arduino" "idf-$IDF_BRANCH"`
 	if [ "$has_ar_branch" == "1" ]; then
 		export AR_BRANCH="idf-$IDF_BRANCH"
+	else
+		has_ar_branch=`git_branch_exists "$AR_COMPS/arduino" "$AR_PR_TARGET_BRANCH"`
+		if [ "$has_ar_branch" == "1" ]; then
+			export AR_BRANCH="$AR_PR_TARGET_BRANCH"
+		fi
 	fi
 fi
 
