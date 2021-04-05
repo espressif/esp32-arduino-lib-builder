@@ -14,9 +14,12 @@ if ! [ -d "$ESP32_ARDUINO" ]; then
 	exit 1
 fi
 
-rm -rf $ESP32_ARDUINO/tools/sdk
-cp -Rf $AR_SDK $ESP32_ARDUINO/tools/sdk
-cp -f $AR_ESPTOOL_PY $ESP32_ARDUINO/tools/esptool.py
-cp -f $AR_GEN_PART_PY $ESP32_ARDUINO/tools/gen_esp32part.py
-cp -f $AR_PLATFORMIO_PY $ESP32_ARDUINO/tools/platformio-build.py
-cp -f $AR_PLATFORM_TXT $ESP32_ARDUINO/platform.txt
+echo "Installing new libraries to $ESP32_ARDUINO"
+
+rm -rf $ESP32_ARDUINO/tools/sdk $ESP32_ARDUINO/tools/esptool.py $ESP32_ARDUINO/tools/gen_esp32part.py $ESP32_ARDUINO/tools/platformio-build-*.py $ESP32_ARDUINO/platform.txt
+
+cp -f $AR_OUT/platform.txt $ESP32_ARDUINO/
+cp -Rf $AR_TOOLS/sdk $ESP32_ARDUINO/tools/
+cp -f $AR_TOOLS/esptool.py $ESP32_ARDUINO/tools/
+cp -f $AR_TOOLS/gen_esp32part.py $ESP32_ARDUINO/tools/
+cp -f $AR_TOOLS/platformio-build-*.py $ESP32_ARDUINO/tools/

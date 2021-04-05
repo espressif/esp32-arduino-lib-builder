@@ -10,41 +10,6 @@ if ! [ -x "$(command -v git)" ]; then
   	exit 1
 fi
 
-if ! [ -x "$(command -v make)" ]; then
-  	echo "ERROR: Make is not installed! Please install Make first."
-  	exit 1
-fi
-
-if ! [ -x "$(command -v flex)" ]; then
-  	echo "ERROR: flex is not installed! Please install flex first."
-  	exit 1
-fi
-
-if ! [ -x "$(command -v bison)" ]; then
-  	echo "ERROR: bison is not installed! Please install bison first."
-  	exit 1
-fi
-
-if ! [ -x "$(command -v gperf)" ]; then
-  	echo "ERROR: gperf is not installed! Please install gperf first."
-  	exit 1
-fi
-
-if ! [ -x "$(command -v stat)" ]; then
-  	echo "ERROR: stat is not installed! Please install stat first."
-  	exit 1
-fi
-
-awk="awk"
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  awk="gawk"
-fi
-
-if ! [ -x "$(command -v $awk)" ]; then
-    echo "ERROR: $awk is not installed! Please install $awk first."
-    exit 1
-fi
-
 mkdir -p dist
 
 # update components from git
@@ -55,17 +20,27 @@ if [ $? -ne 0 ]; then exit 1; fi
 source ./tools/install-esp-idf.sh
 if [ $? -ne 0 ]; then exit 1; fi
 
-# build and prepare libs
-./tools/build-libs.sh
-if [ $? -ne 0 ]; then exit 1; fi
+TARGETS="esp32s2 esp32"
 
-# bootloader
-./tools/build-bootloaders.sh
-if [ $? -ne 0 ]; then exit 1; fi
+echo $(git -C $AR_COMPS/arduino describe --all --long) > version.txt
+
+rm -rf out build sdkconfig sdkconfig.old
+
+for target in $TARGETS; do
+	# configure the build for the target
+	rm -rf build sdkconfig sdkconfig.old
+	cp "sdkconfig.$target" sdkconfig
+	# build and prepare libs
+	idf.py build
+	if [ $? -ne 0 ]; then exit 1; fi
+	cp sdkconfig "sdkconfig.$target"
+	# build bootloaders
+	./tools/build-bootloaders.sh
+	if [ $? -ne 0 ]; then exit 1; fi
+done
 
 # archive the build
 ./tools/archive-build.sh
 if [ $? -ne 0 ]; then exit 1; fi
 
-# POST Build
 #./tools/copy-to-arduino.sh

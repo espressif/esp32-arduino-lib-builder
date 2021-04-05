@@ -1,4 +1,4 @@
-#!/bin/bash
+#/bin/bash
 
 source ./tools/config.sh
 
@@ -11,6 +11,7 @@ fi
 # CLONE ESP-IDF
 #
 
+IDF_REPO_URL="https://github.com/espressif/esp-idf.git"
 if [ -z "$IDF_PATH" ]; then
 	echo "ESP-IDF is not installed! Installing local copy"
 	idf_was_installed="1"
@@ -93,49 +94,10 @@ fi
 #
 
 if [ -x $idf_was_installed ]; then
-	git -C $IDF_PATH fetch origin && git -C $IDF_PATH pull origin $IDF_BRANCH
-	git -C $IDF_PATH submodule update --init --recursive
+	echo "ESP-IDF is already installed at: $IDF_PATH"
 else
 	git -C $IDF_PATH submodule update --init --recursive
 	cd $IDF_PATH && python -m pip install -r requirements.txt && cd "$AR_ROOT"
 fi
-
-#
-# INSTALL TOOLCHAIN
-#
-
-if ! [ -x "$(command -v $IDF_TOOLCHAIN-gcc)" ]; then
-  	echo "GCC toolchain is not installed! Installing local copy"
-
-  	if ! [ -d "$IDF_TOOLCHAIN" ]; then
-        TC_EXT="tar.gz"
-        if [[ "$AR_OS" == "win32" ]]; then
-            TC_EXT="zip"
-        fi
-  		if ! [ -f $IDF_TOOLCHAIN.$TC_EXT ]; then
-		  	if [[ "$AR_OS" == "linux32" ]]; then
-		  		TC_LINK="$IDF_TOOLCHAIN_LINUX32"
-		    elif [[ "$AR_OS" == "linux64" ]]; then
-		    	TC_LINK="$IDF_TOOLCHAIN_LINUX64"
-		    elif [[ "$AR_OS" == "linux-armel" ]]; then
-		    	TC_LINK="$IDF_TOOLCHAIN_LINUX_ARMEL"
-			elif [[ "$AR_OS" == "macos" ]]; then
-			    TC_LINK="$IDF_TOOLCHAIN_MACOS"
-			elif [[ "$AR_OS" == "win32" ]]; then
-			    TC_LINK="$IDF_TOOLCHAIN_WIN32"
-			else
-			    echo "Unsupported OS $OSTYPE"
-			    exit 1
-			fi
-            echo "Downloading $TC_LINK"
-			curl -k -o $IDF_TOOLCHAIN.$TC_EXT $TC_LINK || exit 1
-  		fi
-        if [[ "$AR_OS" == "win32" ]]; then
-            unzip $IDF_TOOLCHAIN.$TC_EXT || exit 1
-        else
-            tar zxf $IDF_TOOLCHAIN.$TC_EXT || exit 1
-        fi
-        rm -rf $IDF_TOOLCHAIN.$TC_EXT
-  	fi
-  	export PATH="$AR_ROOT/$IDF_TOOLCHAIN/bin:$PATH"
-fi
+$IDF_PATH/install.sh
+source $IDF_PATH/export.sh
