@@ -12,6 +12,10 @@ if [ -z $IDF_BRANCH ]; then
 	IDF_BRANCH="release/v3.3"
 fi
 
+if [ -z $AR_PR_TARGET_BRANCH ]; then
+	AR_PR_TARGET_BRANCH="release/v1.0"
+fi
+
 # Owner of the target ESP32 Arduino repository
 AR_USER="espressif"
 
@@ -96,13 +100,14 @@ function git_pr_exists(){ # git_pr_exists <branch-name>
 function git_create_pr(){ # git_create_pr <branch> <title>
 	local pr_branch="$1"
 	local pr_title="$2"
+	local pr_target="$3"
 	local pr_body=""
 	for component in `ls "$AR_COMPS"`; do
 		if [ ! $component == "arduino" ] && [ -d "$AR_COMPS/$component/.git" ]; then
 			pr_body+="$component: "$(git -C "$AR_COMPS/$component" symbolic-ref --short HEAD)" "$(git -C "$AR_COMPS/$component" rev-parse --short HEAD)"\r\n"
 		fi
 	done
-	local pr_data="{\"title\": \"$pr_title\", \"body\": \"$pr_body\", \"head\": \"$AR_USER:$pr_branch\", \"base\": \"master\"}"
+	local pr_data="{\"title\": \"$pr_title\", \"body\": \"$pr_body\", \"head\": \"$AR_USER:$pr_branch\", \"base\": \"$pr_target\"}"
 	git_create_pr_res=`echo "$pr_data" | curl -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" --data @- "https://api.github.com/repos/$AR_REPO/pulls"`
 	local done_pr=`echo "$git_create_pr_res" | jq -r '.title'`
 	if [ ! "$done_pr" == "" ] && [ ! "$done_pr" == "null" ]; then echo 1; else echo 0; fi
