@@ -108,7 +108,7 @@ uint8_t fb_gfx_putc(fb_data_t *fb, int32_t x, int32_t y, uint32_t color, unsigne
     return xa;
 }
 
-uint32_t fb_gfx_print(fb_data_t *fb, int x, int y, uint32_t color, const char * str)
+uint32_t fb_gfx_print(fb_data_t *fb, int32_t x, int32_t y, uint32_t color, const char * str)
 {
     uint32_t l = 0;
     int xc = x, yc = y, lc = fb->width - gfxFont->glyph[0].xAdvance;
