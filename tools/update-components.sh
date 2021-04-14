@@ -55,6 +55,10 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 if [ ! -d "$AR_COMPS/esp-face" ]; then
 	git clone $FACE_REPO_URL "$AR_COMPS/esp-face"
+	cml=`cat "$AR_COMPS/esp-face/CMakeLists.txt"`
+	echo "if(IDF_TARGET STREQUAL \"esp32\" OR IDF_TARGET STREQUAL \"esp32s2\" OR IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-face/CMakeLists.txt"
+	echo "$cml" >> "$AR_COMPS/esp-face/CMakeLists.txt"
+	echo "endif()" >> "$AR_COMPS/esp-face/CMakeLists.txt"
 else
 	git -C "$AR_COMPS/esp-face" fetch && \
 	git -C "$AR_COMPS/esp-face" pull --ff-only
@@ -91,6 +95,10 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 if [ ! -d "$AR_COMPS/esp-dsp" ]; then
 	git clone $DSP_REPO_URL "$AR_COMPS/esp-dsp"
+	cml=`cat "$AR_COMPS/esp-dsp/CMakeLists.txt"`
+	echo "if(IDF_TARGET STREQUAL \"esp32\" OR IDF_TARGET STREQUAL \"esp32s2\" OR IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-dsp/CMakeLists.txt"
+	echo "$cml" >> "$AR_COMPS/esp-dsp/CMakeLists.txt"
+	echo "endif()" >> "$AR_COMPS/esp-dsp/CMakeLists.txt"
 else
 	git -C "$AR_COMPS/esp-dsp" fetch && \
 	git -C "$AR_COMPS/esp-dsp" pull --ff-only

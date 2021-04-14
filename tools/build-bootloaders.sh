@@ -18,27 +18,33 @@ elif [ "$IDF_TARGET" = "esp32s2" ]; then
 	$SED -i '/CONFIG_ESP32S2_DEFAULT_CPU_FREQ_160/c\CONFIG_ESP32S2_DEFAULT_CPU_FREQ_160 is not set' ./sdkconfig
 	$SED -i '/CONFIG_ESP32S2_DEFAULT_CPU_FREQ_240/c\# CONFIG_ESP32S2_DEFAULT_CPU_FREQ_240=y' ./sdkconfig
 	$SED -i '/CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ/c\CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ=240' ./sdkconfig
+elif [ "$IDF_TARGET" = "esp32c3" ]; then
+	$SED -i '/CONFIG_ESP32C3_DEFAULT_CPU_FREQ_80/c\# CONFIG_ESP32C3_DEFAULT_CPU_FREQ_80 is not set' ./sdkconfig
+	$SED -i '/CONFIG_ESP32C3_DEFAULT_CPU_FREQ_160/c\CONFIG_ESP32C3_DEFAULT_CPU_FREQ_160=y' ./sdkconfig
+	$SED -i '/CONFIG_ESP32C3_DEFAULT_CPU_FREQ_MHZ/c\CONFIG_ESP32C3_DEFAULT_CPU_FREQ_MHZ=160' ./sdkconfig
 fi
 
-$SED -i '/CONFIG_SPIRAM_SPEED_40M/c\# CONFIG_SPIRAM_SPEED_40M is not set' ./sdkconfig
-$SED -i '/CONFIG_SPIRAM_SPEED_80M/c\CONFIG_SPIRAM_SPEED_80M=y' ./sdkconfig
-echo "CONFIG_SPIRAM_SPEED_80M=y" >> ./sdkconfig
+if [ "$IDF_TARGET" != "esp32c3" ]; then
+	$SED -i '/CONFIG_SPIRAM_SPEED_40M/c\# CONFIG_SPIRAM_SPEED_40M is not set' ./sdkconfig
+	$SED -i '/CONFIG_SPIRAM_SPEED_80M/c\CONFIG_SPIRAM_SPEED_80M=y' ./sdkconfig
+	echo "CONFIG_SPIRAM_SPEED_80M=y" >> ./sdkconfig
+fi
 
 $SED -i '/CONFIG_ESPTOOLPY_FLASHFREQ_80M/c\CONFIG_ESPTOOLPY_FLASHFREQ_80M=y' ./sdkconfig
 $SED -i '/CONFIG_ESPTOOLPY_FLASHFREQ_40M/c\# CONFIG_ESPTOOLPY_FLASHFREQ_40M is not set' ./sdkconfig
 
-$SED -i '/CONFIG_FLASHMODE_QIO/c\CONFIG_FLASHMODE_QIO=y' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_QOUT/c\# CONFIG_FLASHMODE_QOUT is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DIO/c\# CONFIG_FLASHMODE_DIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DOUT/c\# CONFIG_FLASHMODE_DOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QIO/c\CONFIG_ESPTOOLPY_FLASHMODE_QIO=y' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_QOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_DIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_DOUT is not set' ./sdkconfig
 echo "******** BUILDING BOOTLOADER QIO 80MHz *******"
 idf.py bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_qio_80m.bin
 
-$SED -i '/CONFIG_FLASHMODE_QIO/c\# CONFIG_FLASHMODE_QIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=y' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DIO/c\# CONFIG_FLASHMODE_DIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DOUT/c\# CONFIG_FLASHMODE_DOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_QIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QOUT/c\CONFIG_ESPTOOLPY_FLASHMODE_QOUT=y' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_DIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_DOUT is not set' ./sdkconfig
 echo "******** BUILDING BOOTLOADER QOUT 80MHz *******"
 idf.py bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_qout_80m.bin
@@ -47,18 +53,18 @@ if [ "$IDF_TARGET" = "esp32" ]; then
 	echo "CONFIG_SPIRAM_SPIWP_SD3_PIN=7" >> ./sdkconfig
 fi
 
-$SED -i '/CONFIG_FLASHMODE_QIO/c\# CONFIG_FLASHMODE_QIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_QOUT/c\# CONFIG_FLASHMODE_QOUT is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=y' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DOUT/c\# CONFIG_FLASHMODE_DOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_QIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_QOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DIO/c\CONFIG_ESPTOOLPY_FLASHMODE_DIO=y' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_DOUT is not set' ./sdkconfig
 echo "******** BUILDING BOOTLOADER DIO 80MHz *******"
 idf.py bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_dio_80m.bin
 
-$SED -i '/CONFIG_FLASHMODE_QIO/c\# CONFIG_FLASHMODE_QIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_QOUT/c\# CONFIG_FLASHMODE_QOUT is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DIO/c\# CONFIG_FLASHMODE_DIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=y' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_QIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_QOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_DIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DOUT/c\CONFIG_ESPTOOLPY_FLASHMODE_DOUT=y' ./sdkconfig
 echo "******** BUILDING BOOTLOADER DOUT 80MHz *******"
 idf.py bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_dout_80m.bin
@@ -71,18 +77,18 @@ if [ "$IDF_TARGET" = "esp32" ]; then
 	echo "# CONFIG_BOOTLOADER_VDDSDIO_BOOST_1_8V is not set" >> ./sdkconfig
 fi
 
-$SED -i '/CONFIG_FLASHMODE_QIO/c\CONFIG_FLASHMODE_QIO=y' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_QOUT/c\# CONFIG_FLASHMODE_QOUT is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DIO/c\# CONFIG_FLASHMODE_DIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DOUT/c\# CONFIG_FLASHMODE_DOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QIO/c\CONFIG_ESPTOOLPY_FLASHMODE_QIO=y' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_QOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_DIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_DOUT is not set' ./sdkconfig
 echo "******** BUILDING BOOTLOADER QIO 40MHz *******"
 idf.py bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_qio_40m.bin
 
-$SED -i '/CONFIG_FLASHMODE_QIO/c\# CONFIG_FLASHMODE_QIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_QOUT/c\CONFIG_FLASHMODE_QOUT=y' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DIO/c\# CONFIG_FLASHMODE_DIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DOUT/c\# CONFIG_FLASHMODE_DOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_QIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QOUT/c\CONFIG_ESPTOOLPY_FLASHMODE_QOUT=y' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_DIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_DOUT is not set' ./sdkconfig
 echo "******** BUILDING BOOTLOADER QOUT 40MHz *******"
 idf.py bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_qout_40m.bin
@@ -91,18 +97,18 @@ if [ "$IDF_TARGET" = "esp32" ]; then
 	echo "CONFIG_SPIRAM_SPIWP_SD3_PIN=7" >> ./sdkconfig
 fi
 
-$SED -i '/CONFIG_FLASHMODE_QIO/c\# CONFIG_FLASHMODE_QIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_QOUT/c\# CONFIG_FLASHMODE_QOUT is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DIO/c\CONFIG_FLASHMODE_DIO=y' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DOUT/c\# CONFIG_FLASHMODE_DOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_QIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_QOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DIO/c\CONFIG_ESPTOOLPY_FLASHMODE_DIO=y' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_DOUT is not set' ./sdkconfig
 echo "******** BUILDING BOOTLOADER DIO 40MHz *******"
 idf.py bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_dio_40m.bin
 
-$SED -i '/CONFIG_FLASHMODE_QIO/c\# CONFIG_FLASHMODE_QIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_QOUT/c\# CONFIG_FLASHMODE_QOUT is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DIO/c\# CONFIG_FLASHMODE_DIO is not set' ./sdkconfig
-$SED -i '/CONFIG_FLASHMODE_DOUT/c\CONFIG_FLASHMODE_DOUT=y' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_QIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_QOUT/c\# CONFIG_ESPTOOLPY_FLASHMODE_QOUT is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DIO/c\# CONFIG_ESPTOOLPY_FLASHMODE_DIO is not set' ./sdkconfig
+$SED -i '/CONFIG_ESPTOOLPY_FLASHMODE_DOUT/c\CONFIG_ESPTOOLPY_FLASHMODE_DOUT=y' ./sdkconfig
 echo "******** BUILDING BOOTLOADER DOUT 40MHz *******"
 idf.py bootloader || exit 1
 cp build/bootloader/bootloader.bin $TARGET_PATH/bootloader_dout_40m.bin
