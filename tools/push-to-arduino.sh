@@ -16,11 +16,11 @@ fi
 #
 
 if [ $AR_HAS_COMMIT == "0" ]; then
-	cd $AR_COMPS/arduino
-
 	# make changes to the files
 	echo "Patching files in branch '$AR_NEW_BRANCH_NAME'..."
 	ESP32_ARDUINO="$AR_COMPS/arduino" ./tools/copy-to-arduino.sh
+	
+	cd $AR_COMPS/arduino
 
 	# did any of the files change?
 	if [ -n "$(git status --porcelain)" ]; then
