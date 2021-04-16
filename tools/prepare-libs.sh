@@ -65,7 +65,7 @@ for item in "${@:2:${#@}-5}"; do
 			item=`get_actual_path $item`
 			INCLUDES+="$item "
 		elif [ "${item:0:2}" = ".." ]; then
-			if [[ "${item:0:14}" = "../components/" && "${item:0:22}" != "../components/arduino/" ]]; then
+			if [[ "${item:0:14}" = "../components/" && "${item:0:22}" != "../components/arduino/" ]] || [[ "${item:0:11}" = "../esp-idf/" ]]; then
 				item="$PWD${item:2}"
 				item=`get_actual_path $item`
 				INCLUDES+="$item "
