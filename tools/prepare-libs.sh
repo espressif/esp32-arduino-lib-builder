@@ -245,7 +245,9 @@ echo "    CFLAGS=[" >> "$AR_PLATFORMIO_PY"
 set -- $PIO_C_FLAGS
 last_item="${@: -1}"
 for item in "${@:0:${#@}}"; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+	if [ "${item:0:1}" != "/" ]; then
+		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+	fi
 done
 echo "        \"$last_item\"" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
@@ -255,7 +257,9 @@ echo "    CXXFLAGS=[" >> "$AR_PLATFORMIO_PY"
 set -- $PIO_CXX_FLAGS
 last_item="${@: -1}"
 for item in "${@:0:${#@}}"; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+	if [ "${item:0:1}" != "/" ]; then
+		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+	fi
 done
 echo "        \"$last_item\"" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
