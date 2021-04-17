@@ -143,7 +143,10 @@ else
 	if [ "$IDF_TARGET" = "esp32" ]; then
 		flags="-Wno-frame-address $flags"
 	fi
-	str="-mlongcalls $flags $libs"
+	if [ "$IDF_TARGET" != "esp32c3" ]; then
+		flags="-mlongcalls $flags"
+	fi
+	str="$flags $libs"
 fi
 set -- $str
 for item; do
