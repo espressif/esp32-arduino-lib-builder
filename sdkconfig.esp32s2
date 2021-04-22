@@ -206,7 +206,7 @@ CONFIG_TINYUSB_MSC_BUFSIZE=512
 #
 # Human Interface (HID) driver
 #
-CONFIG_USB_HID_ENABLED=y
+CONFIG_TINYUSB_HID_ENABLED=y
 # end of Human Interface (HID) driver
 
 #
