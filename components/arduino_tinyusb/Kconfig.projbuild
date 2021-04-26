@@ -69,7 +69,7 @@ menu "Arduino TinyUSB"
     menu "Human Interface (HID) driver"
         depends on TINYUSB_ENABLED
 
-        config USB_HID_ENABLED
+        config TINYUSB_HID_ENABLED
             bool "Enable USB Human Interface (HID) TinyUSB driver"
             default y
             help
