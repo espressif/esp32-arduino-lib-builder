@@ -2,11 +2,11 @@
 
 IDF_COMPS="$IDF_PATH/components"
 IDF_TOOLCHAIN="xtensa-esp32-elf"
-IDF_TOOLCHAIN_LINUX_ARMEL="https://dl.espressif.com/dl/xtensa-esp32-elf-linux-armel-1.22.0-96-g2852398-5.2.0.tar.gz"
-IDF_TOOLCHAIN_LINUX32="https://dl.espressif.com/dl/xtensa-esp32-elf-linux32-1.22.0-96-g2852398-5.2.0.tar.gz"
-IDF_TOOLCHAIN_LINUX64="https://dl.espressif.com/dl/xtensa-esp32-elf-linux64-1.22.0-96-g2852398-5.2.0.tar.gz"
-IDF_TOOLCHAIN_WIN32="https://dl.espressif.com/dl/xtensa-esp32-elf-win32-1.22.0-96-g2852398-5.2.0.zip"
-IDF_TOOLCHAIN_MACOS="https://dl.espressif.com/dl/xtensa-esp32-elf-osx-1.22.0-96-g2852398-5.2.0.tar.gz"
+IDF_TOOLCHAIN_LINUX_ARMEL="https://github.com/espressif/arduino-esp32/releases/download/1.0.5-rc5/xtensa-esp32-elf-linux-armel-1.22.0-97-gc752ad5-5.2.0.tar.gz"
+IDF_TOOLCHAIN_LINUX32="https://github.com/espressif/arduino-esp32/releases/download/1.0.5-rc5/xtensa-esp32-elf-linux32-1.22.0-97-gc752ad5-5.2.0.tar.gz"
+IDF_TOOLCHAIN_LINUX64="https://github.com/espressif/arduino-esp32/releases/download/1.0.5-rc5/xtensa-esp32-elf-linux64-1.22.0-97-gc752ad5-5.2.0.tar.gz"
+IDF_TOOLCHAIN_WIN32="https://github.com/espressif/arduino-esp32/releases/download/1.0.5-rc5/xtensa-esp32-elf-win32-1.22.0-97-gc752ad5-5.2.0.zip"
+IDF_TOOLCHAIN_MACOS="https://github.com/espressif/arduino-esp32/releases/download/1.0.5-rc5/xtensa-esp32-elf-macos-1.22.0-97-gc752ad5-5.2.0.tar.gz"
 
 if [ -z $IDF_BRANCH ]; then
 	IDF_BRANCH="release/v3.3"
