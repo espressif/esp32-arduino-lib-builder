@@ -148,6 +148,10 @@ else
 	fi
 	str="$flags $libs"
 fi
+if [ "$IDF_TARGET" = "esp32" ]; then
+	LD_SCRIPTS+="-T esp32.rom.redefined.ld "
+	PIO_LD_SCRIPTS+="esp32.rom.redefined.ld "
+fi
 set -- $str
 for item; do
 	prefix="${item:0:1}"
