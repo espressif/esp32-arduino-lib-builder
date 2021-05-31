@@ -128,7 +128,7 @@ if ! [ -x "$(command -v $IDF_TOOLCHAIN-gcc)" ]; then
 			    exit 1
 			fi
             echo "Downloading $TC_LINK"
-			curl -k -o $IDF_TOOLCHAIN.$TC_EXT $TC_LINK || exit 1
+			curl -Lk -o $IDF_TOOLCHAIN.$TC_EXT $TC_LINK || exit 1
   		fi
         if [[ "$AR_OS" == "win32" ]]; then
             unzip $IDF_TOOLCHAIN.$TC_EXT || exit 1
