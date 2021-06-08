@@ -5,6 +5,9 @@ source ./tools/config.sh
 #
 # CLONE/UPDATE ARDUINO
 #
+if [ ! -d "$AR_COMPS/arduino" ]; then
+	git clone $AR_REPO_URL "$AR_COMPS/arduino"
+fi
 if [ -z $ARDUINO_BRANCH ]; then
 	has_ar_branch=`git_branch_exists "$AR_COMPS/arduino" "idf-$IDF_BRANCH"`
 	if [ "$has_ar_branch" == "1" ]; then
@@ -19,13 +22,10 @@ if [ -z $ARDUINO_BRANCH ]; then
 	fi
 fi
 
-if [ ! -d "$AR_COMPS/arduino" ]; then
-	git clone $AR_REPO_URL "$AR_COMPS/arduino" -b $ARDUINO_BRANCH
-else
-	git -C "$AR_COMPS/arduino" checkout $ARDUINO_BRANCH && \
-	git -C "$AR_COMPS/arduino" fetch origin && \
-	git -C "$AR_COMPS/arduino" pull origin $ARDUINO_BRANCH
-fi
+git -C "$AR_COMPS/arduino" checkout $ARDUINO_BRANCH && \
+git -C "$AR_COMPS/arduino" fetch origin && \
+git -C "$AR_COMPS/arduino" pull origin $ARDUINO_BRANCH
+
 if [ $? -ne 0 ]; then exit 1; fi
 git -C "$AR_COMPS/arduino" submodule update --init --recursive
 
