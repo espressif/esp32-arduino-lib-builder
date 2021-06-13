@@ -32,6 +32,8 @@ for target in $TARGETS; do
 	# configure the build for the target
 	rm -rf build sdkconfig sdkconfig.old
 	cp "sdkconfig.$target" sdkconfig
+	# uncomment next line to access menuconfig
+	# idf.py menuconfig
 	# build and prepare libs
 	idf.py build
 	if [ $? -ne 0 ]; then exit 1; fi
