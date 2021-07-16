@@ -92,11 +92,11 @@ menu "Arduino TinyUSB"
     endmenu
 
     menu "MIDI driver"
-        depends on TINYUSB_ENABLED && (!TINYUSB_VENDOR_ENABLED || !TINYUSB_MSC_ENABLED || !TINYUSB_HID_ENABLED || !TINYUSB_CDC_ENABLED)
+        depends on TINYUSB_ENABLED
 
         config TINYUSB_MIDI_ENABLED
             bool "Enable USB MIDI TinyUSB driver"
-            default n
+            default y
             help
                 Enable USB MIDI TinyUSB driver.
 
