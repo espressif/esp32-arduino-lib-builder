@@ -26,9 +26,9 @@ if(CONFIG_TINYUSB_ENABLED)
       "${COMPONENT_DIR}/include")
   set(srcs
       # espressif:
-      "${COMPONENT_DIR}/src/dcd_esp32s2.c"
+      "${COMPONENT_DIR}/src/dcd_esp32sx.c"
       # tusb:
-      #"${COMPONENT_DIR}/tinyusb/src/portable/espressif/esp32s2/dcd_esp32s2.c"
+      #"${COMPONENT_DIR}/tinyusb/src/portable/espressif/esp32sx/dcd_esp32sx.c"
       "${COMPONENT_DIR}/tinyusb/src/class/cdc/cdc_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/hid/hid_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/midi/midi_device.c"
