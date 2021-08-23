@@ -97,7 +97,8 @@ if [ -x $idf_was_installed ]; then
 	echo "ESP-IDF is already installed at: $IDF_PATH"
 else
 	git -C $IDF_PATH submodule update --init --recursive
-	cd $IDF_PATH && python -m pip install -r requirements.txt && cd "$AR_ROOT"
+	cd $IDF_PATH && python -m pip install -r requirements.txt
 fi
+cd "$AR_ROOT"
 $IDF_PATH/install.sh
 source $IDF_PATH/export.sh
