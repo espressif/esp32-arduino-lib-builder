@@ -42,10 +42,6 @@
 
 #include "device/dcd.h"
 
-// Since TinyUSB doesn't use SOF for now, and this interrupt too often (1ms interval)
-// We disable SOF for now until needed later on
-#define USE_SOF     0
-
 // Max number of bi-directional endpoints including EP0
 // Note: ESP32S2 specs say there are only up to 5 IN active endpoints include EP0
 // We should probably prohibit enabling Endpoint IN > 4 (not done yet)
@@ -92,11 +88,12 @@ static void bus_reset(void)
     USB0.out_ep_reg[ep_num].doepctl |= USB_DO_SNAK0_M; // DOEPCTL0_SNAK
   }
 
-  USB0.dcfg &= ~USB_DEVADDR_M; // reset address
+  // clear device address
+  USB0.dcfg &= ~USB_DEVADDR_M;
 
-  USB0.daintmsk |= USB_OUTEPMSK0_M | USB_INEPMSK0_M;
-  USB0.doepmsk |= USB_SETUPMSK_M | USB_XFERCOMPLMSK;
-  USB0.diepmsk |= USB_TIMEOUTMSK_M | USB_DI_XFERCOMPLMSK_M /*| USB_INTKNTXFEMPMSK_M*/;
+  USB0.daintmsk = USB_OUTEPMSK0_M | USB_INEPMSK0_M;
+  USB0.doepmsk  = USB_SETUPMSK_M | USB_XFERCOMPLMSK;
+  USB0.diepmsk  = USB_TIMEOUTMSK_M | USB_DI_XFERCOMPLMSK_M /*| USB_INTKNTXFEMPMSK_M*/;
 
   // "USB Data FIFOs" section in reference manual
   // Peripheral FIFO architecture
@@ -166,8 +163,6 @@ static void enum_done_processing(void)
  *------------------------------------------------------------------*/
 void dcd_init(uint8_t rhport)
 {
-  (void)rhport;
-
   ESP_LOGV(TAG, "DCD init - Start");
 
   bool did_persist = (USB_WRAP.date.val & (1 << 31)) != 0;
@@ -205,9 +200,6 @@ void dcd_init(uint8_t rhport)
 
   USB0.gintmsk = USB_OTGINTMSK_M   |
                  USB_MODEMISMSK_M  |
-          #if USE_SOF
-                 USB_SOFMSK_M      |
-          #endif
                  USB_RXFLVIMSK_M   |
                  USB_ERLYSUSPMSK_M |
                  USB_USBSUSPMSK_M  |
@@ -265,8 +257,17 @@ void dcd_remote_wakeup(uint8_t rhport)
 {
   (void)rhport;
 
-  // TODO must manually clear this bit after 1-15 ms
-  // USB0.DCTL |= USB_RMTWKUPSIG_M;
+  // set remote wakeup
+  USB0.dctl |= USB_RMTWKUPSIG_M;
+
+  // enable SOF to detect bus resume
+  USB0.gintsts = USB_SOF_M;
+  USB0.gintmsk |= USB_SOFMSK_M;
+
+  // Per specs: remote wakeup signal bit must be clear within 1-15ms
+  vTaskDelay(pdMS_TO_TICKS(1));
+
+  USB0.dctl &= ~USB_RMTWKUPSIG_M;
 }
 
 // connect by enabling internal pull-up resistor on D+/D-
@@ -305,10 +306,11 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *desc_edpt)
   xfer->max_size = desc_edpt->wMaxPacketSize.size;
 
   if (dir == TUSB_DIR_OUT) {
-    out_ep[epnum].doepctl &= ~(USB_D_EPTYPE1_M | USB_D_MPS1_M);
-    out_ep[epnum].doepctl |= USB_USBACTEP0_M |
-                             desc_edpt->bmAttributes.xfer << USB_EPTYPE0_S |
-                             desc_edpt->wMaxPacketSize.size << USB_MPS0_S;
+    out_ep[epnum].doepctl &= ~(USB_D_EPTYPE0_M | USB_D_MPS0_M);
+    out_ep[epnum].doepctl |= USB_USBACTEP1_M |
+                             desc_edpt->bmAttributes.xfer << USB_EPTYPE1_S |
+                             (desc_edpt->bmAttributes.xfer != TUSB_XFER_ISOCHRONOUS ? USB_DO_SETD0PID1_M : 0) |
+                             desc_edpt->wMaxPacketSize.size << USB_MPS1_S;
     USB0.daintmsk |= (1 << (16 + epnum));
   } else {
     // "USB Data FIFOs" section in reference manual
@@ -330,8 +332,9 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *desc_edpt)
     // --------------- 0
     //
     // Since OUT FIFO = GRXFSIZ, FIFO 0 = 16, for simplicity, we equally allocated for the rest of endpoints
-    // - Size  : (FIFO_SIZE/4 - GRXFSIZ - 16) / (EP_FIFO_NUM-1)
-    // - Offset: GRXFSIZ + 16 + Size*(fifo_num-1)
+    // - Size  : (FIFO_SIZE/4 - GRXFSIZ - 16) / (EP_MAX-1)
+    // - Offset: GRXFSIZ + 16 + Size*(epnum-1)
+    // - IN EP 1 gets FIFO 1, IN EP "n" gets FIFO "n".
 
     uint8_t fifo_num = 0;
     // Special Case for EP5, which is used by CDC but not actually called by the driver
@@ -367,7 +370,25 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *desc_edpt)
 void dcd_edpt_close_all(uint8_t rhport)
 {
   (void) rhport;
-  // TODO implement dcd_edpt_close_all()
+
+  usb_out_endpoint_t *out_ep = &(USB0.out_ep_reg[0]);
+  usb_in_endpoint_t *in_ep = &(USB0.in_ep_reg[0]);
+
+  // Disable non-control interrupt
+  USB0.daintmsk = USB_OUTEPMSK0_M | USB_INEPMSK0_M;
+
+  for(uint8_t n = 1; n < EP_MAX; n++)
+  {
+    // disable OUT endpoint
+    out_ep[n].doepctl = 0;
+    xfer_status[n][TUSB_DIR_OUT].max_size = 0;
+
+    // disable IN endpoint
+    in_ep[n].diepctl = 0;
+    xfer_status[n][TUSB_DIR_IN].max_size = 0;
+  }
+
+  _allocated_fifos = 1;
 }
 
 bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t *buffer, uint16_t total_bytes)
@@ -419,49 +440,6 @@ bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t *buffer, uint16_t to
 bool dcd_edpt_xfer_fifo (uint8_t rhport, uint8_t ep_addr, tu_fifo_t * ff, uint16_t total_bytes)
 {
   (void)rhport;
-
-  // USB buffers always work in bytes so to avoid unnecessary divisions we demand item_size = 1
-  TU_ASSERT(ff->item_size == 1);
-
-  uint8_t const epnum = tu_edpt_number(ep_addr);
-  uint8_t const dir   = tu_edpt_dir(ep_addr);
-
-  xfer_ctl_t * xfer = XFER_CTL_BASE(epnum, dir);
-  xfer->buffer       = NULL;
-  xfer->ff           = ff;
-  xfer->total_len    = total_bytes;
-  xfer->queued_len   = 0;
-  xfer->short_packet = false;
-
-  uint16_t num_packets = (total_bytes / xfer->max_size);
-  uint8_t short_packet_size = total_bytes % xfer->max_size;
-
-  // Zero-size packet is special case.
-  if (short_packet_size > 0 || (total_bytes == 0)) {
-    num_packets++;
-  }
-
-  ESP_LOGV(TAG, "Transfer <-> EP%i, %s, pkgs: %i, bytes: %i",
-           epnum, ((dir == TUSB_DIR_IN) ? "USB0.HOST (in)" : "HOST->DEV (out)"),
-           num_packets, total_bytes);
-
-  // IN and OUT endpoint xfers are interrupt-driven, we just schedule them
-  // here.
-  if (dir == TUSB_DIR_IN) {
-    // A full IN transfer (multiple packets, possibly) triggers XFRC.
-    USB0.in_ep_reg[epnum].dieptsiz = (num_packets << USB_D_PKTCNT0_S) | total_bytes;
-    USB0.in_ep_reg[epnum].diepctl |= USB_D_EPENA1_M | USB_D_CNAK1_M; // Enable | CNAK
-
-    // Enable fifo empty interrupt only if there are something to put in the fifo.
-    if(total_bytes != 0) {
-      USB0.dtknqr4_fifoemptymsk |= (1 << epnum);
-    }
-  } else {
-    // Each complete packet for OUT xfers triggers XFRC.
-    USB0.out_ep_reg[epnum].doeptsiz |= USB_PKTCNT0_M | ((xfer->max_size & USB_XFERSIZE0_V) << USB_XFERSIZE0_S);
-    USB0.out_ep_reg[epnum].doepctl  |= USB_EPENA0_M | USB_CNAK0_M;
-  }
-  return true;
 }
 #endif
 
@@ -769,27 +747,26 @@ static void handle_epin_ints(void)
     xfer_ctl_t *xfer = &xfer_status[n][TUSB_DIR_IN];
 
     if (USB0.daint & (1 << (0 + n))) {
-      uint32_t const in_status = USB0.in_ep_reg[n].diepint;
       ESP_EARLY_LOGV(TAG, "TUSB IRQ - EP IN %u", n);
 
-      if (in_status & BIT(15)) {
+      if (USB0.in_ep_reg[n].diepint & BIT(15)) {
         USB0.in_ep_reg[n].diepint = BIT(15);
         ESP_EARLY_LOGE(TAG, "Unknown Condition");//todo:
         bus_reset();
       }
 
       // IN XFER complete (entire xfer).
-      if (in_status & USB_D_XFERCOMPL0_M) {
+      if (USB0.in_ep_reg[n].diepint & USB_D_XFERCOMPL0_M) {
         ESP_EARLY_LOGV(TAG, "TUSB IRQ - IN XFER complete!");
         USB0.in_ep_reg[n].diepint = USB_D_XFERCOMPL0_M;
         dcd_event_xfer_complete(0, n | TUSB_DIR_IN_MASK, xfer->total_len, XFER_RESULT_SUCCESS, true);
-        if (!(in_status & USB_D_TXFEMP0_M)) {
+        if (!(USB0.in_ep_reg[n].diepint & USB_D_TXFEMP0_M)) {
           ESP_EARLY_LOGE(TAG, "Complete but not empty: %u/%u", xfer->queued_len, xfer->total_len);//todo:
         }
       }
 
       // XFER FIFO empty
-      if (in_status & USB_D_TXFEMP0_M) {
+      if (USB0.in_ep_reg[n].diepint & USB_D_TXFEMP0_M) {
         ESP_EARLY_LOGV(TAG, "TUSB IRQ - IN XFER FIFO empty!");
         USB0.in_ep_reg[n].diepint = USB_D_TXFEMP0_M;
         transmit_packet(xfer, &USB0.in_ep_reg[n], n);
@@ -801,9 +778,12 @@ static void handle_epin_ints(void)
         }
       }
 
-      // Timeout sending the last packet
-      if (in_status & USB_D_TIMEOUT0_M) {
+      // XFER Timeout
+      if (USB0.in_ep_reg[n].diepint & USB_D_TIMEOUT0_M) {
+        // Clear interrupt or enpoint will hang.
         USB0.in_ep_reg[n].diepint = USB_D_TIMEOUT0_M;
+        ESP_EARLY_LOGE(TAG, "XFER Timeout");//todo:
+        // Maybe retry?
       }
     }
   }
@@ -815,8 +795,8 @@ static void _dcd_int_handler(void* arg)
   (void) arg;
   uint8_t const rhport = 0;
 
-  const uint32_t int_status = USB0.gintsts;
-  //const uint32_t int_msk = USB0.gintmsk;
+  const uint32_t int_msk = USB0.gintmsk;
+  const uint32_t int_status = USB0.gintsts & int_msk;
 
   if (int_status & USB_USBRST_M) {
     // start of reset
@@ -830,8 +810,8 @@ static void _dcd_int_handler(void* arg)
   if (int_status & USB_RESETDET_M) {
     ESP_EARLY_LOGV(TAG, "dcd_int_handler - reset while suspend");
     USB0.gintsts = USB_RESETDET_M;
+    // no need to double reset
     if ((int_status & USB_USBRST_M) == 0) {
-      // no need to double reset
       _allocated_fifos = 1;
       bus_reset();
     }
@@ -846,9 +826,8 @@ static void _dcd_int_handler(void* arg)
     dcd_event_bus_reset(rhport, TUSB_SPEED_FULL, true);
   }
 
-  if (int_status & USB_USBSUSP_M) {
-    // start of reset
-    ESP_EARLY_LOGV(TAG, "dcd_int_handler - suspended");
+  if(int_status & USB_USBSUSP_M)
+  {
     USB0.gintsts = USB_USBSUSP_M;
     //dcd_event_bus_signal(rhport, DCD_EVENT_SUSPEND, true);
     dcd_event_bus_signal(rhport, DCD_EVENT_UNPLUGGED, true);
@@ -877,12 +856,15 @@ static void _dcd_int_handler(void* arg)
     USB0.gotgint = otg_int;
   }
 
-#if USE_SOF
   if (int_status & USB_SOF_M) {
     USB0.gintsts = USB_SOF_M;
-    dcd_event_bus_signal(rhport, DCD_EVENT_SOF, true); // do nothing actually
+
+    // Disable SOF interrupt since currently only used for remote wakeup detection
+    USB0.gintmsk &= ~USB_SOFMSK_M;
+
+    dcd_event_bus_signal(rhport, DCD_EVENT_SOF, true);
   }
-#endif
+
 
   if (int_status & USB_RXFLVI_M) {
     // RXFLVL bit is read-only
