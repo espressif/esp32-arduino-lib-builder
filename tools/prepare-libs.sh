@@ -148,10 +148,10 @@ else
 	fi
 	str="$flags $libs"
 fi
-#if [ "$IDF_TARGET" = "esp32" ]; then
-#	LD_SCRIPTS+="-T esp32.rom.redefined.ld "
-#	PIO_LD_SCRIPTS+="esp32.rom.redefined.ld "
-#fi
+if [ "$IDF_TARGET" = "esp32" ]; then
+	LD_SCRIPTS+="-T esp32.rom.redefined.ld "
+	PIO_LD_SCRIPTS+="esp32.rom.redefined.ld "
+fi
 set -- $str
 for item; do
 	prefix="${item:0:1}"
@@ -443,6 +443,8 @@ function copy_precompiled_lib(){
 mkdir -p "$AR_SDK/ld"
 set -- $LD_SCRIPT_DIRS
 for item; do
+	item="${item%\"}"
+	item="${item#\"}"
 	find "$item" -name '*.ld' -exec cp -f {} "$AR_SDK/ld/" \;
 	for lib in `find "$item" -name '*.a'`; do
 		copy_precompiled_lib "$lib"

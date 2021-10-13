@@ -59,7 +59,8 @@ menu "Arduino TinyUSB"
 
         config TINYUSB_MSC_BUFSIZE
             int "MSC Buffer size"
-            default 64
+            range 512 4096
+            default 512
             depends on TINYUSB_MSC_ENABLED
             help
                 MSC Buffer size
@@ -121,6 +122,39 @@ menu "Arduino TinyUSB"
             help
                 MIDI FIFO size of TX
 
+    endmenu
+
+    menu "VIDEO driver"
+        depends on TINYUSB_ENABLED
+
+        config TINYUSB_VIDEO_ENABLED
+            bool "Enable USB VIDEO TinyUSB driver"
+            default y
+            help
+                Enable USB VIDEO TinyUSB driver.
+
+        config TINYUSB_DESC_VIDEO_STRING
+            string "VIDEO Device String"
+            default "Espressif VIDEO Device"
+            depends on TINYUSB_VIDEO_ENABLED
+            help
+                Specify name of the VIDEO device
+
+        config TINYUSB_VIDEO_STREAMING_BUFSIZE
+            int "VIDEO streaming endpoint size"
+            range 64 4096
+            default 256
+            depends on TINYUSB_VIDEO_ENABLED
+            help
+                VIDEO streaming endpoint size
+
+        config TINYUSB_VIDEO_STREAMING_IFS
+            int "Number of VIDEO streaming interfaces"
+            range 1 3
+            default 1
+            depends on TINYUSB_VIDEO_ENABLED
+            help
+                The number of VIDEO streaming interfaces
     endmenu
 
     menu "DFU Runtime driver"
