@@ -142,8 +142,8 @@ menu "Arduino TinyUSB"
 
         config TINYUSB_VIDEO_STREAMING_BUFSIZE
             int "VIDEO streaming endpoint size"
-            range 64 4096
-            default 256
+            range 0 64
+            default 64
             depends on TINYUSB_VIDEO_ENABLED
             help
                 VIDEO streaming endpoint size
