@@ -3,9 +3,9 @@
 source ./tools/config.sh
 
 CAMERA_REPO_URL="https://github.com/espressif/esp32-camera.git"
-FACE_REPO_URL="https://github.com/espressif/esp-face.git"
+FACE_REPO_URL="https://github.com/espressif/esp-dl.git"
 RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
-DSP_REPO_URL="https://github.com/espressif/esp-dl.git"
+DSP_REPO_URL="https://github.com/espressif/esp-dsp.git"
 LITTLEFS_REPO_URL="https://github.com/joltwallet/esp_littlefs.git"
 TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
 
@@ -56,10 +56,10 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 if [ ! -d "$AR_COMPS/esp-face" ]; then
 	git clone $FACE_REPO_URL "$AR_COMPS/esp-face"
-	cml=`cat "$AR_COMPS/esp-face/CMakeLists.txt"`
-	echo "if(IDF_TARGET STREQUAL \"esp32\" OR IDF_TARGET STREQUAL \"esp32s2\" OR IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-face/CMakeLists.txt"
-	echo "$cml" >> "$AR_COMPS/esp-face/CMakeLists.txt"
-	echo "endif()" >> "$AR_COMPS/esp-face/CMakeLists.txt"
+	# cml=`cat "$AR_COMPS/esp-face/CMakeLists.txt"`
+	# echo "if(IDF_TARGET STREQUAL \"esp32\" OR IDF_TARGET STREQUAL \"esp32s2\" OR IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-face/CMakeLists.txt"
+	# echo "$cml" >> "$AR_COMPS/esp-face/CMakeLists.txt"
+	# echo "endif()" >> "$AR_COMPS/esp-face/CMakeLists.txt"
 else
 	git -C "$AR_COMPS/esp-face" fetch && \
 	git -C "$AR_COMPS/esp-face" pull --ff-only
