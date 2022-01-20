@@ -21,7 +21,7 @@ source ./tools/install-esp-idf.sh
 if [ $? -ne 0 ]; then exit 1; fi
 
 if [ -z $TARGETS ]; then
-	TARGETS="esp32c3 esp32s2 esp32"
+	TARGETS="esp32s3 esp32c3 esp32s2 esp32"
 fi
 
 echo $(git -C $AR_COMPS/arduino describe --all --long) > version.txt
