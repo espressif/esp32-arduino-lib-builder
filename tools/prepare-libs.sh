@@ -422,7 +422,7 @@ cat 1platform_mid.txt >> "$AR_PLATFORM_TXT"
 rm -rf platform_start.txt platform_mid.txt 1platform_mid.txt
 
 # sdkconfig
-cp -f "sdkconfig" "$AR_SDK/sdkconfig"
+cp -f "build/sdkconfig" "$AR_SDK/sdkconfig"
 
 # esptool.py
 cp "$IDF_COMPS/esptool_py/esptool/esptool.py" "$AR_ESPTOOL_PY"
