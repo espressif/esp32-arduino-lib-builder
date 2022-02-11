@@ -56,10 +56,6 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 if [ ! -d "$AR_COMPS/esp-face" ]; then
 	git clone $FACE_REPO_URL "$AR_COMPS/esp-face"
-	# cml=`cat "$AR_COMPS/esp-face/CMakeLists.txt"`
-	# echo "if(IDF_TARGET STREQUAL \"esp32\" OR IDF_TARGET STREQUAL \"esp32s2\" OR IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-face/CMakeLists.txt"
-	# echo "$cml" >> "$AR_COMPS/esp-face/CMakeLists.txt"
-	# echo "endif()" >> "$AR_COMPS/esp-face/CMakeLists.txt"
 else
 	git -C "$AR_COMPS/esp-face" fetch && \
 	git -C "$AR_COMPS/esp-face" pull --ff-only
