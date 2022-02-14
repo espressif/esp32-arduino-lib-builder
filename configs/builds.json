@@ -34,7 +34,7 @@
 	"targets":[
 		{
 			"target": "esp32s3",
-			"idf_libs":["qio","80m"],
+			"idf_libs":["dio","80m"],
 			"bootloaders":[
 				["qio","120m"],
 				["qio","80m"],
@@ -48,7 +48,7 @@
 		},
 		{
 			"target": "esp32s2",
-			"idf_libs":["qio","80m"],
+			"idf_libs":["dio","80m"],
 			"bootloaders":[
 				["qio","80m"],
 				["qout","80m"],
@@ -63,7 +63,7 @@
 		},
 		{
 			"target": "esp32c3",
-			"idf_libs":["qio","80m"],
+			"idf_libs":["dio","80m"],
 			"bootloaders":[
 				["qio","80m"],
 				["qout","80m"],
