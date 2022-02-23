@@ -17,20 +17,20 @@ COPY_OUT=0
 DEPLOY_OUT=0
 
 function print_help() {
-    echo "Usage: build.sh [-s] [-A arduino_branch] [-I idf_branch] [-i idf_commit] [-a path] [-t <target>] [-b <build|menuconfig|idf_libs|copy_bootloader|mem_variant>] [config ...]"
+    echo "Usage: build.sh [-s] [-A arduino_branch] [-I idf_branch] [-i idf_commit] [-c path] [-t <target>] [-b <build|menuconfig|idf_libs|copy_bootloader|mem_variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
     echo "       -I     Set which branch of ESP-IDF to be used for compilation"
     echo "       -i     Set which commit of ESP-IDF to be used for compilation"
     echo "       -d     Deploy the build to github arduino-esp32"
-    echo "       -a     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
+    echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
     echo "       -t     Set the build target(chip). ex. 'esp32s3'"
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
 
-while getopts ":A:I:i:a:t:b:sd" opt; do
+while getopts ":A:I:i:c:t:b:sd" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
@@ -38,7 +38,7 @@ while getopts ":A:I:i:a:t:b:sd" opt; do
         d )
             DEPLOY_OUT=1
             ;;
-        a )
+        c )
             export ESP32_ARDUINO="$OPTARG"
             COPY_OUT=1
             ;;
@@ -111,6 +111,7 @@ rm -rf build sdkconfig out
 
 echo $(git -C $AR_COMPS/arduino describe --all --long) > version.txt
 
+#targets_count=`jq -c '.targets[] | length' configs/builds.json`
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
     target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
 
@@ -136,7 +137,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     for boot_conf in `echo "$target_json" | jq -c '.bootloaders[]'`; do
         bootloader_configs="$main_configs"
         for defconf in `echo "$boot_conf" | jq -c '.[]' | tr -d '"'`; do
-            bootloader_configs="$bootloader_configs;configs/defconfig.$defconf"
+            bootloader_configs="$bootloader_configs;configs/defconfig.$defconf";
         done
         echo "* Build BootLoader: $bootloader_configs"
         rm -rf build sdkconfig
@@ -148,7 +149,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     for mem_conf in `echo "$target_json" | jq -c '.mem_variants[]'`; do
         mem_configs="$main_configs"
         for defconf in `echo "$mem_conf" | jq -c '.[]' | tr -d '"'`; do
-            mem_configs="$mem_configs;configs/defconfig.$defconf"
+            mem_configs="$mem_configs;configs/defconfig.$defconf";
         done
         echo "* Build Memory Variant: $mem_configs"
         rm -rf build sdkconfig
