@@ -12,16 +12,14 @@ TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
 #
 # CLONE/UPDATE ARDUINO
 #
-env 
-exit 0
 
 if [ ! -d "$AR_COMPS/arduino" ]; then
 	git clone $AR_REPO_URL "$AR_COMPS/arduino"
 fi
 
 if [ -z $AR_BRANCH ]; then
-	if [ -z $GITHUB_REF_NAME ]; then
-		current_branch="$GITHUB_REF_NAME"
+	if [ -z $GITHUB_HEAD_REF ]; then
+		current_branch="$GITHUB_HEAD_REF"
 	else
 		current_branch=`git branch --show-current`
 	fi
