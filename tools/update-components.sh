@@ -12,6 +12,8 @@ TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
 #
 # CLONE/UPDATE ARDUINO
 #
+env 
+exit 0
 
 if [ ! -d "$AR_COMPS/arduino" ]; then
 	git clone $AR_REPO_URL "$AR_COMPS/arduino"
