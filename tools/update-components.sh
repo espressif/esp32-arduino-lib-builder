@@ -19,10 +19,11 @@ fi
 
 if [ -z $AR_BRANCH ]; then
 	if [ -z $GITHUB_HEAD_REF ]; then
-		current_branch="$GITHUB_HEAD_REF"
-	else
 		current_branch=`git branch --show-current`
+	else
+		current_branch="$GITHUB_HEAD_REF"
 	fi
+	echo "Current Branch: $current_branch"
 	if [[ "$current_branch" != "master" && `git_branch_exists "$AR_COMPS/arduino" "$current_branch"` == "1" ]]; then
 		export AR_BRANCH="$current_branch"
 	else
