@@ -18,7 +18,11 @@ if [ ! -d "$AR_COMPS/arduino" ]; then
 fi
 
 if [ -z $AR_BRANCH ]; then
-	current_branch=`git branch --show-current`
+	if [ -z $GITHUB_REF_NAME ]; then
+		current_branch="$GITHUB_REF_NAME"
+	else
+		current_branch=`git branch --show-current`
+	fi
 	if [[ "$current_branch" != "master" && `git_branch_exists "$AR_COMPS/arduino" "$current_branch"` == "1" ]]; then
 		export AR_BRANCH="$current_branch"
 	else
