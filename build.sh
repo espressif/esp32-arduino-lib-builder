@@ -97,9 +97,22 @@ if [ "$BUILD_TYPE" != "all" ]; then
         print_help
     fi
     configs="configs/defconfig.common;configs/defconfig.$TARGET"
+    
+    # Target Features Configs
+    for target_json in `jq -c '.targets[]' configs/builds.json`; do
+        target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
+        if [ "$TARGET" == "$target" ]; then
+            for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
+                configs="$configs;configs/defconfig.$defconf"
+            done
+        fi
+    done
+
+    # Configs From Arguments
     for conf in $CONFIGS; do
         configs="$configs;configs/defconfig.$conf"
     done
+
     echo "idf.py -DIDF_TARGET=\"$TARGET\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
     rm -rf build sdkconfig
     idf.py -DIDF_TARGET="$TARGET" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
@@ -121,7 +134,12 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     fi
 
     echo "* Target: $target"
+
+    # Build Main Configs List
     main_configs="configs/defconfig.common;configs/defconfig.$target"
+    for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
+        main_configs="$main_configs;configs/defconfig.$defconf"
+    done
 
     # Build IDF Libs
     idf_libs_configs="$main_configs"

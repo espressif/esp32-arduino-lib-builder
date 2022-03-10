@@ -3,7 +3,8 @@
 source ./tools/config.sh
 
 CAMERA_REPO_URL="https://github.com/espressif/esp32-camera.git"
-FACE_REPO_URL="https://github.com/espressif/esp-dl.git"
+DL_REPO_URL="https://github.com/espressif/esp-dl.git"
+SR_REPO_URL="https://github.com/espressif/esp-sr.git"
 RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
 DSP_REPO_URL="https://github.com/espressif/esp-dsp.git"
 LITTLEFS_REPO_URL="https://github.com/joltwallet/esp_littlefs.git"
@@ -63,14 +64,26 @@ fi
 if [ $? -ne 0 ]; then exit 1; fi
 
 #
-# CLONE/UPDATE ESP-FACE
+# CLONE/UPDATE ESP-DL
 #
 
-if [ ! -d "$AR_COMPS/esp-face" ]; then
-	git clone $FACE_REPO_URL "$AR_COMPS/esp-face"
+if [ ! -d "$AR_COMPS/esp-dl" ]; then
+	git clone $DL_REPO_URL "$AR_COMPS/esp-dl"
 else
-	git -C "$AR_COMPS/esp-face" fetch && \
-	git -C "$AR_COMPS/esp-face" pull --ff-only
+	git -C "$AR_COMPS/esp-dl" fetch && \
+	git -C "$AR_COMPS/esp-dl" pull --ff-only
+fi
+if [ $? -ne 0 ]; then exit 1; fi
+
+#
+# CLONE/UPDATE ESP-SR
+#
+
+if [ ! -d "$AR_COMPS/esp-sr" ]; then
+	git clone $SR_REPO_URL "$AR_COMPS/esp-sr"
+else
+	git -C "$AR_COMPS/esp-sr" fetch && \
+	git -C "$AR_COMPS/esp-sr" pull --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
@@ -93,8 +106,13 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 
 if [ ! -d "$AR_COMPS/esp-rainmaker" ]; then
-    git clone $RMAKER_REPO_URL "$AR_COMPS/esp-rainmaker"
-    git -C "$AR_COMPS/esp-rainmaker" checkout f1b82c71c4536ab816d17df016d8afe106bd60e3
+    git clone $RMAKER_REPO_URL "$AR_COMPS/esp-rainmaker" && \
+    git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
+    # git -C "$AR_COMPS/esp-rainmaker" checkout f1b82c71c4536ab816d17df016d8afe106bd60e3
+else
+	git -C "$AR_COMPS/esp-rainmaker" fetch && \
+	git -C "$AR_COMPS/esp-rainmaker" pull --ff-only && \
+    git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
@@ -104,10 +122,10 @@ if [ $? -ne 0 ]; then exit 1; fi
 
 if [ ! -d "$AR_COMPS/esp-dsp" ]; then
 	git clone $DSP_REPO_URL "$AR_COMPS/esp-dsp"
-	cml=`cat "$AR_COMPS/esp-dsp/CMakeLists.txt"`
-	echo "if(IDF_TARGET STREQUAL \"esp32\" OR IDF_TARGET STREQUAL \"esp32s2\" OR IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-dsp/CMakeLists.txt"
-	echo "$cml" >> "$AR_COMPS/esp-dsp/CMakeLists.txt"
-	echo "endif()" >> "$AR_COMPS/esp-dsp/CMakeLists.txt"
+	# cml=`cat "$AR_COMPS/esp-dsp/CMakeLists.txt"`
+	# echo "if(IDF_TARGET STREQUAL \"esp32\" OR IDF_TARGET STREQUAL \"esp32s2\" OR IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-dsp/CMakeLists.txt"
+	# echo "$cml" >> "$AR_COMPS/esp-dsp/CMakeLists.txt"
+	# echo "endif()" >> "$AR_COMPS/esp-dsp/CMakeLists.txt"
 else
 	git -C "$AR_COMPS/esp-dsp" fetch && \
 	git -C "$AR_COMPS/esp-dsp" pull --ff-only
