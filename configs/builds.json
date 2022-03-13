@@ -35,7 +35,7 @@
 		{
 			"target": "esp32s3",
 			"features":[],
-			"idf_libs":["qio","80m","qio_ram"],
+			"idf_libs":["dio","80m","qio_ram"],
 			"bootloaders":[
 				["qio","120m","qio_ram"],
 				["qio","80m","qio_ram"],
@@ -51,7 +51,7 @@
 		{
 			"target": "esp32s2",
 			"features":["qio_ram"],
-			"idf_libs":["qio","80m"],
+			"idf_libs":["dout","80m"],
 			"bootloaders":[
 				["qio","80m"],
 				["qout","80m"],
@@ -67,7 +67,7 @@
 		{
 			"target": "esp32c3",
 			"features":[],
-			"idf_libs":["qio","80m"],
+			"idf_libs":["dout","80m"],
 			"bootloaders":[
 				["qio","80m"],
 				["qout","80m"],
@@ -83,7 +83,7 @@
 		{
 			"target": "esp32",
 			"features":["qio_ram"],
-			"idf_libs":["dio","40m"],
+			"idf_libs":["dout","40m"],
 			"bootloaders":[
 				["qio","80m"],
 				["qout","80m"],
