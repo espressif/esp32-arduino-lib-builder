@@ -35,7 +35,7 @@
 		{
 			"target": "esp32s3",
 			"features":[],
-			"idf_libs":["dio","80m","qio_ram"],
+			"idf_libs":["qio","80m","qio_ram"],
 			"bootloaders":[
 				["qio","120m","qio_ram"],
 				["qio","80m","qio_ram"],
