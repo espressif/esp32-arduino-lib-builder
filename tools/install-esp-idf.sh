@@ -18,6 +18,7 @@ if [ -z "$IDF_PATH" ]; then
 	if ! [ -d esp-idf ]; then
                 echo "git clone $IDF_REPO_URL -b $IDF_BRANCH"
 		git clone $IDF_REPO_URL -b $IDF_BRANCH
+		git -C $IDF_BRANCH checkout e8af343d93b8fe409f6b793e955c608d4f75607b
 	fi
 	export IDF_PATH="$AR_ROOT/esp-idf"
 fi
