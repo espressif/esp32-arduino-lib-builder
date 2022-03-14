@@ -16,10 +16,8 @@ if [ -z "$IDF_PATH" ]; then
 	echo "ESP-IDF is not installed! Installing local copy"
 	idf_was_installed="1"
 	if ! [ -d esp-idf ]; then
-                echo "git clone --recursive $IDF_REPO_URL -b $IDF_BRANCH"
-		git clone --recursive $IDF_REPO_URL -b $IDF_BRANCH
-		echo "git checkout e8af343d93b8fe409f6b793e955c608d4f75607b"
-		git checkout e8af343d93b8fe409f6b793e955c608d4f75607b
+                echo "git clone $IDF_REPO_URL -b $IDF_BRANCH"
+		git clone $IDF_REPO_URL -b $IDF_BRANCH
 	fi
 	export IDF_PATH="$AR_ROOT/esp-idf"
 fi
