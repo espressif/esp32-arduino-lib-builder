@@ -6,17 +6,24 @@ on:
     - master
   pull_request:
 
+concurrency:
+  group: build-${{github.event.pull_request.number || github.ref}}
+  cancel-in-progress: false
+
 jobs:
 
   build-libs:
-    name: Build Arduino Libs
+    name: Build Libs for ${{ matrix.target }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [esp32, esp32s2, esp32s3, esp32c3]
     steps:
     - uses: actions/checkout@v1
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
     - name: Build Arduino Libs
-      run: bash ./build.sh
+      run: bash ./build.sh -t ${{ matrix.target }}
     - name: Upload archive
       uses: actions/upload-artifact@v1
       with:
