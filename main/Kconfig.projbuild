@@ -1,0 +1,15 @@
+config LIB_BUILDER_FLASHMODE
+    string
+    default "qio" if ESPTOOLPY_FLASHMODE_QIO
+    default "qout" if ESPTOOLPY_FLASHMODE_QOUT
+    default "dio" if ESPTOOLPY_FLASHMODE_DIO
+    default "dout" if ESPTOOLPY_FLASHMODE_DOUT
+    default "opi" if ESPTOOLPY_FLASHMODE_OPI
+
+config LIB_BUILDER_FLASHFREQ
+    string
+    default "120m" if ESPTOOLPY_FLASHFREQ_120M
+    default "80m" if ESPTOOLPY_FLASHFREQ_80M
+    default "40m" if ESPTOOLPY_FLASHFREQ_40M
+    default "26m" if ESPTOOLPY_FLASHFREQ_26M
+    default "20m" if ESPTOOLPY_FLASHFREQ_20M

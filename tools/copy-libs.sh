@@ -2,10 +2,23 @@
 # config
 
 IDF_TARGET=$1
+OCT_FLASH=
+OCT_PSRAM=
+if [ "$2" = "y" ]; then
+	OCT_FLASH="opi"
+else
+	OCT_FLASH="qspi"
+fi
+if [ "$3" = "y" ]; then
+	OCT_PSRAM="opi"
+else
+	OCT_PSRAM="qspi"
+fi
+MEMCONF=$OCT_FLASH"_$OCT_PSRAM"
 
 source ./tools/config.sh
 
-echo "IDF_TARGET: $IDF_TARGET, PWD: $PWD, OUT: $AR_SDK"
+echo "IDF_TARGET: $IDF_TARGET, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
 
 # clean previous
 if [ -e "$AR_SDK/sdkconfig" ]; then
@@ -19,6 +32,9 @@ if [ -e "$AR_SDK/ld" ]; then
 fi
 if [ -e "$AR_SDK/include" ]; then
 	rm -rf "$AR_SDK/include"
+fi
+if [ -e "$AR_SDK/$MEMCONF" ]; then
+	rm -rf "$AR_SDK/$MEMCONF"
 fi
 mkdir -p "$AR_SDK"
 
@@ -180,7 +196,7 @@ for item; do
 				add_next=0
 				is_script=0
 				is_dir=0
-			elif [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
+			elif [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:17}" != "-Wl,--start-group" && "${item:0:15}" != "-Wl,--end-group" ]]; then
 				LD_FLAGS+="$item "
 				PIO_LD_FLAGS+="$item "
 			fi
@@ -343,6 +359,7 @@ for item; do
 		done
 	fi
 done
+echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", \"$MEMCONF\"), \"include\")," >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"cores\", env.BoardConfig().get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
@@ -366,7 +383,8 @@ done
 
 echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"lib\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"ld\")" >> "$AR_PLATFORMIO_PY"
+echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"ld\")," >> "$AR_PLATFORMIO_PY"
+echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", \"$MEMCONF\"))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
@@ -454,3 +472,12 @@ done
 # Add IDF versions to sdkconfig
 echo "#define CONFIG_ARDUINO_IDF_COMMIT \"$IDF_COMMIT\"" >> "$AR_SDK/include/config/sdkconfig.h"
 echo "#define CONFIG_ARDUINO_IDF_BRANCH \"$IDF_BRANCH\"" >> "$AR_SDK/include/config/sdkconfig.h"
+
+# Handle Mem Variants
+mkdir -p "$AR_SDK/$MEMCONF/include"
+mv "$AR_SDK/include/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
+for mem_variant in `jq -c '.mem_variants_files[]' configs/builds.json`; do
+	file=$(echo "$mem_variant" | jq -c '.file' | tr -d '"')
+	out=$(echo "$mem_variant" | jq -c '.out' | tr -d '"')
+	mv "$AR_SDK/$out" "$AR_SDK/$MEMCONF/$file"
+done;

@@ -6,19 +6,26 @@ on:
     - master
   pull_request:
 
-jobs:
+concurrency:
+  group: esp-idf-libs-${{github.event.pull_request.number || github.ref}}
+  cancel-in-progress: true
 
+jobs:
   build-libs:
-    name: Build Arduino Libs
+    name: Build Libs for ${{ matrix.target }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [esp32, esp32s2, esp32s3, esp32c3]
+      fail-fast: false
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
-    - name: Build Arduino Libs
-      run: bash ./build.sh
+    - name: Build Libs for ${{ matrix.target }}
+      run: bash ./build.sh -t ${{ matrix.target }}
     - name: Upload archive
       uses: actions/upload-artifact@v1
       with:
-        name: artifacts
+        name: artifacts-${{ matrix.target }}
         path: dist

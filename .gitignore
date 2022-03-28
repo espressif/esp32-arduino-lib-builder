@@ -1,7 +1,8 @@
 .DS_Store
 .vscode
 components/arduino/
-components/esp-face/
+components/esp-dl/
+components/esp-sr/
 components/esp32-camera/
 components/esp_littlefs/
 components/esp-rainmaker/

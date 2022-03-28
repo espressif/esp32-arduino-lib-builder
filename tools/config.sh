@@ -1,6 +1,9 @@
 #!/bin/bash
 
-IDF_COMPS="$IDF_PATH/components"
+
+if [ -z $IDF_PATH ]; then
+	export IDF_PATH="$PWD/esp-idf"
+fi
 
 if [ -z $IDF_BRANCH ]; then
 	IDF_BRANCH="release/v4.4"
@@ -21,6 +24,7 @@ if [ -z $IDF_TARGET ]; then
 	fi
 fi
 
+IDF_COMPS="$IDF_PATH/components"
 IDF_TOOLCHAIN="xtensa-$IDF_TARGET-elf"
 
 # Owner of the target ESP32 Arduino repository
