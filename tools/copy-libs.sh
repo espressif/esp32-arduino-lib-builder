@@ -307,7 +307,7 @@ set -- $PIO_LD_FUNCS
 for item; do
 	echo "        \"-u\", \"$item\"," >> "$AR_PLATFORMIO_PY"
 done
-echo "        '-Wl,-Map=\"%s\"' % join(\"\$BUILD_DIR\", basename(env.subst(\"\${PROJECT_DIR}.map\")))" >> "$AR_PLATFORMIO_PY"
+echo "        '-Wl,-Map=\"%s\"' % join(\"\${BUILD_DIR}\", \"\${PROGNAME}.map\")" >> "$AR_PLATFORMIO_PY"
 
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
