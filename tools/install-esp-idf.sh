@@ -62,6 +62,7 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 
 	if [ "$AR_HAS_COMMIT" == "1" ]; then
 		echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists"
+		mkdir -p dist && echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists" > dist/log.txt
 		exit 0
 	fi
 
