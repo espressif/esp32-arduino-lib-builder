@@ -38,17 +38,24 @@ typedef struct { // Data stored for FONT AS A WHOLE:
 
 void fb_gfx_fillRect(fb_data_t *fb, int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
 {
-    int32_t line_step = (fb->width - w) * 3;
-    uint8_t *data = fb->data + ((x + (y * fb->width)) * 3);
+    int32_t line_step = (fb->width - w) * fb->bytes_per_pixel;
+    uint8_t *data = fb->data + ((x + (y * fb->width)) * fb->bytes_per_pixel);
     uint8_t c0 = color >> 16;
     uint8_t c1 = color >> 8;
     uint8_t c2 = color;
     for (int i=0; i<h; i++){
         for (int j=0; j<w; j++){
-            data[0] = c0;
-            data[1] = c1;
-            data[2] = c2;
-            data+=3;
+            if(fb->bytes_per_pixel == 2){
+                data[0] = c1;
+                data[1] = c2;
+            } else if(fb->bytes_per_pixel == 1){
+                data[0] = c2;
+            } else {
+                data[0] = c0;
+                data[1] = c1;
+                data[2] = c2;
+            }
+            data+=fb->bytes_per_pixel;
         }
         data += line_step;
     }
