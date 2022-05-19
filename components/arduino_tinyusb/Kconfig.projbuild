@@ -60,7 +60,7 @@ menu "Arduino TinyUSB"
         config TINYUSB_MSC_BUFSIZE
             int "MSC Buffer size"
             range 512 4096
-            default 512
+            default 4096
             depends on TINYUSB_MSC_ENABLED
             help
                 MSC Buffer size
