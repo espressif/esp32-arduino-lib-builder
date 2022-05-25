@@ -17,3 +17,4 @@ sdkconfig.old
 version.txt
 components/arduino_tinyusb/tinyusb/
 dependencies.lock
+tools/esptool/
