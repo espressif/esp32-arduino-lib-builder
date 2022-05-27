@@ -334,6 +334,9 @@ for item; do
 		if [[ "$fname" == "arduino" ]]; then
 			continue
 		fi
+		if [[ "$fname" == "config" ]]; then
+			continue
+		fi
 
 		out_sub="${item#*$ipath}"
 		out_cpath="$AR_SDK/include/$fname$out_sub"
@@ -469,15 +472,15 @@ for item; do
 	done
 done
 
-# Add IDF versions to sdkconfig
-echo "#define CONFIG_ARDUINO_IDF_COMMIT \"$IDF_COMMIT\"" >> "$AR_SDK/include/config/sdkconfig.h"
-echo "#define CONFIG_ARDUINO_IDF_BRANCH \"$IDF_BRANCH\"" >> "$AR_SDK/include/config/sdkconfig.h"
-
 # Handle Mem Variants
 mkdir -p "$AR_SDK/$MEMCONF/include"
-mv "$AR_SDK/include/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
+mv "$PWD/build/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
 for mem_variant in `jq -c '.mem_variants_files[]' configs/builds.json`; do
 	file=$(echo "$mem_variant" | jq -c '.file' | tr -d '"')
 	out=$(echo "$mem_variant" | jq -c '.out' | tr -d '"')
 	mv "$AR_SDK/$out" "$AR_SDK/$MEMCONF/$file"
 done;
+
+# Add IDF versions to sdkconfig
+echo "#define CONFIG_ARDUINO_IDF_COMMIT \"$IDF_COMMIT\"" >> "$AR_SDK/$MEMCONF/include/sdkconfig.h"
+echo "#define CONFIG_ARDUINO_IDF_BRANCH \"$IDF_BRANCH\"" >> "$AR_SDK/$MEMCONF/include/sdkconfig.h"
