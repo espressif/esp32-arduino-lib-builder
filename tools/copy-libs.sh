@@ -2,6 +2,7 @@
 # config
 
 IDF_TARGET=$1
+IS_XTENSA=$4
 OCT_FLASH=
 OCT_PSRAM=
 if [ "$2" = "y" ]; then
@@ -281,6 +282,15 @@ cat pio_start.txt > "$AR_PLATFORMIO_PY"
 rm pio_end.txt 1pio_start.txt pio_start.txt
 
 echo "    ASFLAGS=[" >> "$AR_PLATFORMIO_PY"
+if [ "$IS_XTENSA" = "y" ]; then
+	echo "        \"-mlongcalls\"" >> "$AR_PLATFORMIO_PY"
+else
+	echo "        \"-march=rv32imc\"" >> "$AR_PLATFORMIO_PY"
+fi
+echo "    ]," >> "$AR_PLATFORMIO_PY"
+echo "" >> "$AR_PLATFORMIO_PY"
+
+echo "    ASPPFLAGS=[" >> "$AR_PLATFORMIO_PY"
 set -- $PIO_AS_FLAGS
 for item; do
 	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
