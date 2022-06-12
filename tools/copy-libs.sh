@@ -191,6 +191,7 @@ for item; do
 				short_name="${item:2}"
 				if [[ $exclude_libs != *";$short_name;"* && $LD_LIBS_SEARCH != *"lib$short_name.a"* ]]; then
 					LD_LIBS_SEARCH+="lib$short_name.a "
+					#echo "lib add: $item"
 				fi
 			elif [ "$item" = "-o" ]; then
 				add_next=0
@@ -225,8 +226,35 @@ for item; do
 				if [[ "$lname" != "main" && "$lname" != "arduino" ]]; then
 					lsize=$($SSTAT "$item")
 					if (( lsize > 8 )); then
-						LD_LIBS+="-l$lname "
-						LD_LIB_FILES+="$item "
+						# do we already have this file?
+						if [[ $LD_LIB_FILES != *"$item"* ]]; then
+							# do we already have lib with the same name?
+							if [[ $LD_LIBS != *"-l$lname"* ]]; then
+								# echo "collecting lib '$lname' and file: $item"
+								LD_LIB_FILES+="$item "
+								LD_LIBS+="-l$lname "
+							else 
+								# echo "!!! need to rename: '$lname'"
+								for i in {2..9}; do
+									n_item="${item:0:${#item}-2}_$i.a"
+									n_name=$lname"_$i"
+									if [ -f "$n_item" ]; then
+										# echo "renamed add: -l$n_name"
+										LD_LIBS+="-l$n_name "
+										break
+									elif [[ $LD_LIB_FILES != *"$n_item"* && $LD_LIBS != *"-l$n_name"* ]]; then
+										echo "Renaming '$lname' to '$n_name': $item"
+										cp -f "$item" "$n_item"
+										LD_LIB_FILES+="$n_item "
+										LD_LIBS+="-l$n_name "
+										break
+									fi
+								done
+							fi
+						else
+							# echo "just add: -l$lname"
+							LD_LIBS+="-l$lname "
+						fi
 					else
 						echo "*** Skipping $(basename $item): size too small $lsize"
 					fi
