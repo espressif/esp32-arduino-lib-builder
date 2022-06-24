@@ -1,34 +1,40 @@
 {
 	"mem_variants_files":[
 		{
-			"file":"libbootloader_support.a",
-			"src":"build/esp-idf/bootloader_support/libbootloader_support.a",
-			"out":"lib/libbootloader_support.a"
-		},
-		{
-			"file":"libesp_hw_support.a",
-			"src":"build/esp-idf/esp_hw_support/libesp_hw_support.a",
-			"out":"lib/libesp_hw_support.a"
-		},
-		{
 			"file":"libspi_flash.a",
 			"src":"build/esp-idf/spi_flash/libspi_flash.a",
-			"out":"lib/libspi_flash.a"
-		},
-		{
-			"file":"libfreertos.a",
-			"src":"build/esp-idf/freertos/libfreertos.a",
-			"out":"lib/libfreertos.a"
+			"out":"lib/libspi_flash.a",
+			"targets":["esp32","esp32c3","esp32s2","esp32s3"]
 		},
 		{
 			"file":"libesp_system.a",
 			"src":"build/esp-idf/esp_system/libesp_system.a",
-			"out":"lib/libesp_system.a"
+			"out":"lib/libesp_system.a",
+			"targets":["esp32s3"]
+		},
+		{
+			"file":"libfreertos.a",
+			"src":"build/esp-idf/freertos/libfreertos.a",
+			"out":"lib/libfreertos.a",
+			"targets":["esp32s3"]
+		},
+		{
+			"file":"libbootloader_support.a",
+			"src":"build/esp-idf/bootloader_support/libbootloader_support.a",
+			"out":"lib/libbootloader_support.a",
+			"targets":["esp32s3"]
+		},
+		{
+			"file":"libesp_hw_support.a",
+			"src":"build/esp-idf/esp_hw_support/libesp_hw_support.a",
+			"out":"lib/libesp_hw_support.a",
+			"targets":["esp32s3"]
 		},
 		{
 			"file":"sections.ld",
 			"src":"build/esp-idf/esp_system/ld/sections.ld",
-			"out":"ld/sections.ld"
+			"out":"ld/sections.ld",
+			"targets":["esp32s3"]
 		}
 	],
 	"targets":[
@@ -44,6 +50,8 @@
 			],
 			"mem_variants":[
 				["qio","80m","opi_ram"],
+				["dio","80m","qio_ram"],
+				["dio","80m","opi_ram"],
 				["opi","80m","opi_ram"],
 				["opi","80m","qio_ram"]
 			]
@@ -62,7 +70,11 @@
 				["dio","40m"],
 				["dout","40m"]
 			],
-			"mem_variants":[]
+			"mem_variants":[
+				["qout","80m"],
+				["dio","80m"],
+				["dout","80m"]
+			]
 		},
 		{
 			"target": "esp32c3",
@@ -78,12 +90,16 @@
 				["dio","40m"],
 				["dout","40m"]
 			],
-			"mem_variants":[]
+			"mem_variants":[
+				["qout","80m"],
+				["dio","80m"],
+				["dout","80m"]
+			]
 		},
 		{
 			"target": "esp32",
 			"features":["qio_ram"],
-			"idf_libs":["dio","40m"],
+			"idf_libs":["qio","80m"],
 			"bootloaders":[
 				["qio","80m"],
 				["qout","80m"],
@@ -94,7 +110,11 @@
 				["dio","40m"],
 				["dout","40m"]
 			],
-			"mem_variants":[]
+			"mem_variants":[
+				["qout","80m"],
+				["dio","80m"],
+				["dout","80m"]
+			]
 		}
 	]
 }

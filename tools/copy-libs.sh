@@ -3,13 +3,9 @@
 
 IDF_TARGET=$1
 IS_XTENSA=$4
-OCT_FLASH=
+OCT_FLASH="$2"
 OCT_PSRAM=
-if [ "$2" = "y" ]; then
-	OCT_FLASH="opi"
-else
-	OCT_FLASH="qspi"
-fi
+
 if [ "$3" = "y" ]; then
 	OCT_PSRAM="opi"
 else
@@ -514,9 +510,18 @@ done
 mkdir -p "$AR_SDK/$MEMCONF/include"
 mv "$PWD/build/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
 for mem_variant in `jq -c '.mem_variants_files[]' configs/builds.json`; do
-	file=$(echo "$mem_variant" | jq -c '.file' | tr -d '"')
-	out=$(echo "$mem_variant" | jq -c '.out' | tr -d '"')
-	mv "$AR_SDK/$out" "$AR_SDK/$MEMCONF/$file"
+	skip_file=1
+	for file_target in $(echo "$mem_variant" | jq -c '.targets[]' | tr -d '"'); do
+		if [ "$file_target" == "$IDF_TARGET" ]; then
+			skip_file=0
+			break
+		fi
+	done
+	if [ $skip_file -eq 0 ]; then
+		file=$(echo "$mem_variant" | jq -c '.file' | tr -d '"')
+		out=$(echo "$mem_variant" | jq -c '.out' | tr -d '"')
+		mv "$AR_SDK/$out" "$AR_SDK/$MEMCONF/$file"
+	fi
 done;
 
 # Add IDF versions to sdkconfig
