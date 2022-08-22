@@ -396,7 +396,7 @@ for item; do
 		done
 	fi
 done
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dout\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
+echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"cores\", env.BoardConfig().get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
@@ -421,7 +421,7 @@ done
 echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"lib\")," >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"ld\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dout\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
+echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
