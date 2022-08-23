@@ -45,13 +45,10 @@
 			"bootloaders":[
 				["qio","120m","qio_ram"],
 				["qio","80m","qio_ram"],
-				["dio","80m","qio_ram"],
 				["opi","80m","opi_ram"]
 			],
 			"mem_variants":[
 				["qio","80m","opi_ram"],
-				["dio","80m","qio_ram"],
-				["dio","80m","opi_ram"],
 				["opi","80m","opi_ram"],
 				["opi","80m","qio_ram"]
 			]
