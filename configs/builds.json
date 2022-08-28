@@ -13,12 +13,6 @@
 			"targets":["esp32s3"]
 		},
 		{
-			"file":"libfreertos.a",
-			"src":"build/esp-idf/freertos/libfreertos.a",
-			"out":"lib/libfreertos.a",
-			"targets":["esp32s3"]
-		},
-		{
 			"file":"libbootloader_support.a",
 			"src":"build/esp-idf/bootloader_support/libbootloader_support.a",
 			"out":"lib/libbootloader_support.a",
