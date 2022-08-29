@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if ! [ -x "$(command -v python)" ]; then
+if ! [ -x "$(command -v python3)" ]; then
     echo "ERROR: python is not installed! Please install python first."
     exit 1
 fi
