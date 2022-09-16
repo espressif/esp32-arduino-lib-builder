@@ -28,9 +28,14 @@ if [ -z $AR_BRANCH ]; then
 	if [[ "$current_branch" != "master" && `git_branch_exists "$AR_COMPS/arduino" "$current_branch"` == "1" ]]; then
 		export AR_BRANCH="$current_branch"
 	else
-		has_ar_branch=`git_branch_exists "$AR_COMPS/arduino" "idf-$IDF_BRANCH"`
+		if [ -z "$IDF_COMMIT" ]; then #commit was not specified at build time
+			AR_BRANCH_NAME="idf-$IDF_BRANCH"
+		else
+			AR_BRANCH_NAME="idf-$IDF_COMMIT"
+		fi
+		has_ar_branch=`git_branch_exists "$AR_COMPS/arduino" "$AR_BRANCH_NAME"`
 		if [ "$has_ar_branch" == "1" ]; then
-			export AR_BRANCH="idf-$IDF_BRANCH"
+			export AR_BRANCH="$AR_BRANCH_NAME"
 		else
 			has_ar_branch=`git_branch_exists "$AR_COMPS/arduino" "$AR_PR_TARGET_BRANCH"`
 			if [ "$has_ar_branch" == "1" ]; then

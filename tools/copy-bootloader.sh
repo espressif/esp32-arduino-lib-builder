@@ -18,3 +18,4 @@ if [ ! -e "tools/esptool" ]; then
 	git clone https://github.com/espressif/esptool tools/esptool
 fi
 ./tools/esptool/esptool.py --chip "$IDF_TARGET" elf2image --dont-append-digest "build/bootloader/bootloader.elf" -o "$AR_SDK/bin/bootloader_$BOOTCONF.bin"
+cp "build/bootloader/bootloader.elf" "$AR_SDK/bin/bootloader_$BOOTCONF.elf"
