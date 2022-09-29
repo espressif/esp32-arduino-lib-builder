@@ -43,7 +43,6 @@ AR_COMPS="$AR_ROOT/components"
 AR_OUT="$AR_ROOT/out"
 AR_TOOLS="$AR_OUT/tools"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
-AR_ESPTOOL_PY="$AR_TOOLS/esptool.py"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/sdk/$IDF_TARGET"
 
