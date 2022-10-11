@@ -15,6 +15,7 @@ BUILD_TYPE="all"
 SKIP_ENV=0
 COPY_OUT=0
 DEPLOY_OUT=0
+RECREATE=0
 
 function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|idf_libs|copy_bootloader|mem_variant>] [config ...]"
@@ -26,12 +27,16 @@ function print_help() {
     echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
     echo "       -t     Set the build target(chip). ex. 'esp32s3'"
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
+    echo "       -r     Recreate arduino-esp32 libs in give version"
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
 
-while getopts ":A:I:i:c:t:b:sd" opt; do
+while getopts ":A:I:i:c:t:b:sdr" opt; do
     case ${opt} in
+        r )
+            export RECREATE=1
+            ;;
         s )
             SKIP_ENV=1
             ;;
@@ -77,6 +82,11 @@ while getopts ":A:I:i:c:t:b:sd" opt; do
 done
 shift $((OPTIND -1))
 CONFIGS=$@
+
+if [ $RECREATE -eq 1 -a -z "$IDF_BRANCH" ]; then
+    echo "RECREATE requires IDF_BRANCH"
+    exit 1
+fi
 
 if [ $SKIP_ENV -eq 0 ]; then
     echo "* Installing/Updating ESP-IDF and all components..."

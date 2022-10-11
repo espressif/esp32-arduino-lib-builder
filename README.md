@@ -12,3 +12,9 @@ git clone https://github.com/espressif/esp32-arduino-lib-builder
 cd esp32-arduino-lib-builder
 ./build.sh
 ```
+
+### Recreate esp32-arduino libs in given version
+Create version-v#.#.#.sh based on `framework-arduinoespressif32/tools/sdk/versions.txt`
+```bash
+./build.sh -I v4.4.2 -r -t esp32s2
+```
