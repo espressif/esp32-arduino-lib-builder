@@ -6,6 +6,7 @@ CAMERA_REPO_URL="https://github.com/espressif/esp32-camera.git"
 DL_REPO_URL="https://github.com/espressif/esp-dl.git"
 SR_REPO_URL="https://github.com/espressif/esp-sr.git"
 RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
+INSIGHTS_REPO_URL="https://github.com/espressif/esp-insights.git"
 DSP_REPO_URL="https://github.com/espressif/esp-dsp.git"
 LITTLEFS_REPO_URL="https://github.com/joltwallet/esp_littlefs.git"
 TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
@@ -118,6 +119,20 @@ else
 	git -C "$AR_COMPS/esp-rainmaker" fetch && \
 	git -C "$AR_COMPS/esp-rainmaker" pull --ff-only && \
     git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
+fi
+if [ $? -ne 0 ]; then exit 1; fi
+
+#
+# CLONE/UPDATE ESP-INSIGHTS
+#
+
+if [ ! -d "$AR_COMPS/esp-insights" ]; then
+    git clone $INSIGHTS_REPO_URL "$AR_COMPS/esp-insights" && \
+    git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
+else
+	git -C "$AR_COMPS/esp-insights" fetch && \
+	git -C "$AR_COMPS/esp-insights" pull --ff-only && \
+    git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
