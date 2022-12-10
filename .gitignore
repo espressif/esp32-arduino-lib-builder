@@ -7,6 +7,8 @@ components/esp32-camera/
 components/esp_littlefs/
 components/esp-rainmaker/
 components/esp-dsp/
+components/esp-insights/
+components/arduino_tinyusb/tinyusb/
 esp-idf/
 out/
 build/
@@ -15,7 +17,4 @@ env.sh
 sdkconfig
 sdkconfig.old
 version.txt
-components/arduino_tinyusb/tinyusb/
 dependencies.lock
-tools/esptool/
-components/esp-insights/
