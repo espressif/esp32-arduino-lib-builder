@@ -92,6 +92,8 @@ for item in "${@:2:${#@}-5}"; do
 		if [[ "${item:2:7}" != "ARDUINO" ]] && [[ "$item" != "-DESP32" ]]; then #skip ARDUINO defines
 			DEFINES+="$item "
 		fi
+	elif [ "$prefix" = "-O" ]; then
+		PIO_CC_FLAGS+="$item "
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
 			C_FLAGS+="$item "
@@ -106,7 +108,7 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
+	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
 			AS_FLAGS+="$item "
 			if [[ $C_FLAGS == *"$item"* ]]; then
@@ -125,7 +127,7 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
+	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
 			CPP_FLAGS+="$item "
 			if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
@@ -478,9 +480,6 @@ rm -rf platform_start.txt platform_mid.txt 1platform_mid.txt
 
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
-
-# esptool.py
-cp "$IDF_COMPS/esptool_py/esptool/esptool.py" "$AR_ESPTOOL_PY"
 
 # gen_esp32part.py
 cp "$IDF_COMPS/partition_table/gen_esp32part.py" "$AR_GEN_PART_PY"
