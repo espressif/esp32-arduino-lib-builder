@@ -76,6 +76,14 @@ export SED="sed"
 export SSTAT="stat -c %s"
 
 if [[ "$AR_OS" == "macos" ]]; then
+	if ! [ -x "$(command -v gsed)" ]; then
+		echo "ERROR: gsed is not installed! Please install gsed first. ex. brew install gsed"
+		exit 1
+	fi
+	if ! [ -x "$(command -v gawk)" ]; then
+		echo "ERROR: gawk is not installed! Please install gawk first. ex. brew install gawk"
+		exit 1
+	fi
 	export SED="gsed"
 	export SSTAT="stat -f %z"
 fi
