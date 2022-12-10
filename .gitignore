@@ -18,3 +18,4 @@ version.txt
 components/arduino_tinyusb/tinyusb/
 dependencies.lock
 tools/esptool/
+components/esp-insights/
