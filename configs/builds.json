@@ -98,7 +98,7 @@
 		},
 		{
 			"target": "esp32",
-			"features":["qio_ram","insights"],
+			"features":["qio_ram"],
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
 				["qio","80m"],
