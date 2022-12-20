@@ -14,7 +14,7 @@ TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
 #
 # CLONE/UPDATE ARDUINO
 #
-
+echo "Updating ESP32 Arduino..."
 if [ ! -d "$AR_COMPS/arduino" ]; then
 	git clone $AR_REPO_URL "$AR_COMPS/arduino"
 fi
@@ -56,23 +56,23 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 # CLONE/UPDATE ESP32-CAMERA
 #
-
+echo "Updating ESP32 Camera..."
 if [ ! -d "$AR_COMPS/esp32-camera" ]; then
 	git clone $CAMERA_REPO_URL "$AR_COMPS/esp32-camera"
 else
 	git -C "$AR_COMPS/esp32-camera" fetch && \
 	git -C "$AR_COMPS/esp32-camera" pull --ff-only
 fi
-#this is a temp measure to fix build issue in recent IDF master
-if [ -f "$AR_COMPS/esp32-camera/idf_component.yml" ]; then
-	rm -rf "$AR_COMPS/esp32-camera/idf_component.yml"
-fi
+#this is a temp measure to fix build issue
+# if [ -f "$AR_COMPS/esp32-camera/idf_component.yml" ]; then
+# 	rm -rf "$AR_COMPS/esp32-camera/idf_component.yml"
+# fi
 if [ $? -ne 0 ]; then exit 1; fi
 
 #
 # CLONE/UPDATE ESP-DL
 #
-
+echo "Updating ESP-DL..."
 if [ ! -d "$AR_COMPS/esp-dl" ]; then
 	git clone $DL_REPO_URL "$AR_COMPS/esp-dl"
 else
@@ -84,19 +84,23 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 # CLONE/UPDATE ESP-SR
 #
-
+echo "Updating ESP-SR..."
 if [ ! -d "$AR_COMPS/esp-sr" ]; then
 	git clone $SR_REPO_URL "$AR_COMPS/esp-sr"
 else
 	git -C "$AR_COMPS/esp-sr" fetch && \
 	git -C "$AR_COMPS/esp-sr" pull --ff-only
 fi
+#this is a temp measure to fix build issue
+if [ -f "$AR_COMPS/esp-sr/idf_component.yml" ]; then
+	rm -rf "$AR_COMPS/esp-sr/idf_component.yml"
+fi
 if [ $? -ne 0 ]; then exit 1; fi
 
 #
 # CLONE/UPDATE ESP-LITTLEFS
 #
-
+echo "Updating ESP-LITTLEFS..."
 if [ ! -d "$AR_COMPS/esp_littlefs" ]; then
 	git clone $LITTLEFS_REPO_URL "$AR_COMPS/esp_littlefs" && \
     git -C "$AR_COMPS/esp_littlefs" submodule update --init --recursive
@@ -110,7 +114,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 # CLONE/UPDATE ESP-RAINMAKER
 #
-
+echo "Updating ESP-RainMaker..."
 if [ ! -d "$AR_COMPS/esp-rainmaker" ]; then
     git clone $RMAKER_REPO_URL "$AR_COMPS/esp-rainmaker" && \
     git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
@@ -124,7 +128,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 # CLONE/UPDATE ESP-INSIGHTS
 #
-
+echo "Updating ESP-Insights..."
 if [ ! -d "$AR_COMPS/esp-insights" ]; then
     git clone $INSIGHTS_REPO_URL "$AR_COMPS/esp-insights" && \
     git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
@@ -138,7 +142,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 # CLONE/UPDATE ESP-DSP
 #
-
+echo "Updating ESP-DSP..."
 if [ ! -d "$AR_COMPS/esp-dsp" ]; then
 	git clone $DSP_REPO_URL "$AR_COMPS/esp-dsp"
 else
@@ -150,7 +154,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 # CLONE/UPDATE TINYUSB
 #
-
+echo "Updating TinyUSB..."
 if [ ! -d "$AR_COMPS/arduino_tinyusb/tinyusb" ]; then
 	git clone $TINYUSB_REPO_URL "$AR_COMPS/arduino_tinyusb/tinyusb"
 else
