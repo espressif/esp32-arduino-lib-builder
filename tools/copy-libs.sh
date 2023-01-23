@@ -95,7 +95,7 @@ for item in "${@:2:${#@}-5}"; do
 	elif [ "$prefix" = "-O" ]; then
 		PIO_CC_FLAGS+="$item "
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
-		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
+		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" ]]; then
 			C_FLAGS+="$item "
 		fi
 	fi
@@ -109,7 +109,7 @@ set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
-		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
+		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" ]]; then
 			AS_FLAGS+="$item "
 			if [[ $C_FLAGS == *"$item"* ]]; then
 				PIO_CC_FLAGS+="$item "
@@ -128,7 +128,7 @@ set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
-		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
+		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" ]]; then
 			CPP_FLAGS+="$item "
 			if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
 				PIO_CXX_FLAGS+="$item "
@@ -155,13 +155,15 @@ else
 	libs="${libs:19:${#libs}-1}"
 	flags=`cat build/build.ninja | grep LINK_FLAGS`
 	flags="${flags:15:${#flags}-1}"
+	paths=`cat build/build.ninja | grep LINK_PATH`
+	paths="${paths:14:${#paths}-1}"
 	if [ "$IDF_TARGET" = "esp32" ]; then
 		flags="-Wno-frame-address $flags"
 	fi
 	if [ "$IDF_TARGET" != "esp32c3" ]; then
 		flags="-mlongcalls $flags"
 	fi
-	str="$flags $libs"
+	str="$flags $libs $paths"
 fi
 if [ "$IDF_TARGET" = "esp32" ]; then
 	LD_SCRIPTS+="-T esp32.rom.redefined.ld "
@@ -362,7 +364,7 @@ for item; do
 		if [[ "$fname" == "main" && "$dname" == "esp32-arduino-lib-builder" ]]; then
 			continue
 		fi
-		while [[ "$dname" != "components" && "$dname" != "build" ]]; do
+		while [[ "$dname" != "components" && "$dname" != "managed_components" && "$dname" != "build" ]]; do
 			ipath=`dirname "$ipath"`
 			fname=`basename "$ipath"`
 			dname=`basename $(dirname "$ipath")`
@@ -482,7 +484,7 @@ rm -rf platform_start.txt platform_mid.txt 1platform_mid.txt
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
 
 # gen_esp32part.py
-cp "$IDF_COMPS/partition_table/gen_esp32part.py" "$AR_GEN_PART_PY"
+cp "$IDF_PATH/components/partition_table/gen_esp32part.py" "$AR_GEN_PART_PY"
 
 # copy precompiled libs (if we need them)
 function copy_precompiled_lib(){

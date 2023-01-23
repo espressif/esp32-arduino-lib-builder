@@ -6,7 +6,7 @@ if [ -z $IDF_PATH ]; then
 fi
 
 if [ -z $IDF_BRANCH ]; then
-	IDF_BRANCH="release/v4.4"
+	IDF_BRANCH="master"
 fi
 
 if [ -z $AR_PR_TARGET_BRANCH ]; then
@@ -23,9 +23,6 @@ if [ -z $IDF_TARGET ]; then
 		IDF_TARGET="esp32"
 	fi
 fi
-
-IDF_COMPS="$IDF_PATH/components"
-IDF_TOOLCHAIN="xtensa-$IDF_TARGET-elf"
 
 # Owner of the target ESP32 Arduino repository
 AR_USER="espressif"

@@ -18,3 +18,4 @@ sdkconfig
 sdkconfig.old
 version.txt
 dependencies.lock
+managed_components/

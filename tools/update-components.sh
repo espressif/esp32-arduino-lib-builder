@@ -63,10 +63,6 @@ else
 	git -C "$AR_COMPS/esp32-camera" fetch && \
 	git -C "$AR_COMPS/esp32-camera" pull --ff-only
 fi
-#this is a temp measure to fix build issue
-# if [ -f "$AR_COMPS/esp32-camera/idf_component.yml" ]; then
-# 	rm -rf "$AR_COMPS/esp32-camera/idf_component.yml"
-# fi
 if [ $? -ne 0 ]; then exit 1; fi
 
 #
@@ -98,16 +94,14 @@ fi
 if [ $? -ne 0 ]; then exit 1; fi
 
 #
-# CLONE/UPDATE ESP-LITTLEFS
+# CLONE/UPDATE ESP-DSP
 #
-echo "Updating ESP-LITTLEFS..."
-if [ ! -d "$AR_COMPS/esp_littlefs" ]; then
-	git clone $LITTLEFS_REPO_URL "$AR_COMPS/esp_littlefs" && \
-    git -C "$AR_COMPS/esp_littlefs" submodule update --init --recursive
+echo "Updating ESP-DSP..."
+if [ ! -d "$AR_COMPS/esp-dsp" ]; then
+	git clone $DSP_REPO_URL "$AR_COMPS/esp-dsp"
 else
-	git -C "$AR_COMPS/esp_littlefs" fetch && \
-	git -C "$AR_COMPS/esp_littlefs" pull --ff-only && \
-    git -C "$AR_COMPS/esp_littlefs" submodule update --init --recursive
+	git -C "$AR_COMPS/esp-dsp" fetch && \
+	git -C "$AR_COMPS/esp-dsp" pull --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
@@ -140,14 +134,16 @@ fi
 if [ $? -ne 0 ]; then exit 1; fi
 
 #
-# CLONE/UPDATE ESP-DSP
+# CLONE/UPDATE ESP-LITTLEFS
 #
-echo "Updating ESP-DSP..."
-if [ ! -d "$AR_COMPS/esp-dsp" ]; then
-	git clone $DSP_REPO_URL "$AR_COMPS/esp-dsp"
+echo "Updating ESP-LITTLEFS..."
+if [ ! -d "$AR_COMPS/esp_littlefs" ]; then
+	git clone $LITTLEFS_REPO_URL "$AR_COMPS/esp_littlefs" && \
+    git -C "$AR_COMPS/esp_littlefs" submodule update --init --recursive
 else
-	git -C "$AR_COMPS/esp-dsp" fetch && \
-	git -C "$AR_COMPS/esp-dsp" pull --ff-only
+	git -C "$AR_COMPS/esp_littlefs" fetch && \
+	git -C "$AR_COMPS/esp_littlefs" pull --ff-only && \
+    git -C "$AR_COMPS/esp_littlefs" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
