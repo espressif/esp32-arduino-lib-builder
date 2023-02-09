@@ -187,6 +187,12 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     done
 done
 
+# update package_esp32_index.template.json
+if [ "$BUILD_TYPE" = "all" ]; then
+    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
+    if [ $? -ne 0 ]; then exit 1; fi
+fi
+
 # archive the build
 if [ "$BUILD_TYPE" = "all" ]; then
     ./tools/archive-build.sh
