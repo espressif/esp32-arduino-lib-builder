@@ -6,7 +6,7 @@ components/esp-sr/
 components/esp32-camera/
 components/esp_littlefs/
 components/esp-rainmaker/
-components/esp-dsp/
+components/espressif__esp-dsp/
 components/esp-insights/
 components/arduino_tinyusb/tinyusb/
 esp-idf/
