@@ -20,6 +20,7 @@ function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|idf_libs|copy_bootloader|mem_variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
+    echo "       -a     Set which tag of arduino-esp32 to be used for compilation"
     echo "       -I     Set which branch of ESP-IDF to be used for compilation"
     echo "       -i     Set which commit of ESP-IDF to be used for compilation"
     echo "       -d     Deploy the build to github arduino-esp32"
@@ -44,6 +45,9 @@ while getopts ":A:I:i:c:t:b:sd" opt; do
             ;;
         A )
             export AR_BRANCH="$OPTARG"
+            ;;
+        a )
+            export AR_TAG="$OPTARG"
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
