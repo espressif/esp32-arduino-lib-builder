@@ -57,9 +57,7 @@ if [ "$AR_TAG" ]; then
   if [ "$AR_BRANCH" ]; then
     echo "Warning: Both branch and tag specifiied for arduino-esp32. Tag takes precedence. Ignoring branch."
   fi
-	git -C "$AR_COMPS/arduino" checkout "tags/$AR_TAG" && \
-	git -C "$AR_COMPS/arduino" fetch && \
-	git -C "$AR_COMPS/arduino" pull --ff-only
+	git -C "$AR_COMPS/arduino" checkout "tags/$AR_TAG" 
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 

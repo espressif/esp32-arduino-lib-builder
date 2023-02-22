@@ -17,7 +17,7 @@ COPY_OUT=0
 DEPLOY_OUT=0
 
 function print_help() {
-    echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|idf_libs|copy_bootloader|mem_variant>] [config ...]"
+    echo "Usage: build.sh [-s] [-A <arduino_branch>] [-a <arduino_tag>] [-I <idf_branch>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|idf_libs|copy_bootloader|mem_variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
     echo "       -a     Set which tag of arduino-esp32 to be used for compilation"
@@ -31,7 +31,7 @@ function print_help() {
     exit 1
 }
 
-while getopts ":A:I:i:c:t:b:sd" opt; do
+while getopts ":A:a:I:i:c:t:b:sd" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
