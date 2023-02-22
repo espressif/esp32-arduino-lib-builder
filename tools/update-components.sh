@@ -19,7 +19,7 @@ if [ ! -d "$AR_COMPS/arduino" ]; then
 	git clone $AR_REPO_URL "$AR_COMPS/arduino"
 fi
 
-if [ -z $AR_BRANCH ]; then
+if [ -z $AR_BRANCH ] && [ -z $AR_TAG ]; then
 	if [ -z $GITHUB_HEAD_REF ]; then
 		current_branch=`git branch --show-current`
 	else
@@ -48,6 +48,16 @@ fi
 
 if [ "$AR_BRANCH" ]; then
 	git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH" && \
+	git -C "$AR_COMPS/arduino" fetch && \
+	git -C "$AR_COMPS/arduino" pull --ff-only
+fi
+if [ $? -ne 0 ]; then exit 1; fi
+
+if [ "$AR_TAG" ]; then
+  if [ "$AR_BRANCH" ]; then
+    echo "Warning: Both branch and tag specifiied for arduino-esp32. Tag takes precedence. Ignoring branch."
+  fi
+	git -C "$AR_COMPS/arduino" checkout "tags/$AR_TAG" && \
 	git -C "$AR_COMPS/arduino" fetch && \
 	git -C "$AR_COMPS/arduino" pull --ff-only
 fi
