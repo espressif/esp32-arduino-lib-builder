@@ -47,6 +47,7 @@ if [ -z $AR_BRANCH ]; then
 fi
 
 if [ "$AR_BRANCH" ]; then
+	echo "AR_BRANCH='$AR_BRANCH'"
 	git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH" && \
 	git -C "$AR_COMPS/arduino" fetch && \
 	git -C "$AR_COMPS/arduino" pull --ff-only
@@ -97,11 +98,11 @@ if [ $? -ne 0 ]; then exit 1; fi
 # CLONE/UPDATE ESP-DSP
 #
 echo "Updating ESP-DSP..."
-if [ ! -d "$AR_COMPS/esp-dsp" ]; then
-	git clone $DSP_REPO_URL "$AR_COMPS/esp-dsp"
+if [ ! -d "$AR_COMPS/espressif__esp-dsp" ]; then
+	git clone $DSP_REPO_URL "$AR_COMPS/espressif__esp-dsp"
 else
-	git -C "$AR_COMPS/esp-dsp" fetch && \
-	git -C "$AR_COMPS/esp-dsp" pull --ff-only
+	git -C "$AR_COMPS/espressif__esp-dsp" fetch && \
+	git -C "$AR_COMPS/espressif__esp-dsp" pull --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 

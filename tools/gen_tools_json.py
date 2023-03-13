@@ -84,7 +84,7 @@ if __name__ == '__main__':
                 "url": tool_data['url'],
                 "archiveFileName": os.path.basename(tool_data['url']),
                 "checksum": "SHA-256:"+tool_data['sha256'],
-                "size": tool_data['size']
+                "size": str(tool_data['size'])
             }
 
             if arch == "win32":

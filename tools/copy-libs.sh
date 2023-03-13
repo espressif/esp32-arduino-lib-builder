@@ -350,8 +350,8 @@ echo "        '-Wl,-Map=\"%s\"' % join(\"\${BUILD_DIR}\", \"\${PROGNAME}.map\")"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
-# # include dirs
-AR_INC=""
+# include dirs
+REL_INC=""
 echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY"
 
 set -- $INCLUDES
@@ -378,7 +378,7 @@ for item; do
 
 		out_sub="${item#*$ipath}"
 		out_cpath="$AR_SDK/include/$fname$out_sub"
-		AR_INC+=" \"-I{compiler.sdk.path}/include/$fname$out_sub\""
+		REL_INC+="-iwithprefixbefore $fname$out_sub "
 		if [ "$out_sub" = "" ]; then
 			echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
 		else
@@ -451,34 +451,25 @@ for item; do
 	fi
 done
 
-# remove backslashes for Arduino
-DEFINES=`echo "$DEFINES" | tr -d '\\'`
-
-
 # end generation of platformio-build.py
 cat 1pio_end.txt >> "$AR_PLATFORMIO_PY"
 rm 1pio_end.txt
 
-# arduino platform.txt
-platform_file="$AR_COMPS/arduino/platform.txt"
-if [ -f "$AR_PLATFORM_TXT" ]; then
-	# use the file we have already compiled for other chips
-	platform_file="$AR_PLATFORM_TXT"
-fi
-awk "/compiler.cpreprocessor.flags.$IDF_TARGET=/{n++}{print>n\"platform_start.txt\"}" "$platform_file"
-$SED -i "/compiler.cpreprocessor.flags.$IDF_TARGET\=/d" 1platform_start.txt
-awk "/compiler.ar.flags.$IDF_TARGET=/{n++}{print>n\"platform_mid.txt\"}" 1platform_start.txt
-rm -rf 1platform_start.txt
+# replace double backslashes with single one
+DEFINES=`echo "$DEFINES" | tr -s '\'`
 
-cat platform_start.txt > "$AR_PLATFORM_TXT"
-echo "compiler.cpreprocessor.flags.$IDF_TARGET=$DEFINES $AR_INC" >> "$AR_PLATFORM_TXT"
-echo "compiler.c.elf.libs.$IDF_TARGET=$AR_LIBS" >> "$AR_PLATFORM_TXT"
-echo "compiler.c.flags.$IDF_TARGET=$C_FLAGS -MMD -c" >> "$AR_PLATFORM_TXT"
-echo "compiler.cpp.flags.$IDF_TARGET=$CPP_FLAGS -MMD -c" >> "$AR_PLATFORM_TXT"
-echo "compiler.S.flags.$IDF_TARGET=$AS_FLAGS -x assembler-with-cpp -MMD -c" >> "$AR_PLATFORM_TXT"
-echo "compiler.c.elf.flags.$IDF_TARGET=$LD_SCRIPTS $LD_FLAGS" >> "$AR_PLATFORM_TXT"
-cat 1platform_mid.txt >> "$AR_PLATFORM_TXT"
-rm -rf platform_start.txt platform_mid.txt 1platform_mid.txt
+# target flags files
+FLAGS_DIR="$AR_SDK/flags"
+mkdir -p "$FLAGS_DIR"
+echo -n "$DEFINES" > "$FLAGS_DIR/defines"
+echo -n "$REL_INC" > "$FLAGS_DIR/includes"
+echo -n "$C_FLAGS" > "$FLAGS_DIR/c_flags"
+echo -n "$CPP_FLAGS" > "$FLAGS_DIR/cpp_flags"
+echo -n "$AS_FLAGS" > "$FLAGS_DIR/S_flags"
+echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
+echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
+echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
+
 
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
