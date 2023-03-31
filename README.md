@@ -1,4 +1,4 @@
-# ESP32 Arduino Lib Builder [![Build Status](https://travis-ci.org/espressif/esp32-arduino-lib-builder.svg?branch=master)](https://travis-ci.org/espressif/esp32-arduino-lib-builder)
+# ESP32 Arduino Lib Builder
 
 This repository contains the scripts that produce the libraries included with esp32-arduino.
 
