@@ -6,7 +6,7 @@ if [ -z $IDF_PATH ]; then
 fi
 
 if [ -z $IDF_BRANCH ]; then
-	IDF_BRANCH="master"
+	IDF_BRANCH="release/v5.1"
 fi
 
 if [ -z $AR_PR_TARGET_BRANCH ]; then
@@ -42,6 +42,8 @@ AR_TOOLS="$AR_OUT/tools"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/sdk/$IDF_TARGET"
+PIO_SDK="FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\""
+TOOLS_JSON_OUT="$AR_TOOLS/sdk"
 
 function get_os(){
   	OSBITS=`arch`

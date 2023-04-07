@@ -122,9 +122,6 @@ if [ "$BUILD_TYPE" != "all" ]; then
 fi
 
 rm -rf build sdkconfig out
-echo "* Reconfigure Project"
-idf.py reconfigure
-rm -rf build sdkconfig
 
 # Add components version info
 mkdir -p "$AR_TOOLS/sdk" && rm -rf version.txt && rm -rf "$AR_TOOLS/sdk/versions.txt"
@@ -194,6 +191,7 @@ done
 # update package_esp32_index.template.json
 if [ "$BUILD_TYPE" = "all" ]; then
     python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
+    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 

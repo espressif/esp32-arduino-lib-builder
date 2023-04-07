@@ -7,6 +7,12 @@
 			"targets":["esp32","esp32c3","esp32s2","esp32s3"]
 		},
 		{
+			"file":"libesp_psram.a",
+			"src":"build/esp-idf/esp_psram/libesp_psram.a",
+			"out":"lib/libesp_psram.a",
+			"targets":["esp32s3"]
+		},
+		{
 			"file":"libesp_system.a",
 			"src":"build/esp-idf/esp_system/libesp_system.a",
 			"out":"lib/libesp_system.a",
@@ -40,7 +46,7 @@
 	"targets":[
 		{
 			"target": "esp32s3",
-			"features":[],
+			"features":["esp_sr"],
 			"idf_libs":["qio","80m","qio_ram"],
 			"bootloaders":[
 				["qio","120m","qio_ram"],

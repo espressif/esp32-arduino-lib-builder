@@ -30,8 +30,14 @@ fi
 if [ -e "$AR_SDK/include" ]; then
 	rm -rf "$AR_SDK/include"
 fi
+if [ -e "$AR_SDK/flags" ]; then
+	rm -rf "$AR_SDK/flags"
+fi
 if [ -e "$AR_SDK/$MEMCONF" ]; then
 	rm -rf "$AR_SDK/$MEMCONF"
+fi
+if [ -e "$AR_SDK/platformio-build.py" ]; then
+	rm -rf "$AR_SDK/platformio-build.py"
 fi
 mkdir -p "$AR_SDK"
 
@@ -273,13 +279,11 @@ done
 # END OF DATA EXTRACTION FROM CMAKE
 #
 
-AR_PLATFORMIO_PY="$AR_TOOLS/platformio-build-$IDF_TARGET.py"
+mkdir -p "$AR_SDK"
 
 # start generation of platformio-build.py
-awk "/ASFLAGS=\[/{n++}{print>n\"pio_start.txt\"}" $AR_COMPS/arduino/tools/platformio-build-$IDF_TARGET.py
-awk "/\"ARDUINO_ARCH_ESP32\"/{n++}{print>n\"pio_end.txt\"}" 1pio_start.txt
-cat pio_start.txt > "$AR_PLATFORMIO_PY"
-rm pio_end.txt 1pio_start.txt pio_start.txt
+AR_PLATFORMIO_PY="$AR_SDK/platformio-build.py"
+cat configs/pio_start.txt > "$AR_PLATFORMIO_PY"
 
 echo "    ASFLAGS=[" >> "$AR_PLATFORMIO_PY"
 if [ "$IS_XTENSA" = "y" ]; then
@@ -380,11 +384,11 @@ for item; do
 		out_cpath="$AR_SDK/include/$fname$out_sub"
 		REL_INC+="-iwithprefixbefore $fname$out_sub "
 		if [ "$out_sub" = "" ]; then
-			echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
+			echo "        join($PIO_SDK, \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
 		else
 			pio_sub="${out_sub:1}"
 			pio_sub=`echo $pio_sub | sed 's/\//\\", \\"/g'`
-			echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
+			echo "        join($PIO_SDK, \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
 		fi
 		for f in `find "$item" -name '*.h'`; do
 			rel_f=${f#*$item}
@@ -400,7 +404,7 @@ for item; do
 		done
 	fi
 done
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
+echo "        join($PIO_SDK, env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"cores\", env.BoardConfig().get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
@@ -423,9 +427,9 @@ for item; do
 done
 
 echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"lib\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"ld\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
+echo "        join($PIO_SDK, \"lib\")," >> "$AR_PLATFORMIO_PY"
+echo "        join($PIO_SDK, \"ld\")," >> "$AR_PLATFORMIO_PY"
+echo "        join($PIO_SDK, env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
@@ -452,8 +456,7 @@ for item; do
 done
 
 # end generation of platformio-build.py
-cat 1pio_end.txt >> "$AR_PLATFORMIO_PY"
-rm 1pio_end.txt
+cat configs/pio_end.txt >> "$AR_PLATFORMIO_PY"
 
 # replace double backslashes with single one
 DEFINES=`echo "$DEFINES" | tr -s '\'`
@@ -470,12 +473,18 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
+# sr model.bin
+if [ -f "build/model.bin" ]; then
+	mkdir -p "$AR_SDK/esp_sr"
+	cp -f "build/model.bin" "$AR_SDK/esp_sr/"
+	cp -f "partitions.csv" "$AR_SDK/esp_sr/"
+fi
 
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
 
 # gen_esp32part.py
-cp "$IDF_PATH/components/partition_table/gen_esp32part.py" "$AR_GEN_PART_PY"
+# cp "$IDF_PATH/components/partition_table/gen_esp32part.py" "$AR_GEN_PART_PY"
 
 # copy precompiled libs (if we need them)
 function copy_precompiled_lib(){
