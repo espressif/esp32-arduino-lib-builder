@@ -34,7 +34,7 @@ if __name__ == '__main__':
     out_path = args.out_path;
 
     # settings
-    arduino_tools = ["xtensa-esp32-elf","xtensa-esp32s2-elf","xtensa-esp32s3-elf","riscv32-esp-elf","openocd-esp32"]
+    arduino_tools = ["xtensa-esp32-elf","xtensa-esp32s2-elf","xtensa-esp32s3-elf","xtensa-esp-elf-gdb","riscv32-esp-elf","riscv32-esp-elf-gdb","openocd-esp32"]
 
     # code start
     farray = json.load(open(arduino_json))
