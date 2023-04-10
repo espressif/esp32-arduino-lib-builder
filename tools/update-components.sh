@@ -80,6 +80,10 @@ else
 	git -C "$AR_COMPS/esp-dl" pull --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
+#this is a temp measure to fix build issue
+if [ -f "$AR_COMPS/esp-dl/idf_component.yml" ]; then
+	rm -rf "$AR_COMPS/esp-dl/idf_component.yml"
+fi
 
 #
 # CLONE/UPDATE ESP-SR
@@ -90,10 +94,6 @@ if [ ! -d "$AR_COMPS/esp-sr" ]; then
 else
 	git -C "$AR_COMPS/esp-sr" fetch && \
 	git -C "$AR_COMPS/esp-sr" pull --ff-only
-fi
-#this is a temp measure to fix build issue
-if [ -f "$AR_COMPS/esp-sr/idf_component.yml" ]; then
-	rm -rf "$AR_COMPS/esp-sr/idf_component.yml"
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
