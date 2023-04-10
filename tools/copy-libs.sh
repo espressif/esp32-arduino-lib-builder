@@ -78,7 +78,7 @@ for item in "${@:2:${#@}-5}"; do
 			item=`get_actual_path $item`
 			INCLUDES+="$item "
 		elif [ "${item:0:2}" = ".." ]; then
-			if [[ "${item:0:14}" = "../components/" && "${item:0:22}" != "../components/arduino/" ]] || [[ "${item:0:11}" = "../esp-idf/" ]]; then
+			if [[ "${item:0:14}" = "../components/" && "${item:0:22}" != "../components/arduino/" ]] || [[ "${item:0:11}" = "../esp-idf/" ]] || [[ "${item:0:22}" = "../managed_components/" ]]; then
 				item="$PWD${item:2}"
 				item=`get_actual_path $item`
 				INCLUDES+="$item "
@@ -362,7 +362,7 @@ for item; do
 		if [[ "$fname" == "main" && "$dname" == "esp32-arduino-lib-builder" ]]; then
 			continue
 		fi
-		while [[ "$dname" != "components" && "$dname" != "build" ]]; do
+		while [[ "$dname" != "components" && "$dname" != "managed_components" && "$dname" != "build" ]]; do
 			ipath=`dirname "$ipath"`
 			fname=`basename "$ipath"`
 			dname=`basename $(dirname "$ipath")`
