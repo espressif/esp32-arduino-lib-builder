@@ -84,7 +84,7 @@ for item in "${@:2:${#@}-5}"; do
 			item=`get_actual_path $item`
 			INCLUDES+="$item "
 		elif [ "${item:0:2}" = ".." ]; then
-			if [[ "${item:0:14}" = "../components/" && "${item:0:22}" != "../components/arduino/" ]] || [[ "${item:0:11}" = "../esp-idf/" ]]; then
+			if [[ "${item:0:14}" = "../components/" && "${item:0:22}" != "../components/arduino/" ]] || [[ "${item:0:11}" = "../esp-idf/" ]] || [[ "${item:0:22}" = "../managed_components/" ]]; then
 				item="$PWD${item:2}"
 				item=`get_actual_path $item`
 				INCLUDES+="$item "
@@ -474,9 +474,9 @@ echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
 # sr model.bin
-if [ -f "build/model.bin" ]; then
+if [ -f "build/srmodels/srmodels.bin" ]; then
 	mkdir -p "$AR_SDK/esp_sr"
-	cp -f "build/model.bin" "$AR_SDK/esp_sr/"
+	cp -f "build/srmodels/srmodels.bin" "$AR_SDK/esp_sr/"
 	cp -f "partitions.csv" "$AR_SDK/esp_sr/"
 fi
 
