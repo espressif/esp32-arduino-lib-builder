@@ -10,7 +10,7 @@ if [ -z $IDF_BRANCH ]; then
 fi
 
 if [ -z $AR_PR_TARGET_BRANCH ]; then
-	AR_PR_TARGET_BRANCH="master"
+	AR_PR_TARGET_BRANCH="release/v2.x"
 fi
 
 if [ -z $IDF_TARGET ]; then
