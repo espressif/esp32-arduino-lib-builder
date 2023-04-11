@@ -18,7 +18,10 @@ if [ ! -d "$IDF_PATH" ]; then
 	idf_was_installed="1"
 fi
 
-if [ "$IDF_COMMIT" ]; then
+if [ "$IDF_TAG" ]; then
+    git -C "$IDF_PATH" checkout "tags/$IDF_TAG"
+    idf_was_installed="1"
+elif [ "$IDF_COMMIT" ]; then
     git -C "$IDF_PATH" checkout "$IDF_COMMIT"
     commit_predefined="1"
 fi

@@ -26,16 +26,15 @@ if [ -z $AR_BRANCH ]; then
 		current_branch="$GITHUB_HEAD_REF"
 	fi
 	echo "Current Branch: $current_branch"
-	# Temporary to get CI working
-	if [[ "$current_branch" == "esp-idf-v5.1" ]]; then
-		export AR_BRANCH="esp-idf-v5.1-libs"
-	elif [[ "$current_branch" != "master" && `git_branch_exists "$AR_COMPS/arduino" "$current_branch"` == "1" ]]; then
+	if [[ "$current_branch" != "master" && `git_branch_exists "$AR_COMPS/arduino" "$current_branch"` == "1" ]]; then
 		export AR_BRANCH="$current_branch"
 	else
-		if [ -z "$IDF_COMMIT" ]; then #commit was not specified at build time
-			AR_BRANCH_NAME="idf-$IDF_BRANCH"
-		else
+		if [ "$IDF_TAG" ]; then #tag was specified at build time
+			AR_BRANCH_NAME="idf-$IDF_TAG"
+		elif [ "$IDF_COMMIT" ]; then #commit was specified at build time
 			AR_BRANCH_NAME="idf-$IDF_COMMIT"
+		else
+			AR_BRANCH_NAME="idf-$IDF_BRANCH"
 		fi
 		has_ar_branch=`git_branch_exists "$AR_COMPS/arduino" "$AR_BRANCH_NAME"`
 		if [ "$has_ar_branch" == "1" ]; then
