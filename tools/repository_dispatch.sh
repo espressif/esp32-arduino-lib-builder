@@ -9,11 +9,12 @@ EVENT_JSON=`cat "$GITHUB_EVENT_PATH"`
 action=`echo "$EVENT_JSON" | jq -r '.action'`
 payload=`echo "$EVENT_JSON" | jq -r '.client_payload'`
 branch=`echo "$payload" | jq -r '.branch'`
+tag=`echo "$payload" | jq -r '.tag'`
 commit=`echo "$payload" | jq -r '.commit'`
 builder=`echo "$payload" | jq -r '.builder'`
 arduino=`echo "$payload" | jq -r '.arduino'`
 
-echo "Action: $action, Branch: $branch, Commit: $commit, Builder: $builder"
+echo "Action: $action, Branch: $branch, Tag: $tag, Commit: $commit, Builder: $builder, Arduino: $arduino"
 
 if [ ! "$action" == "deploy" ] && [ ! "$action" == "build" ]; then
     echo "Bad Action $action"
@@ -26,6 +27,8 @@ if [ ! "$commit" == "" ] && [ ! "$commit" == "null" ]; then
     export IDF_COMMIT="$commit"
 else
     commit=""
+    if [ ! "$tag" == "" ] && [ ! "$tag" == "null" ]; then
+        export IDF_TAG="$tag"
     if [ ! "$branch" == "" ] && [ ! "$branch" == "null" ]; then
         export IDF_BRANCH="$branch"
     fi
