@@ -29,7 +29,7 @@ else
     commit=""
     if [ ! "$tag" == "" ] && [ ! "$tag" == "null" ]; then
         export IDF_TAG="$tag"
-    if [ ! "$branch" == "" ] && [ ! "$branch" == "null" ]; then
+    elif [ ! "$branch" == "" ] && [ ! "$branch" == "null" ]; then
         export IDF_BRANCH="$branch"
     fi
 fi
