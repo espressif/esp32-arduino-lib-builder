@@ -14,7 +14,7 @@ commit=`echo "$payload" | jq -r '.commit'`
 builder=`echo "$payload" | jq -r '.builder'`
 arduino=`echo "$payload" | jq -r '.arduino'`
 
-echo "Action: $action, Branch: $branch, Tag: $tag, Commit: $commit, Builder: $builder, Arduino: $arduino"
+echo "Action: $action, Branch: $branch, Tag: $tag, Commit: $commit, Builder: $builder, Arduino: $arduino, Actor: $GITHUB_ACTOR"
 
 if [ ! "$action" == "deploy" ] && [ ! "$action" == "build" ]; then
     echo "Bad Action $action"
@@ -42,8 +42,12 @@ if [ ! "$arduino" == "" ] && [ ! "$arduino" == "null" ]; then
     export AR_BRANCH="$arduino"
 fi
 
+if [ "$action" == "deploy" ]; then
+    DEPLOY_OUT=1
+fi
+
 source ./build.sh
 
-if [ "$action" == "deploy" ]; then
-    bash ./tools/push-to-arduino.sh
-fi
+# if [ "$action" == "deploy" ]; then
+#     bash ./tools/push-to-arduino.sh
+# fi

@@ -6,5 +6,6 @@ if [ ! "$GITHUB_EVENT_NAME" == "schedule" ]; then
 fi
 
 git checkout "$IDF_BRANCH" #local branches should match what the matrix wants to build
+DEPLOY_OUT=1
 source ./build.sh
-bash ./tools/push-to-arduino.sh
+# bash ./tools/push-to-arduino.sh
