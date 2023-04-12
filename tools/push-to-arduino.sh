@@ -112,7 +112,7 @@ if [ $LIBS_HAS_COMMIT == "0" ]; then
 		# ToDo: this URL needs to get into Arduino's package.json
 
 		# Download the file
-		filename=$(basename "$IDF_LIBS_DL_URL")
+		filename="esp32-arduino-libs-$IDF_LIBS_COMMIT.zip"
 		curl -s -O "$IDF_LIBS_DL_URL"
 
 		# Check if the download was successful
@@ -136,6 +136,7 @@ if [ $LIBS_HAS_COMMIT == "0" ]; then
 		echo "Size: $size bytes"
 		echo "SHA-256: $sha256sum"
 		echo "JSON: $AR_OUT/package_esp32_index.template.json"
+		cd "$AR_ROOT"
 		python3 tools/add_sdk_json.py -j "$AR_OUT/package_esp32_index.template.json" -n "esp32-arduino-libs" -v "$LIBS_VERSION" -u "$IDF_LIBS_DL_URL" -f "$filename" -s "$size" -c "$sha256sum"
 		if [ $? -ne 0 ]; then exit 1; fi
 
