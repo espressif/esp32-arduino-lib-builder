@@ -108,12 +108,12 @@ if [ $LIBS_HAS_COMMIT == "0" ]; then
 			exit 1
 		fi
 		IDF_LIBS_COMMIT=`git rev-parse --verify HEAD`
-		IDF_LIBS_DL_URL="https://github.com/espressif/esp32-arduino-libs/archive/$IDF_LIBS_COMMIT.zip"
+		IDF_LIBS_DL_URL="https://codeload.github.com/espressif/esp32-arduino-libs/zip/$IDF_LIBS_COMMIT"
 		# ToDo: this URL needs to get into Arduino's package.json
 
 		# Download the file
 		filename="esp32-arduino-libs-$IDF_LIBS_COMMIT.zip"
-		curl -s -O "$IDF_LIBS_DL_URL"
+		curl -s -o "$filename" "$IDF_LIBS_DL_URL"
 
 		# Check if the download was successful
 		if [ $? -ne 0 ]; then
@@ -149,10 +149,6 @@ if [ $LIBS_HAS_COMMIT == "0" ]; then
 	    exit 0
 	fi
 fi
-
-# https://github.com/espressif/esp32-arduino-libs/archive/refs/heads/[branch].zip
-# https://github.com/espressif/esp32-arduino-libs/archive/refs/tags/[tag].zip
-# https://github.com/espressif/esp32-arduino-libs/archive/[commit_hash].zip
 
 if [ $AR_HAS_COMMIT == "0" ]; then
 	cd "$AR_ROOT"

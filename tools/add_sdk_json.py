@@ -39,7 +39,6 @@ if __name__ == '__main__':
     print('Tool Size     : {0}.'.format(args.tool_size))
     print('Tool SHA256   : {0}.'.format(args.tool_sha))
 
-    idf_path = args.idf_path;
     arduino_json = args.arduino_json;
     tool_name = args.tool_name;
     tool_version = args.tool_version;
