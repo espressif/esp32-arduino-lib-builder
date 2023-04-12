@@ -42,8 +42,12 @@ if [ ! "$arduino" == "" ] && [ ! "$arduino" == "null" ]; then
     export AR_BRANCH="$arduino"
 fi
 
+if [ "$action" == "deploy" ]; then
+    DEPLOY_OUT=1
+fi
+
 source ./build.sh
 
-if [ "$action" == "deploy" ]; then
-    bash ./tools/push-to-arduino.sh
-fi
+# if [ "$action" == "deploy" ]; then
+#     bash ./tools/push-to-arduino.sh
+# fi

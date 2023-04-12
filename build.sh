@@ -14,7 +14,9 @@ TARGET="all"
 BUILD_TYPE="all"
 SKIP_ENV=0
 COPY_OUT=0
-DEPLOY_OUT=0
+if [ -z $DEPLOY_OUT ]; then
+    DEPLOY_OUT=0
+fi
 
 function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf_libs|copy_bootloader|mem_variant>] [config ...]"
@@ -195,17 +197,19 @@ if [ "$BUILD_TYPE" = "all" ]; then
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
-# archive the build
-if [ "$BUILD_TYPE" = "all" ]; then
-    ./tools/archive-build.sh
-    if [ $? -ne 0 ]; then exit 1; fi
-fi
-
 # copy everything to arduino-esp32 installation
 if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
     ./tools/copy-to-arduino.sh
+    if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 if [ $DEPLOY_OUT -eq 1 ]; then
     ./tools/push-to-arduino.sh
+    if [ $? -ne 0 ]; then exit 1; fi
+fi
+
+# archive the build
+if [ "$BUILD_TYPE" = "all" ]; then
+    ./tools/archive-build.sh
+    if [ $? -ne 0 ]; then exit 1; fi
 fi
