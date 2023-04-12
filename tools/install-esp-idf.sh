@@ -58,6 +58,7 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 		AR_NEW_COMMIT_MESSAGE="IDF $IDF_COMMIT"
 		AR_NEW_PR_TITLE="$AR_NEW_COMMIT_MESSAGE"
 	fi
+	LIBS_VERSION="idf-$IDF_BRANCH-$IDF_COMMIT"
 
 	AR_HAS_COMMIT=`git_commit_exists "$AR_COMPS/arduino" "$AR_NEW_COMMIT_MESSAGE"`
 	AR_HAS_BRANCH=`git_branch_exists "$AR_COMPS/arduino" "$AR_NEW_BRANCH_NAME"`
@@ -80,11 +81,6 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 		exit 0
 	fi
 
-	# setup git for pushing
-	git config --global github.user "$GITHUB_ACTOR"
-	git config --global user.name "$GITHUB_ACTOR"
-	git config --global user.email "$GITHUB_ACTOR@github.com"
-
 	export AR_NEW_BRANCH_NAME
 	export AR_NEW_COMMIT_MESSAGE
 	export AR_NEW_PR_TITLE
@@ -93,6 +89,7 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 	export AR_HAS_BRANCH
 	export AR_HAS_PR
 
+	export LIBS_VERSION
 	export LIBS_HAS_COMMIT
 	export LIBS_HAS_BRANCH
 fi
