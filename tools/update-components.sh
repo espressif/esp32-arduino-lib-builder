@@ -10,6 +10,7 @@ INSIGHTS_REPO_URL="https://github.com/espressif/esp-insights.git"
 DSP_REPO_URL="https://github.com/espressif/esp-dsp.git"
 LITTLEFS_REPO_URL="https://github.com/joltwallet/esp_littlefs.git"
 TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
+IDF_LIBS_REPO_URL="https://github.com/espressif/esp32-arduino-libs.git"
 
 #
 # CLONE/UPDATE ARDUINO
@@ -53,6 +54,19 @@ if [ "$AR_BRANCH" ]; then
 	git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH" && \
 	git -C "$AR_COMPS/arduino" fetch && \
 	git -C "$AR_COMPS/arduino" pull --ff-only
+fi
+if [ $? -ne 0 ]; then exit 1; fi
+
+#
+# CLONE/UPDATE ESP32-ARDUINO-LIBS
+#
+if [ ! -d "$IDF_LIBS_DIR" ]; then
+	echo "Cloning esp32-arduino-libs..."
+	git clone "$IDF_LIBS_REPO_URL" "$IDF_LIBS_DIR"
+else
+	echo "Updating esp32-arduino-libs..."
+	git -C "$IDF_LIBS_DIR" fetch && \
+	git -C "$IDF_LIBS_DIR" pull --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 

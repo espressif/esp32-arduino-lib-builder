@@ -45,6 +45,7 @@ AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/sdk/$IDF_TARGET"
 PIO_SDK="FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\""
 TOOLS_JSON_OUT="$AR_TOOLS/sdk"
+IDF_LIBS_DIR="$AR_ROOT/../esp32-arduino-libs"
 
 function get_os(){
   	OSBITS=`arch`
