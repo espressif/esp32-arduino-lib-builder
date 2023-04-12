@@ -10,7 +10,6 @@ INSIGHTS_REPO_URL="https://github.com/espressif/esp-insights.git"
 DSP_REPO_URL="https://github.com/espressif/esp-dsp.git"
 LITTLEFS_REPO_URL="https://github.com/joltwallet/esp_littlefs.git"
 TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
-IDF_LIBS_REPO_URL="https://github.com/espressif/esp32-arduino-libs.git"
 
 #
 # CLONE/UPDATE ARDUINO
