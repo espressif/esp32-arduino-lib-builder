@@ -80,6 +80,11 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 		exit 0
 	fi
 
+	# setup git for pushing
+	git config --global github.user "$GITHUB_ACTOR"
+	git config --global user.name "$GITHUB_ACTOR"
+	git config --global user.email "$GITHUB_ACTOR@github.com"
+
 	export AR_NEW_BRANCH_NAME
 	export AR_NEW_COMMIT_MESSAGE
 	export AR_NEW_PR_TITLE

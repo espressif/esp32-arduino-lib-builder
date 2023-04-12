@@ -11,11 +11,6 @@ if ! [ -d "$AR_COMPS/arduino" ]; then
 	exit 1
 fi
 
-# setup git for pushing
-git config --global github.user "$GITHUB_ACTOR"
-git config --global user.name "$GITHUB_ACTOR"
-git config --global user.email "$GITHUB_ACTOR@github.com"
-
 #
 # UPDATE FILES
 #
