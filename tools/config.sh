@@ -44,9 +44,9 @@ AR_OUT="$AR_ROOT/out"
 AR_TOOLS="$AR_OUT/tools"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
-AR_SDK="$AR_TOOLS/sdk/$IDF_TARGET"
-PIO_SDK="FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\""
-TOOLS_JSON_OUT="$AR_TOOLS/sdk"
+AR_SDK="$AR_TOOLS/esp32-arduino-libs/$IDF_TARGET"
+PIO_SDK="FRAMEWORK_DIR, \"tools\", \"esp32-arduino-libs\", \"$IDF_TARGET\""
+TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
 IDF_LIBS_DIR="$AR_ROOT/../esp32-arduino-libs"
 
 function get_os(){

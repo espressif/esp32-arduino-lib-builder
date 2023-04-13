@@ -126,17 +126,17 @@ fi
 rm -rf build sdkconfig out
 
 # Add components version info
-mkdir -p "$AR_TOOLS/sdk" && rm -rf version.txt && rm -rf "$AR_TOOLS/sdk/versions.txt"
+mkdir -p "$AR_TOOLS/esp32-arduino-libs" && rm -rf version.txt && rm -rf "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 component_version="esp-idf: "$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)" "$(git -C "$IDF_PATH" rev-parse --short HEAD)
-echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/sdk/versions.txt"
+echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 for component in `ls "$AR_COMPS"`; do
     if [ -d "$AR_COMPS/$component/.git" ] || [ -d "$AR_COMPS/$component/.github" ]; then
         component_version="$component: "$(git -C "$AR_COMPS/$component" symbolic-ref --short HEAD || git -C "$AR_COMPS/$component" tag --points-at HEAD)" "$(git -C "$AR_COMPS/$component" rev-parse --short HEAD)
-        echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/sdk/versions.txt"
+        echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
     fi
 done
 component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
-echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/sdk/versions.txt"
+echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 
 #targets_count=`jq -c '.targets[] | length' configs/builds.json`
 for target_json in `jq -c '.targets[]' configs/builds.json`; do

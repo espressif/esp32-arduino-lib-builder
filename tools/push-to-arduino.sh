@@ -92,7 +92,7 @@ if [ $LIBS_HAS_COMMIT == "0" ]; then
 
 	# make changes to the files
 	echo "Patching files in esp32-arduino-libs branch '$AR_NEW_BRANCH_NAME'..."
-	rm -rf $IDF_LIBS_DIR/* && cp -Rf $AR_TOOLS/sdk/* $IDF_LIBS_DIR/
+	rm -rf $IDF_LIBS_DIR/* && cp -Rf $AR_TOOLS/esp32-arduino-libs/* $IDF_LIBS_DIR/
 	
 	cd $IDF_LIBS_DIR
 	if [ -f "README.md" ]; then
@@ -167,7 +167,6 @@ if [ $AR_HAS_COMMIT == "0" ]; then
 
 	# make changes to the files
 	echo "Patching files in branch '$AR_NEW_BRANCH_NAME'..."
-	rm -rf "$AR_COMPS/arduino/tools/sdk"
 	rm -rf "$AR_COMPS/arduino/package/package_esp32_index.template.json" && cp -f "$AR_OUT/package_esp32_index.template.json" "$AR_COMPS/arduino/package/package_esp32_index.template.json"
 	
 	cd $AR_COMPS/arduino

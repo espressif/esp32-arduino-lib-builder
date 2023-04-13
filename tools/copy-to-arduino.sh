@@ -19,5 +19,5 @@ echo "Installing new libraries to $ESP32_ARDUINO"
 rm -rf $ESP32_ARDUINO/package/package_esp32_index.template.json && \
 cp -f $AR_OUT/package_esp32_index.template.json $ESP32_ARDUINO/package/package_esp32_index.template.json
 
-rm -rf $ESP32_ARDUINO/tools/sdk && \
-cp -Rf $AR_TOOLS/sdk $ESP32_ARDUINO/tools/
+rm -rf $ESP32_ARDUINO/tools/esp32-arduino-libs && \
+cp -Rf $AR_TOOLS/esp32-arduino-libs $ESP32_ARDUINO/tools/
