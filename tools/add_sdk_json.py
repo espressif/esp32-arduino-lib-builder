@@ -18,6 +18,16 @@ import argparse
 if sys.version_info[0] == 3:
     unicode = lambda s: str(s)
 
+def add_system(systems, host, url, filename, sha, size):
+    system = {
+        "host": host,
+        "url": url,
+        "archiveFileName": filename,
+        "checksum": "SHA-256:"+sha,
+        "size": str(size)
+    }
+    systems.append(system)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         prog = 'add_sdk_json',
@@ -76,30 +86,14 @@ if __name__ == '__main__':
             farray['packages'][0]['platforms'][0]['toolsDependencies'].append(deps)
 
         systems = []
-        system = {
-            "host": '',
-            "url": tool_url,
-            "archiveFileName": tool_filename,
-            "checksum": "SHA-256:"+tool_sha,
-            "size": str(tool_size)
-        }
-
-        system["host"] = "i686-mingw32";
-        systems.append(system)
-        system["host"] = "x86_64-mingw32";
-        systems.append(system)
-        system["host"] = "arm64-apple-darwin";
-        systems.append(system)
-        system["host"] = "x86_64-apple-darwin";
-        systems.append(system)
-        system["host"] = "x86_64-pc-linux-gnu";
-        systems.append(system)
-        system["host"] = "i686-pc-linux-gnu";
-        systems.append(system)
-        system["host"] = "aarch64-linux-gnu";
-        systems.append(system)
-        system["host"] = "arm-linux-gnueabihf";
-        systems.append(system)
+        add_system(systems, "i686-mingw32", tool_url, tool_filename, tool_sha, tool_size)
+        add_system(systems, "x86_64-mingw32", tool_url, tool_filename, tool_sha, tool_size)
+        add_system(systems, "arm64-apple-darwin", tool_url, tool_filename, tool_sha, tool_size)
+        add_system(systems, "x86_64-apple-darwin", tool_url, tool_filename, tool_sha, tool_size)
+        add_system(systems, "x86_64-pc-linux-gnu", tool_url, tool_filename, tool_sha, tool_size)
+        add_system(systems, "i686-pc-linux-gnu", tool_url, tool_filename, tool_sha, tool_size)
+        add_system(systems, "aarch64-linux-gnu", tool_url, tool_filename, tool_sha, tool_size)
+        add_system(systems, "arm-linux-gnueabihf", tool_url, tool_filename, tool_sha, tool_size)
 
         tool_found = False
         for t in farray['packages'][0]['tools']:

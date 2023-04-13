@@ -92,7 +92,7 @@ if [ $LIBS_HAS_COMMIT == "0" ]; then
 
 	# make changes to the files
 	echo "Patching files in esp32-arduino-libs branch '$AR_NEW_BRANCH_NAME'..."
-	rm -rf $IDF_LIBS_DIR/sdk && cp -Rf $AR_TOOLS/sdk $IDF_LIBS_DIR/
+	rm -rf $IDF_LIBS_DIR/* && cp -Rf $AR_TOOLS/sdk/* $IDF_LIBS_DIR/
 	
 	cd $IDF_LIBS_DIR
 	if [ -f "README.md" ]; then
