@@ -197,6 +197,12 @@ if [ "$BUILD_TYPE" = "all" ]; then
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
+# Generate PlatformIO manifest file
+if [ "$BUILD_TYPE" = "all" ]; then
+    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/"
+    if [ $? -ne 0 ]; then exit 1; fi
+fi
+
 # copy everything to arduino-esp32 installation
 if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
     ./tools/copy-to-arduino.sh
@@ -212,4 +218,4 @@ fi
 if [ "$BUILD_TYPE" = "all" ]; then
     ./tools/archive-build.sh
     if [ $? -ne 0 ]; then exit 1; fi
-fi
+fi 
