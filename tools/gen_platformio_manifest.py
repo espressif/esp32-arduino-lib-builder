@@ -16,63 +16,40 @@ MANIFEST_DATA = {
 }
 
 
-def convert_version(version_line):
+def convert_version(version_string):
     """A helper function that converts a custom IDF version string
-    to a suitable SemVer alternative. For example:
-    'release/v5.1 420ebd208a' becomes '5.1.0+sha.420ebd208a'
+    extracted from a Git repository to a suitable SemVer alternative. For example:
+    'release/v5.1' becomes '5.1.0',
+    'v7.7.7' becomes '7.7.7'
     """
 
-    regex_pattern = r"^esp-idf:\s*release\/v(?P<IDF_VERSION>[\d\.]{3,5})\s*(?P<COMMIT_HASH>[0-9a-f]{5,40})"
-    match = re.search(regex_pattern, version_line)
+    regex_pattern = (
+        r"v(?P<MAJOR>0|[1-9]\d*)\.(?P<MINOR>0|[1-9]\d*)\.*(?P<PATCH>0|[1-9]\d*)*"
+    )
+    match = re.search(regex_pattern, version_string)
     if not match:
         sys.stderr.write(
-            f"Failed to find a regex match for '{regex_pattern}' in '{version_line}'\n"
+            f"Failed to find a regex match for '{regex_pattern}' in '{version_string}'\n"
         )
         return ""
 
-    version = match.group("IDF_VERSION")
-    commit = match.group("COMMIT_HASH")
+    major, minor, patch = match.groups()
+    if not patch:
+        patch = "0"
 
-    assert version, f"Failed to parse version value from '{version_line}'"
-    assert commit, f"Failed to parse commit hash value from '{version_line}'"
-
-    if version.count(".") < 2:
-        # The most basic casting to a SemVer with three digits
-        version = version + ".0"
-
-    return f"{version}+sha.{commit}"
+    return ".".join((major, minor, patch))
 
 
-def main(dst_dir):
-    # The "version.txt" file is expected to contain IDF version in the following format
-    # "esp-idf: release/v$VERSION COMMIT_HASH".
-    version_file = os.path.join("version.txt")
+def main(dst_dir, version_string, commit_hash):
 
-    if not os.path.isfile(version_file):
-        sys.stderr.write("Missing the 'version.txt' file.\n")
-        return -1
-
-    version_line = ""
-    with open(version_file, encoding="utf8") as fp:
-        for line in fp.readlines():
-            if not line.startswith("esp-idf"):
-                continue
-            version_line = line.strip()
-
-    if not version_line:
-        sys.stderr.write("Failed to find ESP-IDF version in the 'version.txt' file!\n")
-        return -1
-
-    converted_version = convert_version(version_line)
+    converted_version = convert_version(version_string)
     if not converted_version:
-        sys.stderr.write(
-            f"Failed to convert version '{version_line}' from version.txt\n"
-        )
+        sys.stderr.write(f"Failed to convert version '{version_string}'\n")
         return -1
 
     manifest_file_path = os.path.join(dst_dir, "package.json")
     with open(manifest_file_path, "w", encoding="utf8") as fp:
-        MANIFEST_DATA["version"] = converted_version
+        MANIFEST_DATA["version"] = f"{converted_version}+sha.{commit_hash}"
         json.dump(MANIFEST_DATA, fp, indent=2)
 
     print(
@@ -90,6 +67,20 @@ if __name__ == "__main__":
         required=True,
         help="Destination folder where the 'package.json' manifest will be located",
     )
+    parser.add_argument(
+        "-s",
+        "--version-string",
+        dest="version_string",
+        required=True,
+        help="ESP-IDF version string used for compiling libraries",
+    )
+    parser.add_argument(
+        "-c",
+        "--commit-hash",
+        dest="commit_hash",
+        required=True,
+        help="ESP-IDF revision in form of a commit hash",
+    )
     args = parser.parse_args()
 
-    sys.exit(main(args.dst_dir))
+    sys.exit(main(args.dst_dir, args.version_string, args.commit_hash))
