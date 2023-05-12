@@ -91,7 +91,13 @@ if [ $SKIP_ENV -eq 0 ]; then
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
 else
+    # $IDF_PATH/install.sh
+    # source $IDF_PATH/export.sh
     source ./tools/config.sh
+fi
+
+if [ -f "./managed_components/espressif__esp-sr/.component_hash" ]; then
+    rm -rf ./managed_components/espressif__esp-sr/.component_hash
 fi
 
 if [ "$BUILD_TYPE" != "all" ]; then

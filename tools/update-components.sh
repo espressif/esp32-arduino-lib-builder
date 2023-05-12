@@ -4,10 +4,8 @@ source ./tools/config.sh
 
 CAMERA_REPO_URL="https://github.com/espressif/esp32-camera.git"
 DL_REPO_URL="https://github.com/espressif/esp-dl.git"
-SR_REPO_URL="https://github.com/espressif/esp-sr.git"
 RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
 INSIGHTS_REPO_URL="https://github.com/espressif/esp-insights.git"
-DSP_REPO_URL="https://github.com/espressif/esp-dsp.git"
 LITTLEFS_REPO_URL="https://github.com/joltwallet/esp_littlefs.git"
 TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
 
@@ -98,30 +96,6 @@ if [ -f "$AR_COMPS/esp-dl/idf_component.yml" ]; then
 fi
 
 #
-# CLONE/UPDATE ESP-SR
-#
-echo "Updating ESP-SR..."
-if [ ! -d "$AR_COMPS/esp-sr" ]; then
-	git clone $SR_REPO_URL "$AR_COMPS/esp-sr"
-else
-	git -C "$AR_COMPS/esp-sr" fetch && \
-	git -C "$AR_COMPS/esp-sr" pull --ff-only
-fi
-if [ $? -ne 0 ]; then exit 1; fi
-
-#
-# CLONE/UPDATE ESP-DSP
-#
-echo "Updating ESP-DSP..."
-if [ ! -d "$AR_COMPS/espressif__esp-dsp" ]; then
-	git clone $DSP_REPO_URL "$AR_COMPS/espressif__esp-dsp"
-else
-	git -C "$AR_COMPS/espressif__esp-dsp" fetch && \
-	git -C "$AR_COMPS/espressif__esp-dsp" pull --ff-only
-fi
-if [ $? -ne 0 ]; then exit 1; fi
-
-#
 # CLONE/UPDATE ESP-RAINMAKER
 #
 echo "Updating ESP-RainMaker..."
@@ -174,4 +148,30 @@ else
 	git -C "$AR_COMPS/arduino_tinyusb/tinyusb" pull --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
+
+# #
+# # CLONE/UPDATE ESP-SR
+# #
+# SR_REPO_URL="https://github.com/espressif/esp-sr.git"
+# echo "Updating ESP-SR..."
+# if [ ! -d "$AR_COMPS/esp-sr" ]; then
+# 	git clone $SR_REPO_URL "$AR_COMPS/esp-sr"
+# else
+# 	git -C "$AR_COMPS/esp-sr" fetch && \
+# 	git -C "$AR_COMPS/esp-sr" pull --ff-only
+# fi
+# if [ $? -ne 0 ]; then exit 1; fi
+
+# #
+# # CLONE/UPDATE ESP-DSP
+# #
+# DSP_REPO_URL="https://github.com/espressif/esp-dsp.git"
+# echo "Updating ESP-DSP..."
+# if [ ! -d "$AR_COMPS/espressif__esp-dsp" ]; then
+# 	git clone $DSP_REPO_URL "$AR_COMPS/espressif__esp-dsp"
+# else
+# 	git -C "$AR_COMPS/espressif__esp-dsp" fetch && \
+# 	git -C "$AR_COMPS/espressif__esp-dsp" pull --ff-only
+# fi
+# if [ $? -ne 0 ]; then exit 1; fi
 
