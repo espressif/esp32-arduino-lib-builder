@@ -4,7 +4,6 @@ source ./tools/config.sh
 
 CAMERA_REPO_URL="https://github.com/espressif/esp32-camera.git"
 DL_REPO_URL="https://github.com/espressif/esp-dl.git"
-SR_REPO_URL="https://github.com/espressif/esp-sr.git"
 RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
 INSIGHTS_REPO_URL="https://github.com/espressif/esp-insights.git"
 DSP_REPO_URL="https://github.com/espressif/esp-dsp.git"
@@ -78,22 +77,6 @@ if [ ! -d "$AR_COMPS/esp-dl" ]; then
 else
 	git -C "$AR_COMPS/esp-dl" fetch && \
 	git -C "$AR_COMPS/esp-dl" pull --ff-only
-fi
-if [ $? -ne 0 ]; then exit 1; fi
-
-#
-# CLONE/UPDATE ESP-SR
-#
-echo "Updating ESP-SR..."
-if [ ! -d "$AR_COMPS/esp-sr" ]; then
-	git clone $SR_REPO_URL "$AR_COMPS/esp-sr"
-else
-	git -C "$AR_COMPS/esp-sr" fetch && \
-	git -C "$AR_COMPS/esp-sr" pull --ff-only
-fi
-#this is a temp measure to fix build issue
-if [ -f "$AR_COMPS/esp-sr/idf_component.yml" ]; then
-	rm -rf "$AR_COMPS/esp-sr/idf_component.yml"
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
