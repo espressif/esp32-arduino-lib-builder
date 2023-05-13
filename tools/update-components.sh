@@ -156,6 +156,10 @@ SR_REPO_URL="https://github.com/espressif/esp-sr.git"
 echo "Updating ESP-SR..."
 if [ ! -d "$AR_COMPS/esp-sr" ]; then
 	git clone $SR_REPO_URL "$AR_COMPS/esp-sr"
+	mv "$AR_COMPS/esp-sr/CMakeLists.txt" "$AR_COMPS/esp-sr/CMakeListsOld.txt"
+	echo "if(IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-sr/CMakeLists.txt"
+	cat "$AR_COMPS/esp-sr/CMakeListsOld.txt" >> "$AR_COMPS/esp-sr/CMakeLists.txt"
+	echo "endif()" >> "$AR_COMPS/esp-sr/CMakeLists.txt"
 else
 	git -C "$AR_COMPS/esp-sr" fetch && \
 	git -C "$AR_COMPS/esp-sr" pull --ff-only
