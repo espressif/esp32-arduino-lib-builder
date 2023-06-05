@@ -20,8 +20,10 @@ if(CONFIG_TINYUSB_ENABLED)
   set(srcs
       # espressif:
       "${COMPONENT_DIR}/src/dcd_esp32sx.c"
+      #"${COMPONENT_DIR}/src/dcd_dwc2.c"
       # tusb:
       #"${COMPONENT_DIR}/tinyusb/src/portable/espressif/esp32sx/dcd_esp32sx.c"
+      #"{COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c"
       "${COMPONENT_DIR}/tinyusb/src/class/cdc/cdc_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/hid/hid_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/midi/midi_device.c"
@@ -40,6 +42,7 @@ if(CONFIG_TINYUSB_ENABLED)
       "${COMPONENT_DIR}/tinyusb/hw/bsp/"
       "${COMPONENT_DIR}/tinyusb/src/"
       "${COMPONENT_DIR}/tinyusb/src/device"
+      "${COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2"
       )
 
   idf_component_get_property(FREERTOS_ORIG_INCLUDE_PATH freertos

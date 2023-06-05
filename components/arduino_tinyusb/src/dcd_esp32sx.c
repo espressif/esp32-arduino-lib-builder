@@ -482,7 +482,8 @@ void dcd_edpt_stall(uint8_t rhport, uint8_t ep_addr)
     } else {
       // Stop transmitting packets and NAK IN xfers.
       in_ep[epnum].diepctl |= USB_DI_SNAK1_M;
-      while ((in_ep[epnum].diepint & USB_DI_SNAK1_M) == 0) ;
+      // while ((in_ep[epnum].diepint & USB_DI_SNAK1_M) == 0) ;
+      while ((in_ep[epnum].diepint & USB_D_INEPNAKEFF1_M) == 0) ;
 
       // Disable the endpoint. Note that both SNAK and STALL are set here.
       in_ep[epnum].diepctl |= (USB_DI_SNAK1_M | USB_D_STALL1_M | USB_D_EPDIS1_M);
@@ -492,9 +493,16 @@ void dcd_edpt_stall(uint8_t rhport, uint8_t ep_addr)
 
     // Flush the FIFO, and wait until we have confirmed it cleared.
     uint8_t const fifo_num = ((in_ep[epnum].diepctl >> USB_D_TXFNUM1_S) & USB_D_TXFNUM1_V);
-    USB0.grstctl |= (fifo_num << USB_TXFNUM_S);
-    USB0.grstctl |= USB_TXFFLSH_M;
+    // USB0.grstctl |= (fifo_num << USB_TXFNUM_S);
+    // USB0.grstctl |= USB_TXFFLSH_M;
+    // while ((USB0.grstctl & USB_TXFFLSH_M) != 0) ;
+    uint32_t rstctl_last = USB0.grstctl;
+    uint32_t rstctl = USB_TXFFLSH_M;
+    rstctl |= (fifo_num << USB_TXFNUM_S);
+    USB0.grstctl = rstctl;
     while ((USB0.grstctl & USB_TXFFLSH_M) != 0) ;
+    USB0.grstctl = rstctl_last;
+    // TODO: Clear grstctl::fifo_num after fifo flsh
   } else {
     // Only disable currently enabled non-control endpoint
     if ((epnum == 0) || !(out_ep[epnum].doepctl & USB_EPENA0_M)) {
