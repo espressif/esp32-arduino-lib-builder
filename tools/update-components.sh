@@ -108,6 +108,9 @@ else
     git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
+if [ -d "$AR_COMPS/esp-rainmaker/components/esp-insights/components/cbor" ]; then
+	mv "$AR_COMPS/esp-rainmaker/components/esp-insights/components/cbor" "$AR_COMPS/esp-rainmaker/components/esp-insights/components/cbor2"
+fi
 
 #
 # CLONE/UPDATE ESP-INSIGHTS
@@ -122,6 +125,9 @@ else
     git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
+if [ -d "$AR_COMPS/esp-insights/components/cbor" ]; then
+	mv "$AR_COMPS/esp-insights/components/cbor" "$AR_COMPS/esp-insights/components/cbor2"
+fi
 
 #
 # CLONE/UPDATE ESP-LITTLEFS
