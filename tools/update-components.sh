@@ -111,16 +111,16 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 # CLONE/UPDATE ESP-INSIGHTS
 #
-echo "Updating ESP-Insights..."
-if [ ! -d "$AR_COMPS/esp-insights" ]; then
-    git clone $INSIGHTS_REPO_URL "$AR_COMPS/esp-insights" && \
-    git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
-else
-	git -C "$AR_COMPS/esp-insights" fetch && \
-	git -C "$AR_COMPS/esp-insights" pull --ff-only && \
-    git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
-fi
-if [ $? -ne 0 ]; then exit 1; fi
+# echo "Updating ESP-Insights..."
+# if [ ! -d "$AR_COMPS/esp-insights" ]; then
+#     git clone $INSIGHTS_REPO_URL "$AR_COMPS/esp-insights" && \
+#     git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
+# else
+# 	git -C "$AR_COMPS/esp-insights" fetch && \
+# 	git -C "$AR_COMPS/esp-insights" pull --ff-only && \
+#     git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
+# fi
+# if [ $? -ne 0 ]; then exit 1; fi
 
 #
 # CLONE/UPDATE ESP-DSP
