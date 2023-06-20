@@ -166,7 +166,7 @@ else
 	if [ "$IDF_TARGET" = "esp32" ]; then
 		flags="-Wno-frame-address $flags"
 	fi
-	if [ "$IDF_TARGET" != "esp32c3" ]; then
+	if [ "$IS_XTENSA" = "y" ]; then
 		flags="-mlongcalls $flags"
 	fi
 	str="$flags $libs $paths"
