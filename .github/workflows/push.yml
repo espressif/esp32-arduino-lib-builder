@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [esp32, esp32s2, esp32s3, esp32c3]
+        target: [esp32, esp32s2, esp32s3, esp32c3, esp32c6]
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
