@@ -113,25 +113,9 @@ else
     git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
-if [ -d "$AR_COMPS/esp-rainmaker/components/esp-insights/components/cbor" ]; then
-	mv "$AR_COMPS/esp-rainmaker/components/esp-insights/components/cbor" "$AR_COMPS/esp-rainmaker/components/esp-insights/components/cbor2"
-fi
-
-#
-# CLONE/UPDATE ESP-INSIGHTS
-#
-echo "Updating ESP-Insights..."
-if [ ! -d "$AR_COMPS/esp-insights" ]; then
-    git clone $INSIGHTS_REPO_URL "$AR_COMPS/esp-insights" && \
-    git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
-else
-	git -C "$AR_COMPS/esp-insights" fetch && \
-	git -C "$AR_COMPS/esp-insights" pull --ff-only && \
-    git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
-fi
-if [ $? -ne 0 ]; then exit 1; fi
-if [ -d "$AR_COMPS/esp-insights/components/cbor" ]; then
-	mv "$AR_COMPS/esp-insights/components/cbor" "$AR_COMPS/esp-insights/components/cbor2"
+if [ -f "$AR_COMPS/esp-rainmaker/components/esp-insights/components/esp_insights/scripts/get_projbuild_gitconfig.py" ] && [ `cat "$AR_COMPS/esp-rainmaker/components/esp-insights/components/esp_insights/scripts/get_projbuild_gitconfig.py" | grep esp32c6 | wc -l` == "0" ]; then
+	echo "Overwriting 'get_projbuild_gitconfig.py'"
+	cp -f "tools/get_projbuild_gitconfig.py" "$AR_COMPS/esp-rainmaker/components/esp-insights/components/esp_insights/scripts/get_projbuild_gitconfig.py"
 fi
 
 #
