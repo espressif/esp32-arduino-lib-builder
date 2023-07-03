@@ -8,6 +8,7 @@ RMAKER_REPO_URL="https://github.com/espressif/esp-rainmaker.git"
 INSIGHTS_REPO_URL="https://github.com/espressif/esp-insights.git"
 LITTLEFS_REPO_URL="https://github.com/joltwallet/esp_littlefs.git"
 TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
+TFLITE_REPO_URL="https://github.com/espressif/tflite-micro-esp-examples.git"
 
 #
 # CLONE/UPDATE ARDUINO
@@ -160,5 +161,19 @@ if [ ! -d "$AR_COMPS/arduino_tinyusb/tinyusb" ]; then
 else
 	git -C "$AR_COMPS/arduino_tinyusb/tinyusb" fetch && \
 	git -C "$AR_COMPS/arduino_tinyusb/tinyusb" pull --ff-only
+fi
+if [ $? -ne 0 ]; then exit 1; fi
+
+#
+# CLONE/UPDATE TFLITE MICRO
+#
+echo "Updating TFLite Micro..."
+if [ ! -d "$AR_COMPS/tflite-micro" ]; then
+	git clone $TFLITE_REPO_URL "$AR_COMPS/tflite-micro"
+	git -C "$AR_COMPS/tflite-micro" submodule update --init --recursive
+else
+	git -C "$AR_COMPS/tflite-micro" fetch && \
+	git -C "$AR_COMPS/tflite-micro" pull --ff-only
+	git -C "$AR_COMPS/tflite-micro" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
