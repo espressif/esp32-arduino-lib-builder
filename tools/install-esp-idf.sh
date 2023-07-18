@@ -18,7 +18,10 @@ if [ ! -d "$IDF_PATH" ]; then
 	idf_was_installed="1"
 fi
 
-if [ "$IDF_COMMIT" ]; then
+if [ "$IDF_TAG" ]; then
+    git -C "$IDF_PATH" checkout "tags/$IDF_TAG"
+    idf_was_installed="1"
+elif [ "$IDF_COMMIT" ]; then
     git -C "$IDF_PATH" checkout "$IDF_COMMIT"
     commit_predefined="1"
 fi
@@ -30,6 +33,8 @@ fi
 if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	git -C $IDF_PATH submodule update --init --recursive
 	$IDF_PATH/install.sh
+	export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
+	export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)
 fi
 
 #
@@ -37,8 +42,6 @@ fi
 #
 
 source $IDF_PATH/export.sh
-export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
-export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)
 
 #
 # SETUP ARDUINO DEPLOY
@@ -55,41 +58,27 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 		AR_NEW_COMMIT_MESSAGE="IDF $IDF_COMMIT"
 		AR_NEW_PR_TITLE="$AR_NEW_COMMIT_MESSAGE"
 	fi
+	LIBS_VERSION="idf-"${IDF_BRANCH//\//_}"-$IDF_COMMIT"
 
 	AR_HAS_COMMIT=`git_commit_exists "$AR_COMPS/arduino" "$AR_NEW_COMMIT_MESSAGE"`
 	AR_HAS_BRANCH=`git_branch_exists "$AR_COMPS/arduino" "$AR_NEW_BRANCH_NAME"`
 	AR_HAS_PR=`git_pr_exists "$AR_NEW_BRANCH_NAME"`
 
+	LIBS_HAS_COMMIT=`git_commit_exists "$IDF_LIBS_DIR" "$AR_NEW_COMMIT_MESSAGE"`
+	LIBS_HAS_BRANCH=`git_branch_exists "$IDF_LIBS_DIR" "$AR_NEW_BRANCH_NAME"`
+
+	if [ "$LIBS_HAS_COMMIT" == "1" ]; then
+		echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists in esp32-arduino-libs"
+		mkdir -p dist && echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists in esp32-arduino-libs" > dist/log.txt
+	fi
+
 	if [ "$AR_HAS_COMMIT" == "1" ]; then
-		echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists"
-		mkdir -p dist && echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists" > dist/log.txt
+		echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists in arduino-esp32"
+		mkdir -p dist && echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists in arduino-esp32" > dist/log.txt
+	fi
+
+	if [ "$LIBS_HAS_COMMIT" == "1" ] && [ "$AR_HAS_COMMIT" == "1" ]; then
 		exit 0
-	fi
-
-	if [ "$AR_HAS_BRANCH" == "1" ]; then
-		echo "Branch '$AR_NEW_BRANCH_NAME' Already Exists"
-	fi
-
-	if [ "$AR_HAS_PR" == "1" ]; then
-		echo "PR '$AR_NEW_PR_TITLE' Already Exists"
-	fi
-
-	# setup git for pushing
-	git config --global github.user "$GITHUB_ACTOR"
-	git config --global user.name "$GITHUB_ACTOR"
-	git config --global user.email "$GITHUB_ACTOR@github.com"
-
-	# create or checkout the branch
-	if [ ! $AR_HAS_BRANCH == "0" ]; then
-		echo "Switching to arduino branch '$AR_NEW_BRANCH_NAME'..."
-		git -C "$AR_COMPS/arduino" checkout $AR_NEW_BRANCH_NAME
-	else
-		echo "Creating arduino branch '$AR_NEW_BRANCH_NAME'..."
-		git -C "$AR_COMPS/arduino" checkout -b $AR_NEW_BRANCH_NAME
-	fi
-	if [ $? -ne 0 ]; then
-	    echo "ERROR: Checkout of branch '$AR_NEW_BRANCH_NAME' failed"
-		exit 1
 	fi
 
 	export AR_NEW_BRANCH_NAME
@@ -99,4 +88,8 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 	export AR_HAS_COMMIT
 	export AR_HAS_BRANCH
 	export AR_HAS_PR
+
+	export LIBS_VERSION
+	export LIBS_HAS_COMMIT
+	export LIBS_HAS_BRANCH
 fi

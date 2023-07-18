@@ -1,5 +1,6 @@
 .DS_Store
 .vscode
+managed_components/
 components/arduino/
 components/esp-dl/
 components/esp-sr/
@@ -18,3 +19,5 @@ sdkconfig
 sdkconfig.old
 version.txt
 dependencies.lock
+managed_components/
+target/

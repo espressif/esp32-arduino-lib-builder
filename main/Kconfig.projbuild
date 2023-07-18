@@ -10,9 +10,12 @@ config LIB_BUILDER_FLASHFREQ
     string
     default "120m" if ESPTOOLPY_FLASHFREQ_120M
     default "80m" if ESPTOOLPY_FLASHFREQ_80M
+    default "64m" if ESPTOOLPY_FLASHFREQ_64M
     default "40m" if ESPTOOLPY_FLASHFREQ_40M
+    default "32m" if ESPTOOLPY_FLASHFREQ_32M
     default "26m" if ESPTOOLPY_FLASHFREQ_26M
     default "20m" if ESPTOOLPY_FLASHFREQ_20M
+    default "16m" if ESPTOOLPY_FLASHFREQ_16M
 
 config LIB_BUILDER_COMPILE
     bool

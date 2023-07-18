@@ -28,17 +28,16 @@
 
 #include "tusb_option.h"
 
-#if (((CFG_TUSB_MCU == OPT_MCU_ESP32S2) ||  (CFG_TUSB_MCU == OPT_MCU_ESP32S3)) && TUSB_OPT_DEVICE_ENABLED)
+#if (((CFG_TUSB_MCU == OPT_MCU_ESP32S2) ||  (CFG_TUSB_MCU == OPT_MCU_ESP32S3)) && CFG_TUD_ENABLED)
 
 // Espressif
-#include "driver/periph_ctrl.h"
 #include "freertos/xtensa_api.h"
 #include "esp_intr_alloc.h"
 #include "esp_log.h"
-#include "driver/gpio.h"
 #include "soc/dport_reg.h"
 #include "soc/gpio_sig_map.h"
 #include "soc/usb_periph.h"
+#include "soc/periph_defs.h" // for interrupt source
 
 #include "device/dcd.h"
 
@@ -60,6 +59,7 @@ typedef struct {
     uint16_t queued_len;
     uint16_t max_size;
     bool short_packet;
+    uint8_t interval;
 } xfer_ctl_t;
 
 static const char *TAG = "TUSB:DCD";
@@ -284,6 +284,14 @@ void dcd_disconnect(uint8_t rhport)
   USB0.dctl |= USB_SFTDISCON_M;
 }
 
+void dcd_sof_enable(uint8_t rhport, bool en)
+{
+  (void) rhport;
+  (void) en;
+
+  // TODO implement later
+}
+
 /*------------------------------------------------------------------*/
 /* DCD Endpoint port
  *------------------------------------------------------------------*/
@@ -303,6 +311,7 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const *desc_edpt)
 
   xfer_ctl_t *xfer = XFER_CTL_BASE(epnum, dir);
   xfer->max_size = tu_edpt_packet_size(desc_edpt);
+  xfer->interval = desc_edpt->bInterval;
 
   if (dir == TUSB_DIR_OUT) {
     out_ep[epnum].doepctl &= ~(USB_D_EPTYPE0_M | USB_D_MPS0_M);
@@ -423,6 +432,13 @@ bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t *buffer, uint16_t to
     USB0.in_ep_reg[epnum].dieptsiz = (num_packets << USB_D_PKTCNT0_S) | total_bytes;
     USB0.in_ep_reg[epnum].diepctl |= USB_D_EPENA1_M | USB_D_CNAK1_M; // Enable | CNAK
 
+    // For ISO endpoint with interval=1 set correct DATA0/DATA1 bit for next frame
+    if ((USB0.in_ep_reg[epnum].diepctl & USB_D_EPTYPE0_M) == (1 << USB_D_EPTYPE1_S) && xfer->interval == 1) {
+      // Take odd/even bit from frame counter.
+      uint32_t const odd_frame_now = (USB0.dsts & (1u << USB_SOFFN_S));
+      USB0.in_ep_reg[epnum].diepctl |= (odd_frame_now ? USB_DI_SETD0PID1 : USB_DI_SETD1PID1);
+    }
+
     // Enable fifo empty interrupt only if there are something to put in the fifo.
     if(total_bytes != 0) {
       USB0.dtknqr4_fifoemptymsk |= (1 << epnum);
@@ -431,6 +447,13 @@ bool dcd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t *buffer, uint16_t to
     // Each complete packet for OUT xfers triggers XFRC.
     USB0.out_ep_reg[epnum].doeptsiz |= USB_PKTCNT0_M | ((xfer->max_size & USB_XFERSIZE0_V) << USB_XFERSIZE0_S);
     USB0.out_ep_reg[epnum].doepctl  |= USB_EPENA0_M | USB_CNAK0_M;
+
+    // For ISO endpoint with interval=1 set correct DATA0/DATA1 bit for next frame
+    if ((USB0.out_ep_reg[epnum].doepctl & USB_D_EPTYPE0_M) == (1 << USB_D_EPTYPE1_S) && xfer->interval == 1) {
+      // Take odd/even bit from frame counter.
+      uint32_t const odd_frame_now = (USB0.dsts & (1u << USB_SOFFN_S));
+      USB0.out_ep_reg[epnum].doepctl |= (odd_frame_now ? USB_DO_SETD0PID1 : USB_DO_SETD1PID1);
+    }
   }
   return true;
 }
@@ -459,7 +482,8 @@ void dcd_edpt_stall(uint8_t rhport, uint8_t ep_addr)
     } else {
       // Stop transmitting packets and NAK IN xfers.
       in_ep[epnum].diepctl |= USB_DI_SNAK1_M;
-      while ((in_ep[epnum].diepint & USB_DI_SNAK1_M) == 0) ;
+      // while ((in_ep[epnum].diepint & USB_DI_SNAK1_M) == 0) ;
+      while ((in_ep[epnum].diepint & USB_D_INEPNAKEFF1_M) == 0) ;
 
       // Disable the endpoint. Note that both SNAK and STALL are set here.
       in_ep[epnum].diepctl |= (USB_DI_SNAK1_M | USB_D_STALL1_M | USB_D_EPDIS1_M);
@@ -469,9 +493,16 @@ void dcd_edpt_stall(uint8_t rhport, uint8_t ep_addr)
 
     // Flush the FIFO, and wait until we have confirmed it cleared.
     uint8_t const fifo_num = ((in_ep[epnum].diepctl >> USB_D_TXFNUM1_S) & USB_D_TXFNUM1_V);
-    USB0.grstctl |= (fifo_num << USB_TXFNUM_S);
-    USB0.grstctl |= USB_TXFFLSH_M;
+    // USB0.grstctl |= (fifo_num << USB_TXFNUM_S);
+    // USB0.grstctl |= USB_TXFFLSH_M;
+    // while ((USB0.grstctl & USB_TXFFLSH_M) != 0) ;
+    uint32_t rstctl_last = USB0.grstctl;
+    uint32_t rstctl = USB_TXFFLSH_M;
+    rstctl |= (fifo_num << USB_TXFNUM_S);
+    USB0.grstctl = rstctl;
     while ((USB0.grstctl & USB_TXFFLSH_M) != 0) ;
+    USB0.grstctl = rstctl_last;
+    // TODO: Clear grstctl::fifo_num after fifo flsh
   } else {
     // Only disable currently enabled non-control endpoint
     if ((epnum == 0) || !(out_ep[epnum].doepctl & USB_EPENA0_M)) {

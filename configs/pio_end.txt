@@ -1,0 +1,10 @@
+        "ARDUINO_ARCH_ESP32",
+        "ESP32",
+        ("F_CPU", "$BOARD_F_CPU"),
+        ("ARDUINO", 10812),
+        ("ARDUINO_VARIANT", '\\"%s\\"' % board_config.get("build.variant").replace('"', "")),
+        ("ARDUINO_BOARD", '\\"%s\\"' % board_config.get("name").replace('"', "")),
+        "ARDUINO_PARTITION_%s" % basename(board_config.get(
+            "build.partitions", "default.csv")).replace(".csv", "").replace("-", "_")
+    ]
+)

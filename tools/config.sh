@@ -6,11 +6,12 @@ if [ -z $IDF_PATH ]; then
 fi
 
 if [ -z $IDF_BRANCH ]; then
-	IDF_BRANCH="release/v4.4"
+	IDF_BRANCH="release/v5.1"
 fi
 
 if [ -z $AR_PR_TARGET_BRANCH ]; then
-	AR_PR_TARGET_BRANCH="release/v2.x"
+	# Temporary to get CI working. original is master
+	AR_PR_TARGET_BRANCH="esp-idf-v5.1-libs"
 fi
 
 if [ -z $IDF_TARGET ]; then
@@ -24,9 +25,6 @@ if [ -z $IDF_TARGET ]; then
 	fi
 fi
 
-IDF_COMPS="$IDF_PATH/components"
-IDF_TOOLCHAIN="xtensa-$IDF_TARGET-elf"
-
 # Owner of the target ESP32 Arduino repository
 AR_USER="espressif"
 
@@ -34,8 +32,10 @@ AR_USER="espressif"
 AR_REPO="$AR_USER/arduino-esp32"
 
 AR_REPO_URL="https://github.com/$AR_REPO.git"
+IDF_LIBS_REPO_URL="https://github.com/espressif/esp32-arduino-libs.git"
 if [ -n $GITHUB_TOKEN ]; then
 	AR_REPO_URL="https://$GITHUB_TOKEN@github.com/$AR_REPO.git"
+	IDF_LIBS_REPO_URL="https://$GITHUB_TOKEN@github.com/espressif/esp32-arduino-libs.git"
 fi
 
 AR_ROOT="$PWD"
@@ -44,7 +44,15 @@ AR_OUT="$AR_ROOT/out"
 AR_TOOLS="$AR_OUT/tools"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
-AR_SDK="$AR_TOOLS/sdk/$IDF_TARGET"
+AR_SDK="$AR_TOOLS/esp32-arduino-libs/$IDF_TARGET"
+PIO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
+TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
+IDF_LIBS_DIR="$AR_ROOT/../esp32-arduino-libs"
+
+if [ -d "$IDF_PATH" ]; then
+	export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
+	export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)
+fi
 
 function get_os(){
   	OSBITS=`arch`
