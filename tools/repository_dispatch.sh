@@ -9,11 +9,12 @@ EVENT_JSON=`cat "$GITHUB_EVENT_PATH"`
 action=`echo "$EVENT_JSON" | jq -r '.action'`
 payload=`echo "$EVENT_JSON" | jq -r '.client_payload'`
 branch=`echo "$payload" | jq -r '.branch'`
+tag=`echo "$payload" | jq -r '.tag'`
 commit=`echo "$payload" | jq -r '.commit'`
 builder=`echo "$payload" | jq -r '.builder'`
 arduino=`echo "$payload" | jq -r '.arduino'`
 
-echo "Action: $action, Branch: $branch, Commit: $commit, Builder: $builder"
+echo "Action: $action, Branch: $branch, Tag: $tag, Commit: $commit, Builder: $builder, Arduino: $arduino, Actor: $GITHUB_ACTOR"
 
 if [ ! "$action" == "deploy" ] && [ ! "$action" == "build" ]; then
     echo "Bad Action $action"
@@ -26,7 +27,9 @@ if [ ! "$commit" == "" ] && [ ! "$commit" == "null" ]; then
     export IDF_COMMIT="$commit"
 else
     commit=""
-    if [ ! "$branch" == "" ] && [ ! "$branch" == "null" ]; then
+    if [ ! "$tag" == "" ] && [ ! "$tag" == "null" ]; then
+        export IDF_TAG="$tag"
+    elif [ ! "$branch" == "" ] && [ ! "$branch" == "null" ]; then
         export IDF_BRANCH="$branch"
     fi
 fi
@@ -39,8 +42,12 @@ if [ ! "$arduino" == "" ] && [ ! "$arduino" == "null" ]; then
     export AR_BRANCH="$arduino"
 fi
 
+if [ "$action" == "deploy" ]; then
+    DEPLOY_OUT=1
+fi
+
 source ./build.sh
 
-if [ "$action" == "deploy" ]; then
-    bash ./tools/push-to-arduino.sh
-fi
+# if [ "$action" == "deploy" ]; then
+#     bash ./tools/push-to-arduino.sh
+# fi

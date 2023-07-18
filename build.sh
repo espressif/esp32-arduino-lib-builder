@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if ! [ -x "$(command -v python)" ]; then
+if ! [ -x "$(command -v python3)" ]; then
     echo "ERROR: python is not installed! Please install python first."
     exit 1
 fi
@@ -124,15 +124,15 @@ rm -rf build sdkconfig out
 
 # Add components version info
 mkdir -p "$AR_TOOLS/sdk" && rm -rf version.txt && rm -rf "$AR_TOOLS/sdk/versions.txt"
-component_version="esp-idf: "$(git -C "$IDF_PATH" symbolic-ref --short HEAD)" "$(git -C "$IDF_PATH" rev-parse --short HEAD)
+component_version="esp-idf: "$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)" "$(git -C "$IDF_PATH" rev-parse --short HEAD)
 echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/sdk/versions.txt"
 for component in `ls "$AR_COMPS"`; do
     if [ -d "$AR_COMPS/$component/.git" ] || [ -d "$AR_COMPS/$component/.github" ]; then
-        component_version="$component: "$(git -C "$AR_COMPS/$component" symbolic-ref --short HEAD)" "$(git -C "$AR_COMPS/$component" rev-parse --short HEAD)
+        component_version="$component: "$(git -C "$AR_COMPS/$component" symbolic-ref --short HEAD || git -C "$AR_COMPS/$component" tag --points-at HEAD)" "$(git -C "$AR_COMPS/$component" rev-parse --short HEAD)
         echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/sdk/versions.txt"
     fi
 done
-component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
+component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
 echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/sdk/versions.txt"
 
 #targets_count=`jq -c '.targets[] | length' configs/builds.json`
@@ -186,6 +186,12 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         if [ $? -ne 0 ]; then exit 1; fi
     done
 done
+
+# update package_esp32_index.template.json
+if [ "$BUILD_TYPE" = "all" ]; then
+    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
+    if [ $? -ne 0 ]; then exit 1; fi
+fi
 
 # archive the build
 if [ "$BUILD_TYPE" = "all" ]; then
