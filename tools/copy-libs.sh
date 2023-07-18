@@ -359,7 +359,7 @@ for item; do
 		ipath="$item"
 		fname=`basename "$ipath"`
 		dname=`basename $(dirname "$ipath")`
-		if [[ "$fname" == "main" && "$dname" == "esp32-arduino-lib-builder" ]]; then
+		if [[ "$fname" == "main" && "$dname" == $(basename "$PWD") ]]; then
 			continue
 		fi
 		while [[ "$dname" != "components" && "$dname" != "managed_components" && "$dname" != "build" ]]; do
