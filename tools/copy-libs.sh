@@ -2,13 +2,10 @@
 # config
 
 IDF_TARGET=$1
-OCT_FLASH=
+IS_XTENSA=$4
+OCT_FLASH="$2"
 OCT_PSRAM=
-if [ "$2" = "y" ]; then
-	OCT_FLASH="opi"
-else
-	OCT_FLASH="qspi"
-fi
+
 if [ "$3" = "y" ]; then
 	OCT_PSRAM="opi"
 else
@@ -81,7 +78,7 @@ for item in "${@:2:${#@}-5}"; do
 			item=`get_actual_path $item`
 			INCLUDES+="$item "
 		elif [ "${item:0:2}" = ".." ]; then
-			if [[ "${item:0:14}" = "../components/" && "${item:0:22}" != "../components/arduino/" ]] || [[ "${item:0:11}" = "../esp-idf/" ]]; then
+			if [[ "${item:0:14}" = "../components/" && "${item:0:22}" != "../components/arduino/" ]] || [[ "${item:0:11}" = "../esp-idf/" ]] || [[ "${item:0:22}" = "../managed_components/" ]]; then
 				item="$PWD${item:2}"
 				item=`get_actual_path $item`
 				INCLUDES+="$item "
@@ -95,6 +92,8 @@ for item in "${@:2:${#@}-5}"; do
 		if [[ "${item:2:7}" != "ARDUINO" ]] && [[ "$item" != "-DESP32" ]]; then #skip ARDUINO defines
 			DEFINES+="$item "
 		fi
+	elif [ "$prefix" = "-O" ]; then
+		PIO_CC_FLAGS+="$item "
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
 			C_FLAGS+="$item "
@@ -109,7 +108,7 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
+	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
 			AS_FLAGS+="$item "
 			if [[ $C_FLAGS == *"$item"* ]]; then
@@ -128,7 +127,7 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
+	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
 			CPP_FLAGS+="$item "
 			if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
@@ -191,6 +190,7 @@ for item; do
 				short_name="${item:2}"
 				if [[ $exclude_libs != *";$short_name;"* && $LD_LIBS_SEARCH != *"lib$short_name.a"* ]]; then
 					LD_LIBS_SEARCH+="lib$short_name.a "
+					#echo "lib add: $item"
 				fi
 			elif [ "$item" = "-o" ]; then
 				add_next=0
@@ -225,8 +225,35 @@ for item; do
 				if [[ "$lname" != "main" && "$lname" != "arduino" ]]; then
 					lsize=$($SSTAT "$item")
 					if (( lsize > 8 )); then
-						LD_LIBS+="-l$lname "
-						LD_LIB_FILES+="$item "
+						# do we already have this file?
+						if [[ $LD_LIB_FILES != *"$item"* ]]; then
+							# do we already have lib with the same name?
+							if [[ $LD_LIBS != *"-l$lname"* ]]; then
+								# echo "collecting lib '$lname' and file: $item"
+								LD_LIB_FILES+="$item "
+								LD_LIBS+="-l$lname "
+							else 
+								# echo "!!! need to rename: '$lname'"
+								for i in {2..9}; do
+									n_item="${item:0:${#item}-2}_$i.a"
+									n_name=$lname"_$i"
+									if [ -f "$n_item" ]; then
+										# echo "renamed add: -l$n_name"
+										LD_LIBS+="-l$n_name "
+										break
+									elif [[ $LD_LIB_FILES != *"$n_item"* && $LD_LIBS != *"-l$n_name"* ]]; then
+										echo "Renaming '$lname' to '$n_name': $item"
+										cp -f "$item" "$n_item"
+										LD_LIB_FILES+="$n_item "
+										LD_LIBS+="-l$n_name "
+										break
+									fi
+								done
+							fi
+						else
+							# echo "just add: -l$lname"
+							LD_LIBS+="-l$lname "
+						fi
 					else
 						echo "*** Skipping $(basename $item): size too small $lsize"
 					fi
@@ -253,6 +280,15 @@ cat pio_start.txt > "$AR_PLATFORMIO_PY"
 rm pio_end.txt 1pio_start.txt pio_start.txt
 
 echo "    ASFLAGS=[" >> "$AR_PLATFORMIO_PY"
+if [ "$IS_XTENSA" = "y" ]; then
+	echo "        \"-mlongcalls\"" >> "$AR_PLATFORMIO_PY"
+else
+	echo "        \"-march=rv32imc\"" >> "$AR_PLATFORMIO_PY"
+fi
+echo "    ]," >> "$AR_PLATFORMIO_PY"
+echo "" >> "$AR_PLATFORMIO_PY"
+
+echo "    ASPPFLAGS=[" >> "$AR_PLATFORMIO_PY"
 set -- $PIO_AS_FLAGS
 for item; do
 	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
@@ -326,12 +362,15 @@ for item; do
 		if [[ "$fname" == "main" && "$dname" == "esp32-arduino-lib-builder" ]]; then
 			continue
 		fi
-		while [[ "$dname" != "components" && "$dname" != "build" ]]; do
+		while [[ "$dname" != "components" && "$dname" != "managed_components" && "$dname" != "build" ]]; do
 			ipath=`dirname "$ipath"`
 			fname=`basename "$ipath"`
 			dname=`basename $(dirname "$ipath")`
 		done
 		if [[ "$fname" == "arduino" ]]; then
+			continue
+		fi
+		if [[ "$fname" == "config" ]]; then
 			continue
 		fi
 
@@ -359,7 +398,7 @@ for item; do
 		done
 	fi
 done
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", \"$MEMCONF\"), \"include\")," >> "$AR_PLATFORMIO_PY"
+echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"cores\", env.BoardConfig().get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
@@ -384,7 +423,7 @@ done
 echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"lib\")," >> "$AR_PLATFORMIO_PY"
 echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"ld\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", \"$MEMCONF\"))" >> "$AR_PLATFORMIO_PY"
+echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
@@ -442,9 +481,6 @@ rm -rf platform_start.txt platform_mid.txt 1platform_mid.txt
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
 
-# esptool.py
-cp "$IDF_COMPS/esptool_py/esptool/esptool.py" "$AR_ESPTOOL_PY"
-
 # gen_esp32part.py
 cp "$IDF_COMPS/partition_table/gen_esp32part.py" "$AR_GEN_PART_PY"
 
@@ -469,15 +505,24 @@ for item; do
 	done
 done
 
-# Add IDF versions to sdkconfig
-echo "#define CONFIG_ARDUINO_IDF_COMMIT \"$IDF_COMMIT\"" >> "$AR_SDK/include/config/sdkconfig.h"
-echo "#define CONFIG_ARDUINO_IDF_BRANCH \"$IDF_BRANCH\"" >> "$AR_SDK/include/config/sdkconfig.h"
-
 # Handle Mem Variants
 mkdir -p "$AR_SDK/$MEMCONF/include"
-mv "$AR_SDK/include/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
+mv "$PWD/build/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
 for mem_variant in `jq -c '.mem_variants_files[]' configs/builds.json`; do
-	file=$(echo "$mem_variant" | jq -c '.file' | tr -d '"')
-	out=$(echo "$mem_variant" | jq -c '.out' | tr -d '"')
-	mv "$AR_SDK/$out" "$AR_SDK/$MEMCONF/$file"
+	skip_file=1
+	for file_target in $(echo "$mem_variant" | jq -c '.targets[]' | tr -d '"'); do
+		if [ "$file_target" == "$IDF_TARGET" ]; then
+			skip_file=0
+			break
+		fi
+	done
+	if [ $skip_file -eq 0 ]; then
+		file=$(echo "$mem_variant" | jq -c '.file' | tr -d '"')
+		out=$(echo "$mem_variant" | jq -c '.out' | tr -d '"')
+		mv "$AR_SDK/$out" "$AR_SDK/$MEMCONF/$file"
+	fi
 done;
+
+# Add IDF versions to sdkconfig
+echo "#define CONFIG_ARDUINO_IDF_COMMIT \"$IDF_COMMIT\"" >> "$AR_SDK/$MEMCONF/include/sdkconfig.h"
+echo "#define CONFIG_ARDUINO_IDF_BRANCH \"$IDF_BRANCH\"" >> "$AR_SDK/$MEMCONF/include/sdkconfig.h"
