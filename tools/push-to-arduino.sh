@@ -74,7 +74,7 @@ git config --global user.email "$GITHUB_ACTOR@github.com"
 # esp32-arduino-libs
 #
 
-if [ $LIBS_HAS_COMMIT == "0" ]; then
+if [ $LIBS_HAS_COMMIT == "0" ] || [ $AR_HAS_COMMIT == "0" ]; then
 	cd "$AR_ROOT"
 	# create branch if necessary
 	if [ "$LIBS_HAS_BRANCH" == "1" ]; then
