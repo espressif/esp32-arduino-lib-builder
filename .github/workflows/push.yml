@@ -19,7 +19,7 @@ jobs:
         target: [esp32, esp32s2, esp32s3, esp32c3]
       fail-fast: false
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
     - name: Build Libs for ${{ matrix.target }}
