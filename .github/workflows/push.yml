@@ -29,3 +29,20 @@ jobs:
       with:
         name: artifacts
         path: out
+
+  inspect-artifacts:
+    name: Check resulting artifacts
+    needs: build-libs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: artifacts
+          path: out
+      - shell: bash
+        run: |
+          ls -l out
+          ls -l out/tools
+          ls -l out/tools/esp32-arduino-libs
+

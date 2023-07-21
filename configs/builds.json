@@ -73,6 +73,48 @@
 			]
 		},
 		{
+			"target": "esp32c3",
+			"features":[],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
+			],
+			"mem_variants":[
+				["dio","80m"]
+			]
+		},
+		{
+			"target": "esp32",
+			"features":["qio_ram"],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
+			],
+			"mem_variants":[
+				["dio","80m"]
+			]
+		},
+		{
+			"target": "esp32s2",
+			"features":["qio_ram"],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
+			],
+			"mem_variants":[
+				["dio","80m"]
+			]
+		},
+		{
 			"target": "esp32s3",
 			"features":["esp_sr"],
 			"idf_libs":["qio","80m","qio_ram"],
@@ -88,66 +130,6 @@
 				["dio","80m","opi_ram"],
 				["opi","80m","opi_ram"],
 				["opi","80m","qio_ram"]
-			]
-		},
-		{
-			"target": "esp32s2",
-			"features":["qio_ram"],
-			"idf_libs":["qio","80m"],
-			"bootloaders":[
-				["qio","80m"],
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"],
-				["qio","40m"],
-				["qout","40m"],
-				["dio","40m"],
-				["dout","40m"]
-			],
-			"mem_variants":[
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"]
-			]
-		},
-		{
-			"target": "esp32c3",
-			"features":[],
-			"idf_libs":["qio","80m"],
-			"bootloaders":[
-				["qio","80m"],
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"],
-				["qio","40m"],
-				["qout","40m"],
-				["dio","40m"],
-				["dout","40m"]
-			],
-			"mem_variants":[
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"]
-			]
-		},
-		{
-			"target": "esp32",
-			"features":["qio_ram"],
-			"idf_libs":["qio","80m"],
-			"bootloaders":[
-				["qio","80m"],
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"],
-				["qio","40m"],
-				["qout","40m"],
-				["dio","40m"],
-				["dout","40m"]
-			],
-			"mem_variants":[
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"]
 			]
 		}
 	]

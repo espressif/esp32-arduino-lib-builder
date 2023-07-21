@@ -69,12 +69,10 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 
 	if [ "$LIBS_HAS_COMMIT" == "1" ]; then
 		echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists in esp32-arduino-libs"
-		mkdir -p dist && echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists in esp32-arduino-libs" > dist/log.txt
 	fi
 
 	if [ "$AR_HAS_COMMIT" == "1" ]; then
 		echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists in arduino-esp32"
-		mkdir -p dist && echo "Commit '$AR_NEW_COMMIT_MESSAGE' Already Exists in arduino-esp32" > dist/log.txt
 	fi
 
 	if [ "$LIBS_HAS_COMMIT" == "1" ] && [ "$AR_HAS_COMMIT" == "1" ]; then
