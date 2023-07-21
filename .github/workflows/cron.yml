@@ -22,7 +22,7 @@ jobs:
       matrix:
         idf_branch: [release/v5.1, release/v4.4] #, release/v3.3]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
     - name: Build
@@ -31,9 +31,12 @@ jobs:
         GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
         GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
         IDF_BRANCH: ${{ matrix.idf_branch }}
-      run: bash ./tools/cron.sh
+      shell: bash
+      run: |
+        git checkout ${{ matrix.idf_branch }}
+        bash ./build.sh -d
     - name: Upload archive
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
         name: artifacts
         path: dist
