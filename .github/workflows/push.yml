@@ -29,6 +29,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - id: check
+      env:
+        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+        GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
+        GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
       run: bash ./tools/check-deploy-needed.sh
 
   build-libs:
@@ -60,6 +64,9 @@ jobs:
     - uses: actions/checkout@v3
     - shell: bash
       env:
+        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+        GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
+        GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
         IDF_COMMIT: ${{ needs.check-deploy-needed.outputs.idf_commit }}
         AR_BRANCH: ${{ needs.check-deploy-needed.outputs.ar_branch }}
         AR_NEW_COMMIT_MESSAGE: ${{ needs.check-deploy-needed.outputs.ar_new_commit_message }}
