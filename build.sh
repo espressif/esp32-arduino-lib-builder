@@ -86,6 +86,8 @@ done
 shift $((OPTIND -1))
 CONFIGS=$@
 
+mkdir -p dist
+
 if [ $SKIP_ENV -eq 0 ]; then
     echo "* Installing/Updating ESP-IDF and all components..."
     # update components from git
