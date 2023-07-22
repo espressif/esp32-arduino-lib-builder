@@ -103,8 +103,8 @@ function github_commit_exists(){ #github_commit_exists <repo-path> <branch-name>
     local repo_path="$1"
     local branch_name="$2"
     local commit_message="$3"
-    local commits_found=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/commits/?sha=$branch_name" | jq -r '.commit.message' | grep "$commit_message" | wc -l`
-    if [ ! "$commits_found" == "" ] && [ ! "$commits_found" == "null" ] && [ ! "$commits_found" == "0" ]; then echo 1; else echo 0; fi
+    local commits_found=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/commits?sha=$branch_name" | jq -r '.[].commit.message' | grep "$commit_message" | wc -l`
+    if [ ! "$commits_found" == "" ] && [ ! "$commits_found" == "null" ] && [ ! "$commits_found" == "0" ]; then echo $commits_found; else echo 0; fi
 }
 
 function github_last_commit(){ # github_last_commit <repo-path> <branch-name>
