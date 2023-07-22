@@ -52,7 +52,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 if [ ! -d "$IDF_LIBS_DIR" ]; then
 	echo "Cloning esp32-arduino-libs..."
-	git clone "$IDF_LIBS_REPO_URL" "$IDF_LIBS_DIR"
+	git clone "$AR_LIBS_REPO_URL" "$IDF_LIBS_DIR"
 else
 	echo "Updating esp32-arduino-libs..."
 	git -C "$IDF_LIBS_DIR" fetch && \

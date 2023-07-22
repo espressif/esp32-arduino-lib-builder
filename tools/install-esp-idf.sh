@@ -11,7 +11,6 @@ fi
 # CLONE ESP-IDF
 #
 
-IDF_REPO_URL="https://github.com/espressif/esp-idf.git"
 if [ ! -d "$IDF_PATH" ]; then
 	echo "ESP-IDF is not installed! Installing local copy"
 	git clone $IDF_REPO_URL -b $IDF_BRANCH
@@ -62,7 +61,7 @@ if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "reposito
 
 	AR_HAS_COMMIT=`git_commit_exists "$AR_COMPS/arduino" "$AR_NEW_COMMIT_MESSAGE"`
 	AR_HAS_BRANCH=`git_branch_exists "$AR_COMPS/arduino" "$AR_NEW_BRANCH_NAME"`
-	AR_HAS_PR=`git_pr_exists "$AR_NEW_BRANCH_NAME"`
+	AR_HAS_PR=`github_pr_exists "$AR_REPO" "$AR_NEW_BRANCH_NAME"`
 
 	LIBS_HAS_COMMIT=`git_commit_exists "$IDF_LIBS_DIR" "$AR_NEW_COMMIT_MESSAGE"`
 	LIBS_HAS_BRANCH=`git_branch_exists "$IDF_LIBS_DIR" "$AR_NEW_BRANCH_NAME"`
