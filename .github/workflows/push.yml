@@ -30,8 +30,8 @@ jobs:
         name: artifacts
         path: dist
 
-  inspect-artifacts:
-    name: Check resulting artifacts
+  combine-artifacts:
+    name: Combine artifacts
     needs: build-libs
     runs-on: ubuntu-latest
     steps:
@@ -41,5 +41,19 @@ jobs:
           name: artifacts
           path: dist
       - shell: bash
-        run: ls -l dist
+        run: |
+          mkdir -p out
+          find dist -name 'arduino-esp32-libs-esp*.tar.gz' -exec tar zxvf {} -C out \;
+          cd out/tools/esp32-arduino-libs && tar zcf ../../../dist/arduino-esp32-libs.tar.gz * && cd ../../..
+          cp out/package_esp32_index.template.json dist/package_esp32_index.template.json
+      - name: Upload full arduino-esp32-libs archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: arduino-esp32-libs
+          path: dist/arduino-esp32-libs.tar.gz
+      - name: Upload package_esp32_index.template.json
+        uses: actions/upload-artifact@v3
+        with:
+          name: package-esp32-index-json
+          path: dist/package_esp32_index.template.json
 
