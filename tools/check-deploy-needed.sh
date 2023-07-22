@@ -35,14 +35,14 @@ LIBS_VERSION="idf-"${IDF_BRANCH//\//_}"-$IDF_COMMIT"
 
 AR_HAS_BRANCH=`github_branch_exists "$AR_REPO" "$AR_NEW_BRANCH_NAME"`
 if [ "$AR_HAS_BRANCH" == "1" ]; then
-	AR_HAS_COMMIT=`github_commit_exists "$AR_REPO" "$AR_NEW_BRANCH_NAME" "$AR_NEW_COMMIT_MESSAGE"`
+	AR_HAS_COMMIT=`github_commit_exists "$AR_REPO" "$AR_NEW_BRANCH_NAME" "$IDF_COMMIT"`
 else
-	AR_HAS_COMMIT=`github_commit_exists "$AR_REPO" "$AR_BRANCH" "$AR_NEW_COMMIT_MESSAGE"`
+	AR_HAS_COMMIT=`github_commit_exists "$AR_REPO" "$AR_BRANCH" "$IDF_COMMIT"`
 fi
 AR_HAS_PR=`github_pr_exists "$AR_REPO" "$AR_NEW_BRANCH_NAME"`
 
 LIBS_HAS_BRANCH=`github_branch_exists "$AR_LIBS_REPO" "$AR_NEW_BRANCH_NAME"`
-LIBS_HAS_COMMIT=`github_commit_exists "$AR_LIBS_REPO" "$AR_NEW_BRANCH_NAME" "$AR_NEW_COMMIT_MESSAGE"`
+LIBS_HAS_COMMIT=`github_commit_exists "$AR_LIBS_REPO" "$AR_NEW_BRANCH_NAME" "$IDF_COMMIT"`
 
 export IDF_COMMIT
 
