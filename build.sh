@@ -34,7 +34,7 @@ function print_help() {
     exit 1
 }
 
-while getopts ":A:I:i:c:t:b:sd" opt; do
+while getopts ":A:I:i:c:t:b:sde" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
