@@ -112,13 +112,13 @@ if [ $? -ne 0 ]; then exit 1; fi
 #
 # CLONE/UPDATE TFLITE MICRO
 #
-echo "Updating TFLite Micro..."
-if [ ! -d "$AR_COMPS/tflite-micro" ]; then
-	git clone $TFLITE_REPO_URL "$AR_COMPS/tflite-micro"
-	git -C "$AR_COMPS/tflite-micro" submodule update --init --recursive
-else
-	git -C "$AR_COMPS/tflite-micro" fetch && \
-	git -C "$AR_COMPS/tflite-micro" pull --ff-only
-	git -C "$AR_COMPS/tflite-micro" submodule update --init --recursive
-fi
-if [ $? -ne 0 ]; then exit 1; fi
+# echo "Updating TFLite Micro..."
+# if [ ! -d "$AR_COMPS/tflite-micro" ]; then
+# 	git clone $TFLITE_REPO_URL "$AR_COMPS/tflite-micro"
+# 	git -C "$AR_COMPS/tflite-micro" submodule update --init --recursive
+# else
+# 	git -C "$AR_COMPS/tflite-micro" fetch && \
+# 	git -C "$AR_COMPS/tflite-micro" pull --ff-only
+# 	git -C "$AR_COMPS/tflite-micro" submodule update --init --recursive
+# fi
+# if [ $? -ne 0 ]; then exit 1; fi
