@@ -31,7 +31,7 @@ def convert_version(version_string):
         sys.stderr.write(
             f"Failed to find a regex match for '{regex_pattern}' in '{version_string}'\n"
         )
-        return ""
+        return "5.2.0"
 
     major, minor, patch = match.groups()
     if not patch:
