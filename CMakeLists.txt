@@ -3,7 +3,10 @@
 cmake_minimum_required(VERSION 3.5)
 
 set(RMAKER_PATH ${CMAKE_SOURCE_DIR}/components/esp-rainmaker)
-set(EXTRA_COMPONENT_DIRS ${RMAKER_PATH}/components/esp-insights/components ${RMAKER_PATH}/components ${CMAKE_SOURCE_DIR}/components/tflite-micro/components)
+set(INSIGHTS_PATH ${RMAKER_PATH}/components/esp-insights)
+set(TFLITE_PATH ${CMAKE_SOURCE_DIR}/components/tflite-micro)
+
+set(EXTRA_COMPONENT_DIRS ${INSIGHTS_PATH}/components ${RMAKER_PATH}/components ${TFLITE_PATH}/components)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(arduino-lib-builder)
