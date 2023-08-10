@@ -62,10 +62,6 @@ else
 	git -C "$AR_COMPS/esp32-camera" fetch && \
 	git -C "$AR_COMPS/esp32-camera" pull --ff-only
 fi
-#this is a temp measure to fix build issue
-# if [ -f "$AR_COMPS/esp32-camera/idf_component.yml" ]; then
-# 	rm -rf "$AR_COMPS/esp32-camera/idf_component.yml"
-# fi
 if [ $? -ne 0 ]; then exit 1; fi
 
 #
@@ -79,6 +75,10 @@ else
 	git -C "$AR_COMPS/esp-dl" pull --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
+#this is a temp measure to fix build issue
+if [ -f "$AR_COMPS/esp-dl/idf_component.yml" ]; then
+	rm -rf "$AR_COMPS/esp-dl/idf_component.yml"
+fi
 
 #
 # CLONE/UPDATE ESP-LITTLEFS
@@ -107,20 +107,6 @@ else
     git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
-
-#
-# CLONE/UPDATE ESP-INSIGHTS
-#
-# echo "Updating ESP-Insights..."
-# if [ ! -d "$AR_COMPS/esp-insights" ]; then
-#     git clone $INSIGHTS_REPO_URL "$AR_COMPS/esp-insights" && \
-#     git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
-# else
-# 	git -C "$AR_COMPS/esp-insights" fetch && \
-# 	git -C "$AR_COMPS/esp-insights" pull --ff-only && \
-#     git -C "$AR_COMPS/esp-insights" submodule update --init --recursive
-# fi
-# if [ $? -ne 0 ]; then exit 1; fi
 
 #
 # CLONE/UPDATE ESP-DSP
