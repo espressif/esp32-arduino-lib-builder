@@ -402,6 +402,11 @@ for item; do
 			mkdir -p "$out_cpath$rel_p"
 			cp -n $f "$out_cpath$rel_p/"
 		done
+		# Temporary measure to fix issues caused by https://github.com/espressif/esp-idf/commit/dc4731101dd567cc74bbe4d0f03afe52b7db9afb#diff-1d2ce0d3989a80830fdf230bcaafb3117f32046d16cf46616ac3d55b4df2a988R17
+		if [[ "$fname" == "bt" && "$out_sub" == "/include/$IDF_TARGET/include" && -f "$ipath/controller/$IDF_TARGET/esp_bt_cfg.h" ]]; then
+			mkdir -p "$AR_SDK/include/$fname/controller/$IDF_TARGET"
+			cp -n "$ipath/controller/$IDF_TARGET/esp_bt_cfg.h" "$AR_SDK/include/$fname/controller/$IDF_TARGET/esp_bt_cfg.h"
+		fi
 	fi
 done
 echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
