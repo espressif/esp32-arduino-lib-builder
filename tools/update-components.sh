@@ -55,7 +55,6 @@ if [ ! -d "$AR_COMPS/esp-sr" ]; then
 	echo "if(IDF_TARGET STREQUAL \"esp32s3\")" > "$AR_COMPS/esp-sr/CMakeLists.txt"
 	cat "$AR_COMPS/esp-sr/CMakeListsOld.txt" >> "$AR_COMPS/esp-sr/CMakeLists.txt"
 	echo "endif()" >> "$AR_COMPS/esp-sr/CMakeLists.txt"
-	echo "  - esp32c6" >> "$AR_COMPS/esp-sr/idf_component.yml"
 	echo "  - esp32h2" >> "$AR_COMPS/esp-sr/idf_component.yml"
 else
 	git -C "$AR_COMPS/esp-sr" fetch && \
