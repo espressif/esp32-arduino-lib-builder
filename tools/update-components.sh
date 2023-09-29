@@ -94,10 +94,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 echo "Updating ESP-RainMaker..."
 if [ ! -d "$AR_COMPS/esp-rainmaker" ]; then
     git clone $RMAKER_REPO_URL "$AR_COMPS/esp-rainmaker" && \
-    git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
-else
-	git -C "$AR_COMPS/esp-rainmaker" fetch && \
-	git -C "$AR_COMPS/esp-rainmaker" pull --ff-only && \
+	git -C "$AR_COMPS/esp-rainmaker" reset --hard d8e93454f495bd8a414829ec5e86842b373ff555 && \
     git -C "$AR_COMPS/esp-rainmaker" submodule update --init --recursive
 fi
 if [ $? -ne 0 ]; then exit 1; fi
