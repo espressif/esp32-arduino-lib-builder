@@ -30,6 +30,11 @@ fi
 if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	git -C $IDF_PATH submodule update --init --recursive
 	$IDF_PATH/install.sh
+
+	# Temporarily patch the ETH driver to support custom SPI
+	cd $IDF_PATH
+	patch -p1 -i ../patches/i2s.diff
+	cd -
 fi
 
 #
