@@ -37,7 +37,7 @@ jobs:
         IDF_BRANCH: ${{ matrix.idf_branch }}
       run: |
         git checkout ${{ matrix.idf_branch }}
-        bash ./build.sh -d
+        bash ./tools/cron.sh
     - name: Upload archive
       uses: actions/upload-artifact@v3
       with:
