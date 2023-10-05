@@ -4,7 +4,13 @@
 			"file":"libspi_flash.a",
 			"src":"build/esp-idf/spi_flash/libspi_flash.a",
 			"out":"lib/libspi_flash.a",
-			"targets":["esp32","esp32c3","esp32s2","esp32s3"]
+			"targets":["esp32","esp32c3","esp32s2","esp32s3","esp32c6","esp32h2"]
+		},
+		{
+			"file":"libesp_psram.a",
+			"src":"build/esp-idf/esp_psram/libesp_psram.a",
+			"out":"lib/libesp_psram.a",
+			"targets":["esp32s3"]
 		},
 		{
 			"file":"libesp_system.a",
@@ -39,8 +45,78 @@
 	],
 	"targets":[
 		{
-			"target": "esp32s3",
+			"target": "esp32h2",
 			"features":[],
+			"idf_libs":["qio","64m"],
+			"bootloaders":[
+				["qio","64m"],
+				["dio","64m"],
+				["qio","16m"],
+				["dio","16m"]
+			],
+			"mem_variants":[
+				["dio","64m"]
+			]
+		},
+		{
+			"target": "esp32c6",
+			"features":[],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
+			],
+			"mem_variants":[
+				["dio","80m"]
+			]
+		},
+		{
+			"target": "esp32c3",
+			"features":[],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
+			],
+			"mem_variants":[
+				["dio","80m"]
+			]
+		},
+		{
+			"target": "esp32",
+			"features":["qio_ram"],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
+			],
+			"mem_variants":[
+				["dio","80m"]
+			]
+		},
+		{
+			"target": "esp32s2",
+			"features":["qio_ram"],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
+			],
+			"mem_variants":[
+				["dio","80m"]
+			]
+		},
+		{
+			"target": "esp32s3",
+			"features":["esp_sr"],
 			"idf_libs":["qio","80m","qio_ram"],
 			"bootloaders":[
 				["qio","120m","qio_ram"],
@@ -54,66 +130,6 @@
 				["dio","80m","opi_ram"],
 				["opi","80m","opi_ram"],
 				["opi","80m","qio_ram"]
-			]
-		},
-		{
-			"target": "esp32s2",
-			"features":["qio_ram"],
-			"idf_libs":["qio","80m"],
-			"bootloaders":[
-				["qio","80m"],
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"],
-				["qio","40m"],
-				["qout","40m"],
-				["dio","40m"],
-				["dout","40m"]
-			],
-			"mem_variants":[
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"]
-			]
-		},
-		{
-			"target": "esp32c3",
-			"features":[],
-			"idf_libs":["qio","80m"],
-			"bootloaders":[
-				["qio","80m"],
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"],
-				["qio","40m"],
-				["qout","40m"],
-				["dio","40m"],
-				["dout","40m"]
-			],
-			"mem_variants":[
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"]
-			]
-		},
-		{
-			"target": "esp32",
-			"features":["qio_ram"],
-			"idf_libs":["qio","80m"],
-			"bootloaders":[
-				["qio","80m"],
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"],
-				["qio","40m"],
-				["qout","40m"],
-				["dio","40m"],
-				["dout","40m"]
-			],
-			"mem_variants":[
-				["qout","80m"],
-				["dio","80m"],
-				["dout","80m"]
 			]
 		}
 	]

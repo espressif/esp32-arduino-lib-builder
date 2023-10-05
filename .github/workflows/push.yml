@@ -11,21 +11,50 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
   build-libs:
     name: Build Libs for ${{ matrix.target }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [esp32, esp32s2, esp32s3, esp32c3]
+        target: [esp32, esp32s2, esp32s3, esp32c3, esp32c6, esp32h2]
       fail-fast: false
     steps:
     - uses: actions/checkout@v3
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
     - name: Build Libs for ${{ matrix.target }}
-      run: bash ./build.sh -t ${{ matrix.target }}
+      run: bash ./build.sh -e -t ${{ matrix.target }}
     - name: Upload archive
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v3
       with:
-        name: artifacts-${{ matrix.target }}
+        name: artifacts
         path: dist
+
+  combine-artifacts:
+    name: Combine artifacts
+    needs: build-libs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: artifacts
+          path: dist
+      - shell: bash
+        run: |
+          mkdir -p out
+          find dist -name 'arduino-esp32-libs-esp*.tar.gz' -exec tar zxvf {} -C out \;
+          cd out/tools/esp32-arduino-libs && tar zcf ../../../dist/esp32-arduino-libs.tar.gz * && cd ../../..
+          cp out/package_esp32_index.template.json dist/package_esp32_index.template.json
+      - name: Upload full esp32-arduino-libs archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: esp32-arduino-libs
+          path: dist/esp32-arduino-libs.tar.gz
+      - name: Upload package_esp32_index.template.json
+        uses: actions/upload-artifact@v3
+        with:
+          name: package-esp32-index-json
+          path: dist/package_esp32_index.template.json
+

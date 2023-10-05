@@ -10,6 +10,7 @@ components/esp-rainmaker/
 components/espressif__esp-dsp/
 components/esp-insights/
 components/arduino_tinyusb/tinyusb/
+components/tflite-micro/
 esp-idf/
 out/
 build/
@@ -19,3 +20,5 @@ sdkconfig
 sdkconfig.old
 version.txt
 dependencies.lock
+managed_components/
+target/

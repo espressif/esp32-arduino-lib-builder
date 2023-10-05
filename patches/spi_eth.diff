@@ -1,0 +1,1139 @@
+diff --git a/components/esp_eth/include/esp_eth_mac.h b/components/esp_eth/include/esp_eth_mac.h
+index dfc1af2c73b5e6a872a5c0583e0223ca86b49ae2..885d332d4363e093d84af1a196c532450386b8ce 100644
+--- a/components/esp_eth/include/esp_eth_mac.h
++++ b/components/esp_eth/include/esp_eth_mac.h
+@@ -1,5 +1,5 @@
+ /*
+- * SPDX-FileCopyrightText: 2019-2022 Espressif Systems (Shanghai) CO LTD
++ * SPDX-FileCopyrightText: 2019-2023 Espressif Systems (Shanghai) CO LTD
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  */
+@@ -470,15 +470,113 @@ typedef struct {
+ esp_eth_mac_t *esp_eth_mac_new_esp32(const eth_esp32_emac_config_t *esp32_config, const eth_mac_config_t *config);
+ #endif // CONFIG_ETH_USE_ESP32_EMAC
+ 
++#if CONFIG_ETH_USE_SPI_ETHERNET
++/**
++ * @brief Custom SPI Driver Configuration.
++ * This structure declares configuration and callback functions to access Ethernet SPI module via
++ * user's custom SPI driver.
++ *
++ */
++typedef struct
++{
++    /**
++     * @brief Custom driver specific configuration data used by `init()` function.
++     *
++     * @note Type and its content is fully under user's control
++     *
++     */
++    void *config;
++
++    /**
++     * @brief Custom driver SPI Initialization
++     *
++     * @param[in] spi_config: Custom driver specific configuration
++     *
++     * @return
++     *      - spi_ctx: when initialization is successful, a pointer to context structure holding all variables
++     *          needed for subsequent SPI access operations (e.g. SPI bus identification, mutexes, etc.)
++     *      - NULL: driver initialization failed
++     *
++     * @note return type and its content is fully under user's control
++     */
++    void *(*init)(const void *spi_config);
++
++    /**
++     * @brief Custom driver De-initialization
++     *
++     * @param[in] spi_ctx: a pointer to driver specific context structure
++     *
++     * @return
++     *      - ESP_OK: driver de-initialization was successful
++     *      - ESP_FAIL: driver de-initialization failed
++     *      - any other failure codes are allowed to be used to provide failure isolation
++     */
++    esp_err_t (*deinit)(void *spi_ctx);
++
++    /**
++     * @brief Custom driver SPI read
++     *
++     * @note The read function is responsible to construct command, address and data fields
++     * of the SPI frame in format expected by particular SPI Ethernet module
++     *
++     * @param[in] spi_ctx: a pointer to driver specific context structure
++     * @param[in] cmd: command
++     * @param[in] addr: register address
++     * @param[out] data: read data
++     * @param[in] data_len: read data length in bytes
++     *
++     * @return
++     *      - ESP_OK: read was successful
++     *      - ESP_FAIL: read failed
++     *      - any other failure codes are allowed to be used to provide failure isolation
++     */
++    esp_err_t (*read)(void *spi_ctx, uint32_t cmd, uint32_t addr, void *data, uint32_t data_len);
++
++    /**
++     * @brief Custom driver SPI write
++     *
++     * @note The write function is responsible to construct command, address and data fields
++     * of the SPI frame in format expected by particular SPI Ethernet module
++     *
++     * @param[in] spi_ctx: a pointer to driver specific context structure
++     * @param[in] cmd: command
++     * @param[in] addr: register address
++     * @param[in] data: data to write
++     * @param[in] data_len: length of data to write in bytes
++     *
++     * @return
++     *      - ESP_OK: write was successful
++     *      - ESP_FAIL: write failed
++     *      - any other failure codes are allowed to be used to provide failure isolation
++     */
++    esp_err_t (*write)(void *spi_ctx, uint32_t cmd, uint32_t addr, const void *data, uint32_t data_len);
++} eth_spi_custom_driver_t;
++
++/**
++ * @brief Default configuration of the custom SPI driver.
++ * Internal ESP-IDF SPI Master driver is used by default.
++ *
++ */
++#define ETH_DEFAULT_SPI  \
++    {                    \
++        .config = NULL,  \
++        .init = NULL,    \
++        .deinit = NULL,  \
++        .read = NULL,    \
++        .write = NULL    \
++    }
++#endif // CONFIG_ETH_USE_SPI_ETHERNET
++
+ #if CONFIG_ETH_SPI_ETHERNET_DM9051
+ /**
+  * @brief DM9051 specific configuration
+  *
+  */
+ typedef struct {
+-    spi_host_device_t spi_host_id;              /*!< SPI peripheral */
+-    spi_device_interface_config_t *spi_devcfg;  /*!< SPI device configuration */
+     int int_gpio_num;                           /*!< Interrupt GPIO number */
++    spi_host_device_t spi_host_id;              /*!< SPI peripheral (this field is invalid when custom SPI driver is defined) */
++    spi_device_interface_config_t *spi_devcfg;  /*!< SPI device configuration (this field is invalid when custom SPI driver is defined) */
++    eth_spi_custom_driver_t custom_spi_driver;  /*!< Custom SPI driver definitions */
+ } eth_dm9051_config_t;
+ 
+ /**
+@@ -487,9 +585,10 @@ typedef struct {
+  */
+ #define ETH_DM9051_DEFAULT_CONFIG(spi_host, spi_devcfg_p) \
+     {                                           \
++        .int_gpio_num = 4,                      \
+         .spi_host_id = spi_host,                \
+         .spi_devcfg = spi_devcfg_p,             \
+-        .int_gpio_num = 4,                      \
++        .custom_spi_driver = ETH_DEFAULT_SPI, \
+     }
+ 
+ /**
+@@ -511,9 +610,10 @@ esp_eth_mac_t *esp_eth_mac_new_dm9051(const eth_dm9051_config_t *dm9051_config,
+  *
+  */
+ typedef struct {
+-    spi_host_device_t spi_host_id;              /*!< SPI peripheral */
+-    spi_device_interface_config_t *spi_devcfg;  /*!< SPI device configuration */
+     int int_gpio_num;                           /*!< Interrupt GPIO number */
++    spi_host_device_t spi_host_id;              /*!< SPI peripheral (this field is invalid when custom SPI driver is defined)*/
++    spi_device_interface_config_t *spi_devcfg;  /*!< SPI device configuration (this field is invalid when custom SPI driver is defined)*/
++    eth_spi_custom_driver_t custom_spi_driver;  /*!< Custom SPI driver definitions */
+ } eth_w5500_config_t;
+ 
+ /**
+@@ -521,10 +621,11 @@ typedef struct {
+  *
+  */
+ #define ETH_W5500_DEFAULT_CONFIG(spi_host, spi_devcfg_p) \
+-    {                                          \
+-        .spi_host_id = spi_host,               \
+-        .spi_devcfg = spi_devcfg_p,            \
+-        .int_gpio_num = 4,                     \
++    {                                           \
++        .int_gpio_num = 4,                      \
++        .spi_host_id = spi_host,                \
++        .spi_devcfg = spi_devcfg_p,             \
++        .custom_spi_driver = ETH_DEFAULT_SPI, \
+     }
+ 
+ /**
+@@ -546,9 +647,10 @@ esp_eth_mac_t *esp_eth_mac_new_w5500(const eth_w5500_config_t *w5500_config, con
+  *
+  */
+ typedef struct {
+-    spi_host_device_t spi_host_id;              /*!< SPI peripheral */
+-    spi_device_interface_config_t *spi_devcfg;  /*!< SPI device configuration */
+     int int_gpio_num;                           /*!< Interrupt GPIO number */
++    spi_host_device_t spi_host_id;              /*!< SPI peripheral (this field is invalid when custom SPI driver is defined) */
++    spi_device_interface_config_t *spi_devcfg;  /*!< SPI device configuration (this field is invalid when custom SPI driver is defined) */
++    eth_spi_custom_driver_t custom_spi_driver;  /*!< Custom SPI driver definitions */
+ } eth_ksz8851snl_config_t;
+ 
+ /**
+@@ -557,9 +659,10 @@ typedef struct {
+  */
+ #define ETH_KSZ8851SNL_DEFAULT_CONFIG(spi_host, spi_devcfg_p) \
+     {                                               \
++        .int_gpio_num = 4,                          \
+         .spi_host_id = spi_host,                    \
+         .spi_devcfg = spi_devcfg_p,                 \
+-        .int_gpio_num = 14,                         \
++        .custom_spi_driver = ETH_DEFAULT_SPI,     \
+     }
+ 
+ /**
+diff --git a/components/esp_eth/src/esp_eth_mac_dm9051.c b/components/esp_eth/src/esp_eth_mac_dm9051.c
+index b0d339cc93d1d6ef39b1e819102c220d431114b2..ba796121b7065ba984cfbc683283e82a6702a04a 100644
+--- a/components/esp_eth/src/esp_eth_mac_dm9051.c
++++ b/components/esp_eth/src/esp_eth_mac_dm9051.c
+@@ -1,5 +1,5 @@
+ /*
+- * SPDX-FileCopyrightText: 2019-2021 Espressif Systems (Shanghai) CO LTD
++ * SPDX-FileCopyrightText: 2019-2023 Espressif Systems (Shanghai) CO LTD
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  */
+@@ -47,11 +47,23 @@ typedef struct {
+     uint8_t length_high;
+ } dm9051_rx_header_t;
+ 
++typedef struct {
++    spi_device_handle_t hdl;
++    SemaphoreHandle_t lock;
++} spi_info_t;
++
++typedef struct {
++    void *ctx;
++    void *(*init)(const void *spi_config);
++    esp_err_t (*deinit)(void *spi_ctx);
++    esp_err_t (*read)(void *spi_ctx, uint32_t cmd, uint32_t addr, void *data, uint32_t data_len);
++    esp_err_t (*write)(void *spi_ctx, uint32_t cmd, uint32_t addr, const void *data, uint32_t data_len);
++} spi_interface_t;
++
+ typedef struct {
+     esp_eth_mac_t parent;
+     esp_eth_mediator_t *eth;
+-    spi_device_handle_t spi_hdl;
+-    SemaphoreHandle_t spi_lock;
++    spi_interface_t spi;
+     TaskHandle_t rx_task_hdl;
+     uint32_t sw_reset_timeout_ms;
+     int int_gpio_num;
+@@ -61,89 +73,137 @@ typedef struct {
+     uint8_t *rx_buffer;
+ } emac_dm9051_t;
+ 
+-static inline bool dm9051_lock(emac_dm9051_t *emac)
++static void *dm9051_spi_init(const void *spi_config)
++{
++    void *ret = NULL;
++    eth_dm9051_config_t *dm9051_config = (eth_dm9051_config_t *)spi_config;
++    spi_info_t *spi = calloc(1, sizeof(spi_info_t));
++    ESP_GOTO_ON_FALSE(spi, NULL, err, TAG, "no memory for SPI context data");
++
++    /* SPI device init */
++    spi_device_interface_config_t spi_devcfg;
++    spi_devcfg = *(dm9051_config->spi_devcfg);
++    if (dm9051_config->spi_devcfg->command_bits == 0 && dm9051_config->spi_devcfg->address_bits == 0) {
++        /* configure default SPI frame format */
++        spi_devcfg.command_bits = 1;
++        spi_devcfg.address_bits = 7;
++    } else {
++        ESP_GOTO_ON_FALSE(dm9051_config->spi_devcfg->command_bits == 1 && dm9051_config->spi_devcfg->address_bits == 7,
++                            NULL, err, TAG, "incorrect SPI frame format (command_bits/address_bits)");
++    }
++    ESP_GOTO_ON_FALSE(spi_bus_add_device(dm9051_config->spi_host_id, &spi_devcfg, &spi->hdl) == ESP_OK,
++                                            NULL, err, TAG, "adding device to SPI host #%d failed", dm9051_config->spi_host_id + 1);
++
++    /* create mutex */
++    spi->lock = xSemaphoreCreateMutex();
++    ESP_GOTO_ON_FALSE(spi->lock, NULL, err, TAG, "create lock failed");
++
++    ret = spi;
++    return ret;
++err:
++    if (spi) {
++        if (spi->lock) {
++            vSemaphoreDelete(spi->lock);
++        }
++        free(spi);
++    }
++    return ret;
++}
++
++static esp_err_t dm9051_spi_deinit(void *spi_ctx)
+ {
+-    return xSemaphoreTake(emac->spi_lock, pdMS_TO_TICKS(DM9051_SPI_LOCK_TIMEOUT_MS)) == pdTRUE;
++    esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
++
++    spi_bus_remove_device(spi->hdl);
++    vSemaphoreDelete(spi->lock);
++
++    free(spi);
++    return ret;
+ }
+ 
+-static inline bool dm9051_unlock(emac_dm9051_t *emac)
++static inline bool dm9051_spi_lock(spi_info_t *spi)
+ {
+-    return xSemaphoreGive(emac->spi_lock) == pdTRUE;
++    return xSemaphoreTake(spi->lock, pdMS_TO_TICKS(DM9051_SPI_LOCK_TIMEOUT_MS)) == pdTRUE;
+ }
+ 
+-/**
+- * @brief write value to dm9051 internal register
+- */
+-static esp_err_t dm9051_register_write(emac_dm9051_t *emac, uint8_t reg_addr, uint8_t value)
++static inline bool dm9051_spi_unlock(spi_info_t *spi)
++{
++    return xSemaphoreGive(spi->lock) == pdTRUE;
++}
++
++static esp_err_t dm9051_spi_write(void *spi_ctx, uint32_t cmd, uint32_t addr, const void *value, uint32_t len)
+ {
+     esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
++
+     spi_transaction_t trans = {
+-        .cmd = DM9051_SPI_WR,
+-        .addr = reg_addr,
+-        .length = 8,
+-        .flags = SPI_TRANS_USE_TXDATA
++        .cmd = cmd,
++        .addr = addr,
++        .length = 8 * len,
++        .tx_buffer = value
+     };
+-    trans.tx_data[0] = value;
+-    if (dm9051_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans) != ESP_OK) {
++    if (dm9051_spi_lock(spi)) {
++        if (spi_device_polling_transmit(spi->hdl, &trans) != ESP_OK) {
+             ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+             ret = ESP_FAIL;
+         }
+-        dm9051_unlock(emac);
++        dm9051_spi_unlock(spi);
+     } else {
+         ret = ESP_ERR_TIMEOUT;
+     }
+     return ret;
+ }
+ 
+-/**
+- * @brief read value from dm9051 internal register
+- */
+-static esp_err_t dm9051_register_read(emac_dm9051_t *emac, uint8_t reg_addr, uint8_t *value)
++static esp_err_t dm9051_spi_read(void *spi_ctx, uint32_t cmd, uint32_t addr, void *value, uint32_t len)
+ {
+     esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
++
+     spi_transaction_t trans = {
+-        .cmd = DM9051_SPI_RD,
+-        .addr = reg_addr,
+-        .length = 8,
+-        .flags = SPI_TRANS_USE_TXDATA | SPI_TRANS_USE_RXDATA
++        .flags = len <= 4 ? SPI_TRANS_USE_RXDATA : 0, // use direct reads for registers to prevent overwrites by 4-byte boundary writes
++        .cmd = cmd,
++        .addr = addr,
++        .length = 8 * len,
++        .rx_buffer = value
+     };
+-    if (dm9051_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans) != ESP_OK) {
++    if (dm9051_spi_lock(spi)) {
++        if (spi_device_polling_transmit(spi->hdl, &trans) != ESP_OK) {
+             ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+             ret = ESP_FAIL;
+-        } else {
+-            *value = trans.rx_data[0];
+         }
+-        dm9051_unlock(emac);
++        dm9051_spi_unlock(spi);
+     } else {
+         ret = ESP_ERR_TIMEOUT;
+     }
++    if ((trans.flags&SPI_TRANS_USE_RXDATA) && len <= 4) {
++        memcpy(value, trans.rx_data, len);  // copy register values to output
++    }
+     return ret;
+ }
+ 
++/**
++ * @brief write value to dm9051 internal register
++ */
++static esp_err_t dm9051_register_write(emac_dm9051_t *emac, uint8_t reg_addr, uint8_t value)
++{
++    return emac->spi.write(emac->spi.ctx, DM9051_SPI_WR, reg_addr, &value, 1);
++}
++
++/**
++ * @brief read value from dm9051 internal register
++ */
++static esp_err_t dm9051_register_read(emac_dm9051_t *emac, uint8_t reg_addr, uint8_t *value)
++{
++    return emac->spi.read(emac->spi.ctx, DM9051_SPI_RD, reg_addr, value, 1);
++}
++
+ /**
+  * @brief write buffer to dm9051 internal memory
+  */
+ static esp_err_t dm9051_memory_write(emac_dm9051_t *emac, uint8_t *buffer, uint32_t len)
+ {
+-    esp_err_t ret = ESP_OK;
+-    spi_transaction_t trans = {
+-        .cmd = DM9051_SPI_WR,
+-        .addr = DM9051_MWCMD,
+-        .length = len * 8,
+-        .tx_buffer = buffer
+-    };
+-    if (dm9051_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans) != ESP_OK) {
+-            ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+-            ret = ESP_FAIL;
+-        }
+-        dm9051_unlock(emac);
+-    } else {
+-        ret = ESP_ERR_TIMEOUT;
+-    }
+-    return ret;
++    return emac->spi.write(emac->spi.ctx, DM9051_SPI_WR, DM9051_MWCMD, buffer, len);
+ }
+ 
+ /**
+@@ -151,23 +211,7 @@ static esp_err_t dm9051_memory_write(emac_dm9051_t *emac, uint8_t *buffer, uint3
+  */
+ static esp_err_t dm9051_memory_read(emac_dm9051_t *emac, uint8_t *buffer, uint32_t len)
+ {
+-    esp_err_t ret = ESP_OK;
+-    spi_transaction_t trans = {
+-        .cmd = DM9051_SPI_RD,
+-        .addr = DM9051_MRCMD,
+-        .length = len * 8,
+-        .rx_buffer = buffer
+-    };
+-    if (dm9051_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans) != ESP_OK) {
+-            ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+-            ret = ESP_FAIL;
+-        }
+-        dm9051_unlock(emac);
+-    } else {
+-        ret = ESP_ERR_TIMEOUT;
+-    }
+-    return ret;
++    return emac->spi.read(emac->spi.ctx, DM9051_SPI_RD, DM9051_MRCMD, buffer, len);
+ }
+ 
+ /**
+@@ -175,23 +219,7 @@ static esp_err_t dm9051_memory_read(emac_dm9051_t *emac, uint8_t *buffer, uint32
+  */
+ static esp_err_t dm9051_memory_peek(emac_dm9051_t *emac, uint8_t *buffer, uint32_t len)
+ {
+-    esp_err_t ret = ESP_OK;
+-    spi_transaction_t trans = {
+-        .cmd = DM9051_SPI_RD,
+-        .addr = DM9051_MRCMDX1,
+-        .length = len * 8,
+-        .rx_buffer = buffer
+-    };
+-    if (dm9051_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans) != ESP_OK) {
+-            ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+-            ret = ESP_FAIL;
+-        }
+-        dm9051_unlock(emac);
+-    } else {
+-        ret = ESP_ERR_TIMEOUT;
+-    }
+-    return ret;
++    return emac->spi.read(emac->spi.ctx, DM9051_SPI_RD, DM9051_MRCMDX1, buffer, len);
+ }
+ 
+ /**
+@@ -840,8 +868,7 @@ static esp_err_t emac_dm9051_del(esp_eth_mac_t *mac)
+ {
+     emac_dm9051_t *emac = __containerof(mac, emac_dm9051_t, parent);
+     vTaskDelete(emac->rx_task_hdl);
+-    spi_bus_remove_device(emac->spi_hdl);
+-    vSemaphoreDelete(emac->spi_lock);
++    emac->spi.deinit(emac->spi.ctx);
+     heap_caps_free(emac->rx_buffer);
+     free(emac);
+     return ESP_OK;
+@@ -857,19 +884,6 @@ esp_eth_mac_t *esp_eth_mac_new_dm9051(const eth_dm9051_config_t *dm9051_config,
+     ESP_GOTO_ON_FALSE(emac, NULL, err, TAG, "calloc emac failed");
+     /* dm9051 receive is driven by interrupt only for now*/
+     ESP_GOTO_ON_FALSE(dm9051_config->int_gpio_num >= 0, NULL, err, TAG, "error interrupt gpio number");
+-    /* SPI device init */
+-    spi_device_interface_config_t spi_devcfg;
+-    memcpy(&spi_devcfg, dm9051_config->spi_devcfg, sizeof(spi_device_interface_config_t));
+-    if (dm9051_config->spi_devcfg->command_bits == 0 && dm9051_config->spi_devcfg->address_bits == 0) {
+-        /* configure default SPI frame format */
+-        spi_devcfg.command_bits = 1;
+-        spi_devcfg.address_bits = 7;
+-    } else {
+-        ESP_GOTO_ON_FALSE(dm9051_config->spi_devcfg->command_bits == 1 || dm9051_config->spi_devcfg->address_bits == 7,
+-                            NULL, err, TAG, "incorrect SPI frame format (command_bits/address_bits)");
+-    }
+-    ESP_GOTO_ON_FALSE(spi_bus_add_device(dm9051_config->spi_host_id, &spi_devcfg, &emac->spi_hdl) == ESP_OK,
+-                                            NULL, err, TAG, "adding device to SPI host #%d failed", dm9051_config->spi_host_id + 1);
+     /* bind methods and attributes */
+     emac->sw_reset_timeout_ms = mac_config->sw_reset_timeout_ms;
+     emac->int_gpio_num = dm9051_config->int_gpio_num;
+@@ -891,9 +905,26 @@ esp_eth_mac_t *esp_eth_mac_new_dm9051(const eth_dm9051_config_t *dm9051_config,
+     emac->parent.enable_flow_ctrl = emac_dm9051_enable_flow_ctrl;
+     emac->parent.transmit = emac_dm9051_transmit;
+     emac->parent.receive = emac_dm9051_receive;
+-    /* create mutex */
+-    emac->spi_lock = xSemaphoreCreateMutex();
+-    ESP_GOTO_ON_FALSE(emac->spi_lock, NULL, err, TAG, "create lock failed");
++
++    if (dm9051_config->custom_spi_driver.init != NULL && dm9051_config->custom_spi_driver.deinit != NULL
++        && dm9051_config->custom_spi_driver.read != NULL && dm9051_config->custom_spi_driver.write != NULL) {
++        ESP_LOGD(TAG, "Using user's custom SPI Driver");
++        emac->spi.init = dm9051_config->custom_spi_driver.init;
++        emac->spi.deinit = dm9051_config->custom_spi_driver.deinit;
++        emac->spi.read = dm9051_config->custom_spi_driver.read;
++        emac->spi.write = dm9051_config->custom_spi_driver.write;
++        /* Custom SPI driver device init */
++        ESP_GOTO_ON_FALSE((emac->spi.ctx = emac->spi.init(dm9051_config->custom_spi_driver.config)) != NULL, NULL, err, TAG, "SPI initialization failed");
++    } else {
++        ESP_LOGD(TAG, "Using default SPI Driver");
++        emac->spi.init = dm9051_spi_init;
++        emac->spi.deinit = dm9051_spi_deinit;
++        emac->spi.read = dm9051_spi_read;
++        emac->spi.write = dm9051_spi_write;
++        /* SPI device init */
++        ESP_GOTO_ON_FALSE((emac->spi.ctx = emac->spi.init(dm9051_config)) != NULL, NULL, err, TAG, "SPI initialization failed");
++    }
++
+     /* create dm9051 task */
+     BaseType_t core_num = tskNO_AFFINITY;
+     if (mac_config->flags & ETH_MAC_FLAG_PIN_TO_CORE) {
+@@ -913,8 +944,8 @@ err:
+         if (emac->rx_task_hdl) {
+             vTaskDelete(emac->rx_task_hdl);
+         }
+-        if (emac->spi_lock) {
+-            vSemaphoreDelete(emac->spi_lock);
++        if (emac->spi.ctx) {
++            emac->spi.deinit(emac->spi.ctx);
+         }
+         heap_caps_free(emac->rx_buffer);
+         free(emac);
+diff --git a/components/esp_eth/src/esp_eth_mac_ksz8851snl.c b/components/esp_eth/src/esp_eth_mac_ksz8851snl.c
+index b6aea4df90ead8dc2162e0735bdc310717881c97..cda12f0159835ea1cb818736bdc2611056b131ff 100644
+--- a/components/esp_eth/src/esp_eth_mac_ksz8851snl.c
++++ b/components/esp_eth/src/esp_eth_mac_ksz8851snl.c
+@@ -3,7 +3,7 @@
+  *
+  * SPDX-License-Identifier: MIT
+  *
+- * SPDX-FileContributor: 2021-2022 Espressif Systems (Shanghai) CO LTD
++ * SPDX-FileContributor: 2021-2023 Espressif Systems (Shanghai) CO LTD
+  */
+ 
+ #include <string.h>
+@@ -22,10 +22,22 @@
+ 
+ #define KSZ8851_ETH_MAC_RX_BUF_SIZE_AUTO (0)
+ 
++typedef struct {
++    spi_device_handle_t hdl;
++} spi_info_t;
++
++typedef struct {
++    void *ctx;
++    void *(*init)(const void *spi_config);
++    esp_err_t (*deinit)(void *spi_ctx);
++    esp_err_t (*read)(void *spi_ctx, uint32_t cmd,uint32_t addr, void *data, uint32_t data_len);
++    esp_err_t (*write)(void *spi_ctx, uint32_t cmd, uint32_t addr, const void *data, uint32_t data_len);
++} spi_interface_t;
++
+ typedef struct {
+     esp_eth_mac_t parent;
+     esp_eth_mediator_t *eth;
+-    spi_device_handle_t spi_hdl;
++    spi_interface_t spi;
+     SemaphoreHandle_t spi_lock;
+     TaskHandle_t rx_task_hdl;
+     uint32_t sw_reset_timeout_ms;
+@@ -73,6 +85,95 @@ IRAM_ATTR static void ksz8851_isr_handler(void *arg)
+     }
+ }
+ 
++static void *ksz8851_spi_init(const void *spi_config)
++{
++    void *ret = NULL;
++    eth_ksz8851snl_config_t *ksz8851snl_config = (eth_ksz8851snl_config_t *)spi_config;
++    spi_info_t *spi = calloc(1, sizeof(spi_info_t));
++    ESP_GOTO_ON_FALSE(spi, NULL, err, TAG, "no memory for SPI context data");
++
++    // SPI device init
++    ESP_GOTO_ON_FALSE(spi_bus_add_device(ksz8851snl_config->spi_host_id, ksz8851snl_config->spi_devcfg, &spi->hdl) == ESP_OK, NULL,
++                                            err, TAG, "adding device to SPI host #%d failed", ksz8851snl_config->spi_host_id + 1);
++    ret = spi;
++    return ret;
++err:
++    if (spi) {
++        free(spi);
++    }
++    return ret;
++}
++
++static esp_err_t ksz8851_spi_deinit(void *spi_ctx)
++{
++    esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
++
++    spi_bus_remove_device(spi->hdl);
++
++    free(spi);
++    return ret;
++}
++
++static esp_err_t ksz8851_spi_read(void *spi_ctx, uint32_t cmd, uint32_t addr, void *value, uint32_t len)
++{
++    esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
++
++    spi_transaction_ext_t trans = {
++        .base.flags = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR | SPI_TRANS_VARIABLE_DUMMY | (len <= 4 ? SPI_TRANS_USE_RXDATA : 0),
++        .base.cmd = cmd,
++        .base.addr = addr,
++        .base.length = 8 * len,
++        .base.rx_buffer = value,
++        .command_bits = KSZ8851_SPI_COMMAND_BITS
++    };
++    if (cmd >= KSZ8851_SPI_COMMAND_READ_FIFO) {
++        trans.address_bits = 8 - KSZ8851_SPI_COMMAND_BITS;
++    } else {
++        trans.address_bits = 16 - KSZ8851_SPI_COMMAND_BITS;
++    }
++
++    // No need for mutex here since SPI access is protected at higher layer of this driver
++    if (spi_device_polling_transmit(spi->hdl, &trans.base) != ESP_OK) {
++        ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
++        ret = ESP_FAIL;
++    }
++
++    if ((trans.base.flags & SPI_TRANS_USE_RXDATA) && len <= 4) {
++        memcpy(value, trans.base.rx_data, len);  // copy register values to output
++    }
++    return ret;
++}
++
++static esp_err_t ksz8851_spi_write(void *spi_ctx, uint32_t cmd, uint32_t addr, const void *value, uint32_t len)
++{
++    esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
++
++    spi_transaction_ext_t trans = {
++        .base.flags = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR | SPI_TRANS_VARIABLE_DUMMY,
++        .base.cmd = cmd,
++        .base.addr = addr,
++        .base.length = 8 * len,
++        .base.tx_buffer = value,
++        .command_bits = KSZ8851_SPI_COMMAND_BITS
++    };
++    if (cmd >= KSZ8851_SPI_COMMAND_READ_FIFO) {
++        trans.address_bits = 8 - KSZ8851_SPI_COMMAND_BITS;
++    } else {
++        trans.address_bits = 16 - KSZ8851_SPI_COMMAND_BITS;
++    }
++
++    // No need for mutex here since SPI access is protected at higher layer of this driver
++    if (spi_device_polling_transmit(spi->hdl, &trans.base) != ESP_OK) {
++        ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
++        ret = ESP_FAIL;
++    }
++
++    return ret;
++}
++
+ static inline bool ksz8851_mutex_lock(emac_ksz8851snl_t *emac)
+ {
+     return xSemaphoreTakeRecursive(emac->spi_lock, pdMS_TO_TICKS(KSZ8851_SPI_LOCK_TIMEOUT_MS)) == pdTRUE;
+@@ -83,70 +184,49 @@ static inline bool ksz8851_mutex_unlock(emac_ksz8851snl_t *emac)
+     return xSemaphoreGiveRecursive(emac->spi_lock) == pdTRUE;
+ }
+ 
+-static esp_err_t ksz8851_read_reg(emac_ksz8851snl_t *emac, uint32_t address, uint16_t *value)
++static esp_err_t ksz8851_read_reg(emac_ksz8851snl_t *emac, uint32_t reg_addr, uint16_t *value)
+ {
+     esp_err_t ret = ESP_OK;
+     ESP_GOTO_ON_FALSE(value != NULL, ESP_ERR_INVALID_ARG, err, TAG, "out pointer must not be null");
+-    ESP_GOTO_ON_FALSE((address & ~KSZ8851_VALID_ADDRESS_MASK) == 0U, ESP_ERR_INVALID_ARG, err, TAG, "address is out of bounds");
++    ESP_GOTO_ON_FALSE((reg_addr & ~KSZ8851_VALID_ADDRESS_MASK) == 0U, ESP_ERR_INVALID_ARG, err, TAG, "address is out of bounds");
+ 
+-    const unsigned data_size = 16U; // NOTE(v.chistyakov): bits
+     // NOTE(v.chistyakov): select upper or lower word inside a dword
+-    const unsigned byte_mask = 0x3U << (KSZ8851_SPI_BYTE_MASK_SHIFT + (address & 0x2U));
+-    address <<= KSZ8851_SPI_ADDR_SHIFT;
++    const unsigned byte_mask = 0x3U << (KSZ8851_SPI_BYTE_MASK_SHIFT + (reg_addr & 0x2U));
++    reg_addr <<= KSZ8851_SPI_ADDR_SHIFT;
+ 
+-    spi_transaction_ext_t trans = {
+-        .base.flags   = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR | SPI_TRANS_VARIABLE_DUMMY | SPI_TRANS_USE_RXDATA,
+-        .base.cmd     = KSZ8851_SPI_COMMAND_READ_REG,
+-        .base.addr    = address | byte_mask,
+-        .base.length  = data_size,
+-        .command_bits = KSZ8851_SPI_COMMAND_BITS,
+-        .address_bits = 16 - KSZ8851_SPI_COMMAND_BITS,
+-    };
++    // Need to protect SPI access at higher layer of the driver since once packet transmit/receive is started (`SDA Start DMA Access` bit is set),
++    // all registers access are disabled.
+     if (ksz8851_mutex_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans.base) != ESP_OK) {
+-            ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+-            ret = ESP_FAIL;
+-        }
+-        ksz8851_mutex_unlock(emac);
+-        memcpy(value, trans.base.rx_data, data_size >> 3U);
+-        ESP_LOGV(TAG, "reading reg 0x%02x == 0x%04x", address, *value);
++        ret = emac->spi.read(emac->spi.ctx, KSZ8851_SPI_COMMAND_READ_REG, reg_addr | byte_mask, value, 2);
+     } else {
+         ret = ESP_ERR_TIMEOUT;
+     }
++    ksz8851_mutex_unlock(emac);
++    ESP_LOGV(TAG, "reading reg 0x%02x == 0x%02x", reg_addr, *value);
++
+ err:
+     return ret;
+ }
+ 
+-static esp_err_t ksz8851_write_reg(emac_ksz8851snl_t *emac, uint32_t address, uint16_t value)
++static esp_err_t ksz8851_write_reg(emac_ksz8851snl_t *emac, uint32_t reg_addr, uint16_t value)
+ {
+     esp_err_t ret = ESP_OK;
+-    ESP_GOTO_ON_FALSE((address & ~KSZ8851_VALID_ADDRESS_MASK) == 0U, ESP_ERR_INVALID_ARG, err, TAG, "address is out of bounds");
+-    ESP_LOGV(TAG, "writing reg 0x%02x = 0x%04x", address, value);
++    ESP_GOTO_ON_FALSE((reg_addr & ~KSZ8851_VALID_ADDRESS_MASK) == 0U, ESP_ERR_INVALID_ARG, err, TAG, "address is out of bounds");
++    ESP_LOGV(TAG, "writing reg 0x%02x = 0x%02x", reg_addr, value);
+ 
+-    const unsigned data_size = 16U; // NOTE(v.chistyakov): bits
+     // NOTE(v.chistyakov): select upper or lower word inside a dword
+-    const unsigned byte_mask = 0x3U << (KSZ8851_SPI_BYTE_MASK_SHIFT + (address & 0x2U));
+-    address <<= KSZ8851_SPI_ADDR_SHIFT;
++    const unsigned byte_mask = 0x3U << (KSZ8851_SPI_BYTE_MASK_SHIFT + (reg_addr & 0x2U));
++    reg_addr <<= KSZ8851_SPI_ADDR_SHIFT;
+ 
+-    spi_transaction_ext_t trans = {
+-        .base.flags   = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR | SPI_TRANS_VARIABLE_DUMMY | SPI_TRANS_USE_TXDATA,
+-        .base.cmd     = KSZ8851_SPI_COMMAND_WRITE_REG,
+-        .base.addr    = address | byte_mask,
+-        .base.length  = data_size,
+-        .command_bits = KSZ8851_SPI_COMMAND_BITS,
+-        .address_bits = 16 - KSZ8851_SPI_COMMAND_BITS,
+-    };
+-
+-    memcpy(trans.base.tx_data, &value, data_size >> 3U);
++    // Need to protect SPI access at higher layer of the driver since once packet transmit/receive is started (`SDA Start DMA Access` bit is set),
++    // all registers access are disabled.
+     if (ksz8851_mutex_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans.base) != ESP_OK) {
+-            ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+-            ret = ESP_FAIL;
+-        }
+-        ksz8851_mutex_unlock(emac);
++        ret = emac->spi.write(emac->spi.ctx, KSZ8851_SPI_COMMAND_WRITE_REG, reg_addr | byte_mask, &value, 2);
+     } else {
+         ret = ESP_ERR_TIMEOUT;
+     }
++    ksz8851_mutex_unlock(emac);
++
+ err:
+     return ret;
+ }
+@@ -313,6 +393,7 @@ static esp_err_t emac_ksz8851snl_transmit(esp_eth_mac_t *mac, uint8_t *buf, uint
+     ESP_LOGV(TAG, "transmitting frame of size %u", length);
+     esp_err_t ret           = ESP_OK;
+     emac_ksz8851snl_t *emac = __containerof(mac, emac_ksz8851snl_t, parent);
++    // Lock SPI since once `SDA Start DMA Access` bit is set, all registers access are disabled.
+     if (!ksz8851_mutex_lock(emac)) {
+         return ESP_ERR_TIMEOUT;
+     }
+@@ -333,24 +414,12 @@ static esp_err_t emac_ksz8851snl_transmit(esp_eth_mac_t *mac, uint8_t *buf, uint
+     emac->tx_buffer[3] = (length >> 8U) & 0xFFU;
+     memcpy(emac->tx_buffer + 4U, buf, length);
+ 
+-    spi_transaction_ext_t trans = {
+-        .base.flags     = SPI_TRANS_VARIABLE_ADDR | SPI_TRANS_VARIABLE_CMD,
+-        .base.cmd       = KSZ8851_SPI_COMMAND_WRITE_FIFO,
+-        .base.length    = transmit_length * 8U, // NOTE(v.chistyakov): bits
+-        .base.tx_buffer = emac->tx_buffer,
+-        .command_bits   = 2U,
+-        .address_bits   = 6U,
+-    };
+-
+     uint16_t ier;
+     ESP_GOTO_ON_ERROR(ksz8851_read_reg(emac, KSZ8851_IER, &ier), err, TAG, "IER read failed");
+     ESP_GOTO_ON_ERROR(ksz8851_write_reg(emac, KSZ8851_IER, 0), err, TAG, "IER write failed");
+ 
+     ESP_GOTO_ON_ERROR(ksz8851_set_bits(emac, KSZ8851_RXQCR, RXQCR_SDA), err, TAG, "RXQCR write failed");
+-    if (spi_device_polling_transmit(emac->spi_hdl, &trans.base) != ESP_OK) {
+-        ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+-        ret = ESP_FAIL;
+-    }
++    ret = emac->spi.write(emac->spi.ctx, KSZ8851_SPI_COMMAND_WRITE_FIFO, 0, emac->tx_buffer, transmit_length);
+     ESP_GOTO_ON_ERROR(ksz8851_clear_bits(emac, KSZ8851_RXQCR, RXQCR_SDA), err, TAG, "RXQCR write failed");
+ 
+     ESP_GOTO_ON_ERROR(ksz8851_write_reg(emac, KSZ8851_IER, ier), err, TAG, "IER write failed");
+@@ -438,23 +507,13 @@ static esp_err_t emac_ksz8851_receive(esp_eth_mac_t *mac, uint8_t *buf, uint32_t
+ 
+     // NOTE(v.chistyakov): 4 dummy + 4 header + alignment
+     const unsigned receive_size = 8U + ((byte_count + 3U) & ~0x3U);
+-    spi_transaction_ext_t trans = {
+-        .base.flags     = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR | SPI_TRANS_VARIABLE_DUMMY,
+-        .base.cmd       = KSZ8851_SPI_COMMAND_READ_FIFO,
+-        .base.length    = receive_size * 8U, // NOTE(v.chistyakov): bits
+-        .base.rx_buffer = emac->rx_buffer,
+-        .command_bits   = 2U,
+-        .address_bits   = 6U,
+-    };
++    // Lock SPI since once `SDA Start DMA Access` bit is set, all registers access are disabled.
+     if (!ksz8851_mutex_lock(emac)) {
+         return ESP_ERR_TIMEOUT;
+     }
+     ESP_GOTO_ON_ERROR(ksz8851_clear_bits(emac, KSZ8851_RXFDPR, RXFDPR_RXFP_MASK), err, TAG, "RXFDPR write failed");
+     ESP_GOTO_ON_ERROR(ksz8851_set_bits(emac, KSZ8851_RXQCR, RXQCR_SDA), err, TAG, "RXQCR write failed");
+-    if (spi_device_polling_transmit(emac->spi_hdl, &trans.base) != ESP_OK) {
+-        ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+-        ret = ESP_FAIL;
+-    }
++    ret = emac->spi.read(emac->spi.ctx, KSZ8851_SPI_COMMAND_READ_FIFO, 0, emac->rx_buffer, receive_size);
+     ESP_GOTO_ON_ERROR(ksz8851_clear_bits(emac, KSZ8851_RXQCR, RXQCR_SDA), err, TAG, "RXQCR write failed");
+     ksz8851_mutex_unlock(emac);
+     // NOTE(v.chistyakov): skip 4 dummy, 4 header
+@@ -728,7 +787,7 @@ static esp_err_t emac_ksz8851_del(esp_eth_mac_t *mac)
+ {
+     emac_ksz8851snl_t *emac = __containerof(mac, emac_ksz8851snl_t, parent);
+     vTaskDelete(emac->rx_task_hdl);
+-    spi_bus_remove_device(emac->spi_hdl);
++    emac->spi.deinit(emac->spi.ctx);
+     vSemaphoreDelete(emac->spi_lock);
+     heap_caps_free(emac->rx_buffer);
+     heap_caps_free(emac->tx_buffer);
+@@ -748,10 +807,6 @@ esp_eth_mac_t *esp_eth_mac_new_ksz8851snl(const eth_ksz8851snl_config_t *ksz8851
+     emac = calloc(1, sizeof(emac_ksz8851snl_t));
+     ESP_GOTO_ON_FALSE(emac, NULL, err, TAG, "no mem for MAC instance");
+ 
+-    /* SPI device init */
+-    ESP_GOTO_ON_FALSE(spi_bus_add_device(ksz8851snl_config->spi_host_id, ksz8851snl_config->spi_devcfg, &emac->spi_hdl) == ESP_OK,
+-                                            NULL, err, TAG, "adding device to SPI host #%d failed", ksz8851snl_config->spi_host_id + 1);
+-
+     emac->sw_reset_timeout_ms           = mac_config->sw_reset_timeout_ms;
+     emac->int_gpio_num                  = ksz8851snl_config->int_gpio_num;
+     emac->parent.set_mediator           = emac_ksz8851_set_mediator;
+@@ -772,8 +827,6 @@ esp_eth_mac_t *esp_eth_mac_new_ksz8851snl(const eth_ksz8851snl_config_t *ksz8851
+     emac->parent.enable_flow_ctrl       = emac_ksz8851_enable_flow_ctrl;
+     emac->parent.set_peer_pause_ability = emac_ksz8851_set_peer_pause_ability;
+     emac->parent.del                    = emac_ksz8851_del;
+-    emac->spi_lock                      = xSemaphoreCreateRecursiveMutex();
+-    ESP_GOTO_ON_FALSE(emac->spi_lock, NULL, err, TAG, "create lock failed");
+     emac->rx_buffer = NULL;
+     emac->tx_buffer = NULL;
+     emac->rx_buffer = heap_caps_malloc(KSZ8851_QMU_PACKET_LENGTH + KSZ8851_QMU_PACKET_PADDING, MALLOC_CAP_DMA);
+@@ -781,6 +834,29 @@ esp_eth_mac_t *esp_eth_mac_new_ksz8851snl(const eth_ksz8851snl_config_t *ksz8851
+     ESP_GOTO_ON_FALSE(emac->rx_buffer, NULL, err, TAG, "RX buffer allocation failed");
+     ESP_GOTO_ON_FALSE(emac->tx_buffer, NULL, err, TAG, "TX buffer allocation failed");
+ 
++    /* create mutex */
++    emac->spi_lock = xSemaphoreCreateRecursiveMutex();
++    ESP_GOTO_ON_FALSE(emac->spi_lock, NULL, err, TAG, "create lock failed");
++
++    if (ksz8851snl_config->custom_spi_driver.init != NULL && ksz8851snl_config->custom_spi_driver.deinit != NULL
++        && ksz8851snl_config->custom_spi_driver.read != NULL && ksz8851snl_config->custom_spi_driver.write != NULL) {
++        ESP_LOGD(TAG, "Using user's custom SPI Driver");
++        emac->spi.init = ksz8851snl_config->custom_spi_driver.init;
++        emac->spi.deinit = ksz8851snl_config->custom_spi_driver.deinit;
++        emac->spi.read = ksz8851snl_config->custom_spi_driver.read;
++        emac->spi.write = ksz8851snl_config->custom_spi_driver.write;
++        /* Custom SPI driver device init */
++        ESP_GOTO_ON_FALSE((emac->spi.ctx = emac->spi.init(ksz8851snl_config->custom_spi_driver.config)) != NULL, NULL, err, TAG, "SPI initialization failed");
++    } else {
++        ESP_LOGD(TAG, "Using default SPI Driver");
++        emac->spi.init = ksz8851_spi_init;
++        emac->spi.deinit = ksz8851_spi_deinit;
++        emac->spi.read = ksz8851_spi_read;
++        emac->spi.write = ksz8851_spi_write;
++        /* SPI device init */
++        ESP_GOTO_ON_FALSE((emac->spi.ctx = emac->spi.init(ksz8851snl_config)) != NULL, NULL, err, TAG, "SPI initialization failed");
++    }
++
+     BaseType_t core_num = tskNO_AFFINITY;
+     if (mac_config->flags & ETH_MAC_FLAG_PIN_TO_CORE) {
+         core_num = esp_cpu_get_core_id();
+@@ -798,6 +874,9 @@ err:
+         if (emac->spi_lock) {
+             vSemaphoreDelete(emac->spi_lock);
+         }
++        if (emac->spi.ctx) {
++            emac->spi.deinit(emac->spi.ctx);
++        }
+         // NOTE(v.chistyakov): safe to call with NULL
+         heap_caps_free(emac->rx_buffer);
+         heap_caps_free(emac->tx_buffer);
+diff --git a/components/esp_eth/src/esp_eth_mac_w5500.c b/components/esp_eth/src/esp_eth_mac_w5500.c
+index 7a7708d0ca8bbbf77b32d9cb01ce34e57cc1f242..5b19d5cfcdfc67105809cbca33e780850b9d4fea 100644
+--- a/components/esp_eth/src/esp_eth_mac_w5500.c
++++ b/components/esp_eth/src/esp_eth_mac_w5500.c
+@@ -37,11 +37,23 @@ typedef struct {
+     uint32_t remain;
+ }__attribute__((packed)) emac_w5500_auto_buf_info_t;
+ 
++typedef struct {
++    spi_device_handle_t hdl;
++    SemaphoreHandle_t lock;
++} spi_info_t;
++
++typedef struct {
++    void *ctx;
++    void *(*init)(const void *spi_config);
++    esp_err_t (*deinit)(void *spi_ctx);
++    esp_err_t (*read)(void *spi_ctx, uint32_t cmd,uint32_t addr, void *data, uint32_t data_len);
++    esp_err_t (*write)(void *spi_ctx, uint32_t cmd, uint32_t addr, const void *data, uint32_t data_len);
++} spi_interface_t;
++
+ typedef struct {
+     esp_eth_mac_t parent;
+     esp_eth_mediator_t *eth;
+-    spi_device_handle_t spi_hdl;
+-    SemaphoreHandle_t spi_lock;
++    spi_interface_t spi;
+     TaskHandle_t rx_task_hdl;
+     uint32_t sw_reset_timeout_ms;
+     int int_gpio_num;
+@@ -50,64 +62,132 @@ typedef struct {
+     uint8_t *rx_buffer;
+ } emac_w5500_t;
+ 
+-static inline bool w5500_lock(emac_w5500_t *emac)
++static void *w5500_spi_init(const void *spi_config)
+ {
+-    return xSemaphoreTake(emac->spi_lock, pdMS_TO_TICKS(W5500_SPI_LOCK_TIMEOUT_MS)) == pdTRUE;
++    void *ret = NULL;
++    eth_w5500_config_t *w5500_config = (eth_w5500_config_t *)spi_config;
++    spi_info_t *spi = calloc(1, sizeof(spi_info_t));
++    ESP_GOTO_ON_FALSE(spi, NULL, err, TAG, "no memory for SPI context data");
++
++    /* SPI device init */
++    spi_device_interface_config_t spi_devcfg;
++    spi_devcfg = *(w5500_config->spi_devcfg);
++    if (w5500_config->spi_devcfg->command_bits == 0 && w5500_config->spi_devcfg->address_bits == 0) {
++        /* configure default SPI frame format */
++        spi_devcfg.command_bits = 16; // Actually it's the address phase in W5500 SPI frame
++        spi_devcfg.address_bits = 8;  // Actually it's the control phase in W5500 SPI frame
++    } else {
++        ESP_GOTO_ON_FALSE(w5500_config->spi_devcfg->command_bits == 16 && w5500_config->spi_devcfg->address_bits == 8,
++                            NULL, err, TAG, "incorrect SPI frame format (command_bits/address_bits)");
++    }
++    ESP_GOTO_ON_FALSE(spi_bus_add_device(w5500_config->spi_host_id, &spi_devcfg, &spi->hdl) == ESP_OK, NULL,
++                                            err, TAG, "adding device to SPI host #%d failed", w5500_config->spi_host_id + 1);
++    /* create mutex */
++    spi->lock = xSemaphoreCreateMutex();
++    ESP_GOTO_ON_FALSE(spi->lock, NULL, err, TAG, "create lock failed");
++
++    ret = spi;
++    return ret;
++err:
++    if (spi) {
++        if (spi->lock) {
++            vSemaphoreDelete(spi->lock);
++        }
++        free(spi);
++    }
++    return ret;
+ }
+ 
+-static inline bool w5500_unlock(emac_w5500_t *emac)
++static esp_err_t w5500_spi_deinit(void *spi_ctx)
+ {
+-    return xSemaphoreGive(emac->spi_lock) == pdTRUE;
++    esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
++
++    spi_bus_remove_device(spi->hdl);
++    vSemaphoreDelete(spi->lock);
++
++    free(spi);
++    return ret;
+ }
+ 
+-static esp_err_t w5500_write(emac_w5500_t *emac, uint32_t address, const void *value, uint32_t len)
++static inline bool w5500_spi_lock(spi_info_t *spi)
++{
++    return xSemaphoreTake(spi->lock, pdMS_TO_TICKS(W5500_SPI_LOCK_TIMEOUT_MS)) == pdTRUE;
++}
++
++static inline bool w5500_spi_unlock(spi_info_t *spi)
++{
++    return xSemaphoreGive(spi->lock) == pdTRUE;
++}
++
++static esp_err_t w5500_spi_write(void *spi_ctx, uint32_t cmd, uint32_t addr, const void *value, uint32_t len)
+ {
+     esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
+ 
+     spi_transaction_t trans = {
+-        .cmd = (address >> W5500_ADDR_OFFSET),
+-        .addr = ((address & 0xFFFF) | (W5500_ACCESS_MODE_WRITE << W5500_RWB_OFFSET) | W5500_SPI_OP_MODE_VDM),
++        .cmd = cmd,
++        .addr = addr,
+         .length = 8 * len,
+         .tx_buffer = value
+     };
+-    if (w5500_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans) != ESP_OK) {
++    if (w5500_spi_lock(spi)) {
++        if (spi_device_polling_transmit(spi->hdl, &trans) != ESP_OK) {
+             ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+             ret = ESP_FAIL;
+         }
+-        w5500_unlock(emac);
++        w5500_spi_unlock(spi);
+     } else {
+         ret = ESP_ERR_TIMEOUT;
+     }
+     return ret;
+ }
+ 
+-static esp_err_t w5500_read(emac_w5500_t *emac, uint32_t address, void *value, uint32_t len)
++static esp_err_t w5500_spi_read(void *spi_ctx, uint32_t cmd, uint32_t addr, void *value, uint32_t len)
+ {
+     esp_err_t ret = ESP_OK;
++    spi_info_t *spi = (spi_info_t *)spi_ctx;
+ 
+     spi_transaction_t trans = {
+         .flags = len <= 4 ? SPI_TRANS_USE_RXDATA : 0, // use direct reads for registers to prevent overwrites by 4-byte boundary writes
+-        .cmd = (address >> W5500_ADDR_OFFSET),
+-        .addr = ((address & 0xFFFF) | (W5500_ACCESS_MODE_READ << W5500_RWB_OFFSET) | W5500_SPI_OP_MODE_VDM),
++        .cmd = cmd,
++        .addr = addr,
+         .length = 8 * len,
+         .rx_buffer = value
+     };
+-    if (w5500_lock(emac)) {
+-        if (spi_device_polling_transmit(emac->spi_hdl, &trans) != ESP_OK) {
++    if (w5500_spi_lock(spi)) {
++        if (spi_device_polling_transmit(spi->hdl, &trans) != ESP_OK) {
+             ESP_LOGE(TAG, "%s(%d): spi transmit failed", __FUNCTION__, __LINE__);
+             ret = ESP_FAIL;
+         }
+-        w5500_unlock(emac);
++        w5500_spi_unlock(spi);
+     } else {
+         ret = ESP_ERR_TIMEOUT;
+     }
+-    if ((trans.flags&SPI_TRANS_USE_RXDATA) && len <= 4) {
++    if ((trans.flags & SPI_TRANS_USE_RXDATA) && len <= 4) {
+         memcpy(value, trans.rx_data, len);  // copy register values to output
+     }
+     return ret;
+ }
+ 
++static esp_err_t w5500_read(emac_w5500_t *emac, uint32_t address, void *data, uint32_t len)
++{
++    uint32_t cmd = (address >> W5500_ADDR_OFFSET); // Actually it's the address phase in W5500 SPI frame
++    uint32_t addr = ((address & 0xFFFF) | (W5500_ACCESS_MODE_READ << W5500_RWB_OFFSET)
++                    | W5500_SPI_OP_MODE_VDM); // Actually it's the command phase in W5500 SPI frame
++
++    return emac->spi.read(emac->spi.ctx, cmd, addr, data, len);
++}
++
++static esp_err_t w5500_write(emac_w5500_t *emac, uint32_t address, const void *data, uint32_t len)
++{
++    uint32_t cmd = (address >> W5500_ADDR_OFFSET); // Actually it's the address phase in W5500 SPI frame
++    uint32_t addr = ((address & 0xFFFF) | (W5500_ACCESS_MODE_WRITE << W5500_RWB_OFFSET)
++                    | W5500_SPI_OP_MODE_VDM); // Actually it's the command phase in W5500 SPI frame
++
++    return emac->spi.write(emac->spi.ctx, cmd, addr, data, len);
++}
++
+ static esp_err_t w5500_send_command(emac_w5500_t *emac, uint8_t command, uint32_t timeout_ms)
+ {
+     esp_err_t ret = ESP_OK;
+@@ -738,8 +818,7 @@ static esp_err_t emac_w5500_del(esp_eth_mac_t *mac)
+ {
+     emac_w5500_t *emac = __containerof(mac, emac_w5500_t, parent);
+     vTaskDelete(emac->rx_task_hdl);
+-    spi_bus_remove_device(emac->spi_hdl);
+-    vSemaphoreDelete(emac->spi_lock);
++    emac->spi.deinit(emac->spi.ctx);
+     heap_caps_free(emac->rx_buffer);
+     free(emac);
+     return ESP_OK;
+@@ -754,19 +833,6 @@ esp_eth_mac_t *esp_eth_mac_new_w5500(const eth_w5500_config_t *w5500_config, con
+     ESP_GOTO_ON_FALSE(emac, NULL, err, TAG, "no mem for MAC instance");
+     /* w5500 driver is interrupt driven */
+     ESP_GOTO_ON_FALSE(w5500_config->int_gpio_num >= 0, NULL, err, TAG, "invalid interrupt gpio number");
+-    /* SPI device init */
+-    spi_device_interface_config_t spi_devcfg;
+-    memcpy(&spi_devcfg, w5500_config->spi_devcfg, sizeof(spi_device_interface_config_t));
+-    if (w5500_config->spi_devcfg->command_bits == 0 && w5500_config->spi_devcfg->address_bits == 0) {
+-        /* configure default SPI frame format */
+-        spi_devcfg.command_bits = 16; // Actually it's the address phase in W5500 SPI frame
+-        spi_devcfg.address_bits = 8;  // Actually it's the control phase in W5500 SPI frame
+-    } else {
+-        ESP_GOTO_ON_FALSE(w5500_config->spi_devcfg->command_bits == 16 || w5500_config->spi_devcfg->address_bits == 8,
+-                            NULL, err, TAG, "incorrect SPI frame format (command_bits/address_bits)");
+-    }
+-    ESP_GOTO_ON_FALSE(spi_bus_add_device(w5500_config->spi_host_id, &spi_devcfg, &emac->spi_hdl) == ESP_OK,
+-                                            NULL, err, TAG, "adding device to SPI host #%d failed", w5500_config->spi_host_id + 1);
+     /* bind methods and attributes */
+     emac->sw_reset_timeout_ms = mac_config->sw_reset_timeout_ms;
+     emac->int_gpio_num = w5500_config->int_gpio_num;
+@@ -788,9 +854,26 @@ esp_eth_mac_t *esp_eth_mac_new_w5500(const eth_w5500_config_t *w5500_config, con
+     emac->parent.enable_flow_ctrl = emac_w5500_enable_flow_ctrl;
+     emac->parent.transmit = emac_w5500_transmit;
+     emac->parent.receive = emac_w5500_receive;
+-    /* create mutex */
+-    emac->spi_lock = xSemaphoreCreateMutex();
+-    ESP_GOTO_ON_FALSE(emac->spi_lock, NULL, err, TAG, "create lock failed");
++
++    if (w5500_config->custom_spi_driver.init != NULL && w5500_config->custom_spi_driver.deinit != NULL
++        && w5500_config->custom_spi_driver.read != NULL && w5500_config->custom_spi_driver.write != NULL) {
++        ESP_LOGD(TAG, "Using user's custom SPI Driver");
++        emac->spi.init = w5500_config->custom_spi_driver.init;
++        emac->spi.deinit = w5500_config->custom_spi_driver.deinit;
++        emac->spi.read = w5500_config->custom_spi_driver.read;
++        emac->spi.write = w5500_config->custom_spi_driver.write;
++        /* Custom SPI driver device init */
++        ESP_GOTO_ON_FALSE((emac->spi.ctx = emac->spi.init(w5500_config->custom_spi_driver.config)) != NULL, NULL, err, TAG, "SPI initialization failed");
++    } else {
++        ESP_LOGD(TAG, "Using default SPI Driver");
++        emac->spi.init = w5500_spi_init;
++        emac->spi.deinit = w5500_spi_deinit;
++        emac->spi.read = w5500_spi_read;
++        emac->spi.write = w5500_spi_write;
++        /* SPI device init */
++        ESP_GOTO_ON_FALSE((emac->spi.ctx = emac->spi.init(w5500_config)) != NULL, NULL, err, TAG, "SPI initialization failed");
++    }
++
+     /* create w5500 task */
+     BaseType_t core_num = tskNO_AFFINITY;
+     if (mac_config->flags & ETH_MAC_FLAG_PIN_TO_CORE) {
+@@ -810,8 +893,8 @@ err:
+         if (emac->rx_task_hdl) {
+             vTaskDelete(emac->rx_task_hdl);
+         }
+-        if (emac->spi_lock) {
+-            vSemaphoreDelete(emac->spi_lock);
++        if (emac->spi.ctx) {
++            emac->spi.deinit(emac->spi.ctx);
+         }
+         heap_caps_free(emac->rx_buffer);
+         free(emac);

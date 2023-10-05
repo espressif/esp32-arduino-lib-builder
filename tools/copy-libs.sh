@@ -30,8 +30,14 @@ fi
 if [ -e "$AR_SDK/include" ]; then
 	rm -rf "$AR_SDK/include"
 fi
+if [ -e "$AR_SDK/flags" ]; then
+	rm -rf "$AR_SDK/flags"
+fi
 if [ -e "$AR_SDK/$MEMCONF" ]; then
 	rm -rf "$AR_SDK/$MEMCONF"
+fi
+if [ -e "$AR_SDK/platformio-build.py" ]; then
+	rm -rf "$AR_SDK/platformio-build.py"
 fi
 mkdir -p "$AR_SDK"
 
@@ -95,7 +101,7 @@ for item in "${@:2:${#@}-5}"; do
 	elif [ "$prefix" = "-O" ]; then
 		PIO_CC_FLAGS+="$item "
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
-		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
+		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" ]]; then
 			C_FLAGS+="$item "
 		fi
 	fi
@@ -109,7 +115,7 @@ set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
-		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
+		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" ]]; then
 			AS_FLAGS+="$item "
 			if [[ $C_FLAGS == *"$item"* ]]; then
 				PIO_CC_FLAGS+="$item "
@@ -128,7 +134,7 @@ set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
-		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" ]]; then
+		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" ]]; then
 			CPP_FLAGS+="$item "
 			if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
 				PIO_CXX_FLAGS+="$item "
@@ -155,13 +161,15 @@ else
 	libs="${libs:19:${#libs}-1}"
 	flags=`cat build/build.ninja | grep LINK_FLAGS`
 	flags="${flags:15:${#flags}-1}"
+	paths=`cat build/build.ninja | grep LINK_PATH`
+	paths="${paths:14:${#paths}-1}"
 	if [ "$IDF_TARGET" = "esp32" ]; then
 		flags="-Wno-frame-address $flags"
 	fi
-	if [ "$IDF_TARGET" != "esp32c3" ]; then
+	if [ "$IS_XTENSA" = "y" ]; then
 		flags="-mlongcalls $flags"
 	fi
-	str="$flags $libs"
+	str="$flags $libs $paths"
 fi
 if [ "$IDF_TARGET" = "esp32" ]; then
 	LD_SCRIPTS+="-T esp32.rom.redefined.ld "
@@ -271,13 +279,11 @@ done
 # END OF DATA EXTRACTION FROM CMAKE
 #
 
-AR_PLATFORMIO_PY="$AR_TOOLS/platformio-build-$IDF_TARGET.py"
+mkdir -p "$AR_SDK"
 
 # start generation of platformio-build.py
-awk "/ASFLAGS=\[/{n++}{print>n\"pio_start.txt\"}" $AR_COMPS/arduino/tools/platformio-build-$IDF_TARGET.py
-awk "/\"ARDUINO_ARCH_ESP32\"/{n++}{print>n\"pio_end.txt\"}" 1pio_start.txt
-cat pio_start.txt > "$AR_PLATFORMIO_PY"
-rm pio_end.txt 1pio_start.txt pio_start.txt
+AR_PLATFORMIO_PY="$AR_SDK/platformio-build.py"
+cat configs/pio_start.txt > "$AR_PLATFORMIO_PY"
 
 echo "    ASFLAGS=[" >> "$AR_PLATFORMIO_PY"
 if [ "$IS_XTENSA" = "y" ]; then
@@ -348,8 +354,8 @@ echo "        '-Wl,-Map=\"%s\"' % join(\"\${BUILD_DIR}\", \"\${PROGNAME}.map\")"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
-# # include dirs
-AR_INC=""
+# include dirs
+REL_INC=""
 echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY"
 
 set -- $INCLUDES
@@ -376,13 +382,13 @@ for item; do
 
 		out_sub="${item#*$ipath}"
 		out_cpath="$AR_SDK/include/$fname$out_sub"
-		AR_INC+=" \"-I{compiler.sdk.path}/include/$fname$out_sub\""
+		REL_INC+="-iwithprefixbefore $fname$out_sub "
 		if [ "$out_sub" = "" ]; then
-			echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
+			echo "        join($PIO_SDK, \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
 		else
 			pio_sub="${out_sub:1}"
 			pio_sub=`echo $pio_sub | sed 's/\//\\", \\"/g'`
-			echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
+			echo "        join($PIO_SDK, \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
 		fi
 		for f in `find "$item" -name '*.h'`; do
 			rel_f=${f#*$item}
@@ -396,10 +402,15 @@ for item; do
 			mkdir -p "$out_cpath$rel_p"
 			cp -n $f "$out_cpath$rel_p/"
 		done
+		# Temporary measure to fix issues caused by https://github.com/espressif/esp-idf/commit/dc4731101dd567cc74bbe4d0f03afe52b7db9afb#diff-1d2ce0d3989a80830fdf230bcaafb3117f32046d16cf46616ac3d55b4df2a988R17
+		if [[ "$fname" == "bt" && "$out_sub" == "/include/$IDF_TARGET/include" && -f "$ipath/controller/$IDF_TARGET/esp_bt_cfg.h" ]]; then
+			mkdir -p "$AR_SDK/include/$fname/controller/$IDF_TARGET"
+			cp -n "$ipath/controller/$IDF_TARGET/esp_bt_cfg.h" "$AR_SDK/include/$fname/controller/$IDF_TARGET/esp_bt_cfg.h"
+		fi
 	fi
 done
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"cores\", env.BoardConfig().get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
+echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
+echo "        join(FRAMEWORK_DIR, \"cores\", board_config.get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
@@ -421,9 +432,9 @@ for item; do
 done
 
 echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"lib\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", \"ld\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"tools\", \"sdk\", \"$IDF_TARGET\", env.BoardConfig().get(\"build.arduino.memory_type\", (env.BoardConfig().get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
+echo "        join($PIO_SDK, \"lib\")," >> "$AR_PLATFORMIO_PY"
+echo "        join($PIO_SDK, \"ld\")," >> "$AR_PLATFORMIO_PY"
+echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
@@ -449,40 +460,36 @@ for item; do
 	fi
 done
 
-# remove backslashes for Arduino
-DEFINES=`echo "$DEFINES" | tr -d '\\'`
-
-
 # end generation of platformio-build.py
-cat 1pio_end.txt >> "$AR_PLATFORMIO_PY"
-rm 1pio_end.txt
+cat configs/pio_end.txt >> "$AR_PLATFORMIO_PY"
 
-# arduino platform.txt
-platform_file="$AR_COMPS/arduino/platform.txt"
-if [ -f "$AR_PLATFORM_TXT" ]; then
-	# use the file we have already compiled for other chips
-	platform_file="$AR_PLATFORM_TXT"
+# replace double backslashes with single one
+DEFINES=`echo "$DEFINES" | tr -s '\'`
+
+# target flags files
+FLAGS_DIR="$AR_SDK/flags"
+mkdir -p "$FLAGS_DIR"
+echo -n "$DEFINES" > "$FLAGS_DIR/defines"
+echo -n "$REL_INC" > "$FLAGS_DIR/includes"
+echo -n "$C_FLAGS" > "$FLAGS_DIR/c_flags"
+echo -n "$CPP_FLAGS" > "$FLAGS_DIR/cpp_flags"
+echo -n "$AS_FLAGS" > "$FLAGS_DIR/S_flags"
+echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
+echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
+echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
+
+# sr model.bin
+if [ -f "build/srmodels/srmodels.bin" ]; then
+	mkdir -p "$AR_SDK/esp_sr"
+	cp -f "build/srmodels/srmodels.bin" "$AR_SDK/esp_sr/"
+	cp -f "partitions.csv" "$AR_SDK/esp_sr/"
 fi
-awk "/compiler.cpreprocessor.flags.$IDF_TARGET=/{n++}{print>n\"platform_start.txt\"}" "$platform_file"
-$SED -i "/compiler.cpreprocessor.flags.$IDF_TARGET\=/d" 1platform_start.txt
-awk "/compiler.ar.flags.$IDF_TARGET=/{n++}{print>n\"platform_mid.txt\"}" 1platform_start.txt
-rm -rf 1platform_start.txt
-
-cat platform_start.txt > "$AR_PLATFORM_TXT"
-echo "compiler.cpreprocessor.flags.$IDF_TARGET=$DEFINES $AR_INC" >> "$AR_PLATFORM_TXT"
-echo "compiler.c.elf.libs.$IDF_TARGET=$AR_LIBS" >> "$AR_PLATFORM_TXT"
-echo "compiler.c.flags.$IDF_TARGET=$C_FLAGS -MMD -c" >> "$AR_PLATFORM_TXT"
-echo "compiler.cpp.flags.$IDF_TARGET=$CPP_FLAGS -MMD -c" >> "$AR_PLATFORM_TXT"
-echo "compiler.S.flags.$IDF_TARGET=$AS_FLAGS -x assembler-with-cpp -MMD -c" >> "$AR_PLATFORM_TXT"
-echo "compiler.c.elf.flags.$IDF_TARGET=$LD_SCRIPTS $LD_FLAGS" >> "$AR_PLATFORM_TXT"
-cat 1platform_mid.txt >> "$AR_PLATFORM_TXT"
-rm -rf platform_start.txt platform_mid.txt 1platform_mid.txt
 
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
 
 # gen_esp32part.py
-cp "$IDF_COMPS/partition_table/gen_esp32part.py" "$AR_GEN_PART_PY"
+# cp "$IDF_PATH/components/partition_table/gen_esp32part.py" "$AR_GEN_PART_PY"
 
 # copy precompiled libs (if we need them)
 function copy_precompiled_lib(){

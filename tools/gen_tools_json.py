@@ -25,9 +25,16 @@ if __name__ == '__main__':
         prog = 'gen_tools_json',
         description = 'Update Arduino package index with the tolls found in ESP-IDF')
     parser.add_argument('-i', '--esp-idf', dest='idf_path', required=True, help='Path to ESP-IDF')
-    parser.add_argument('-j', '--pkg-json', dest='arduino_json', required=True, help='path to Arduino package json')
+    parser.add_argument('-j', '--pkg-json', dest='arduino_json', required=False, help='path to Arduino package json')
     parser.add_argument('-o', '--out-path', dest='out_path', required=True, help='Output path to store the update package json')
     args = parser.parse_args()
+
+    simple_output = False
+    if args.arduino_json == None:
+        print('Source was not selected')
+        simple_output = True
+    else:
+        print('Source {0}.'.format(args.arduino_json))
 
     idf_path = args.idf_path;
     arduino_json = args.arduino_json;
@@ -37,7 +44,9 @@ if __name__ == '__main__':
     arduino_tools = ["xtensa-esp32-elf","xtensa-esp32s2-elf","xtensa-esp32s3-elf","xtensa-esp-elf-gdb","riscv32-esp-elf","riscv32-esp-elf-gdb","openocd-esp32"]
 
     # code start
-    farray = json.load(open(arduino_json))
+    farray = {"packages":[{"platforms":[{"toolsDependencies":[]}],"tools":[]}]}
+    if simple_output == False:
+        farray = json.load(open(arduino_json))
 
     idf_tools = json.load(open(idf_path + '/tools/tools.json'))
     for tool in idf_tools['tools']:
@@ -51,21 +60,30 @@ if __name__ == '__main__':
             tool_name += '-gcc'
         print('Found {0}, version: {1}'.format(tool_name, tool_version))
         
-        dep_found = False
-        dep_skip = False
-        for dep in farray['packages'][0]['platforms'][0]['toolsDependencies']:
-            if dep['name'] == tool_name:
-                if dep['version'] == tool_version:
-                    print('Skipping {0}. Same version {1}'.format(tool_name, tool_version))
-                    dep_skip = True
-                    break
-                print('Updating dependency version of {0} from {1} to {2}'.format(tool_name, dep['version'], tool_version))
-                dep['version'] = tool_version
-                dep_found = True
-        if dep_skip == True:
-            continue
-        if dep_found == False:
-            print('Adding new dependency: {0} version {1}'.format(tool_name, tool_version))
+        if simple_output == False:
+            dep_found = False
+            dep_skip = False
+            for dep in farray['packages'][0]['platforms'][0]['toolsDependencies']:
+                if dep['name'] == tool_name:
+                    if dep['version'] == tool_version:
+                        print('Skipping {0}. Same version {1}'.format(tool_name, tool_version))
+                        dep_skip = True
+                        break
+                    print('Updating dependency version of {0} from {1} to {2}'.format(tool_name, dep['version'], tool_version))
+                    dep['version'] = tool_version
+                    dep_found = True
+            if dep_skip == True:
+                continue
+            if dep_found == False:
+                print('Adding new dependency: {0} version {1}'.format(tool_name, tool_version))
+                deps = {
+                    "packager": "esp32",
+                    "name": tool_name,
+                    "version": tool_version
+                }
+                farray['packages'][0]['platforms'][0]['toolsDependencies'].append(deps)
+        else:
+            print('Adding dependency: {0} version {1}'.format(tool_name, tool_version))
             deps = {
                 "packager": "esp32",
                 "name": tool_name,
@@ -84,7 +102,7 @@ if __name__ == '__main__':
                 "url": tool_data['url'],
                 "archiveFileName": os.path.basename(tool_data['url']),
                 "checksum": "SHA-256:"+tool_data['sha256'],
-                "size": tool_data['size']
+                "size": str(tool_data['size'])
             }
 
             if arch == "win32":
@@ -111,15 +129,24 @@ if __name__ == '__main__':
 
             systems.append(system)
 
-        tool_found = False
-        for t in farray['packages'][0]['tools']:
-            if t['name'] == tool_name:
-                t['version'] = tool_version
-                t['systems'] = systems
-                tool_found = True
-                print('Updating binaries of {0} to version {1}'.format(tool_name, tool_version))
-        if tool_found == False:
-            print('Adding new tool: {0} version {1}'.format(tool_name, tool_version))
+        if simple_output == False:
+            tool_found = False
+            for t in farray['packages'][0]['tools']:
+                if t['name'] == tool_name:
+                    t['version'] = tool_version
+                    t['systems'] = systems
+                    tool_found = True
+                    print('Updating binaries of {0} to version {1}'.format(tool_name, tool_version))
+            if tool_found == False:
+                print('Adding new tool: {0} version {1}'.format(tool_name, tool_version))
+                tools = {
+                    "name": tool_name,
+                    "version": tool_version,
+                    "systems": systems
+                }
+                farray['packages'][0]['tools'].append(tools)
+        else:
+            print('Adding tool: {0} version {1}'.format(tool_name, tool_version))
             tools = {
                 "name": tool_name,
                 "version": tool_version,
@@ -128,7 +155,10 @@ if __name__ == '__main__':
             farray['packages'][0]['tools'].append(tools)
 
     json_str = json.dumps(farray, indent=2)
-    out_file = out_path + os.path.basename(arduino_json)
+    out_file = out_path + "tools.json"
+    if simple_output == False:
+        out_file = out_path + os.path.basename(arduino_json)
+
     with open(out_file, "w") as f:
         f.write(json_str+"\n")
         f.close()
