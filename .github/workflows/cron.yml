@@ -27,6 +27,8 @@ jobs:
         idf_branch: [release/v5.1, release/v4.4] #, release/v3.3]
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
     - name: Build
@@ -36,7 +38,7 @@ jobs:
         GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
         IDF_BRANCH: ${{ matrix.idf_branch }}
       run: |
-        git checkout ${{ matrix.idf_branch }}
+        git checkout ${{ matrix.idf_branch }} || echo "Using master branch"
         bash ./tools/cron.sh
     - name: Upload archive
       uses: actions/upload-artifact@v3
