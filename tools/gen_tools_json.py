@@ -15,9 +15,75 @@ import platform
 import sys
 import stat
 import argparse
+import re
+import requests
 
 if sys.version_info[0] == 3:
     unicode = lambda s: str(s)
+
+release_manifests = []
+
+def replace_if_xz(system):
+    if not system['url'].endswith(".tar.xz"):
+        return system
+
+    new_url = system['url'].replace(".tar.xz", ".tar.gz")
+    new_name = system['archiveFileName'].replace(".tar.xz", ".tar.gz")
+    new_checksum = ""
+    new_size = 0
+
+    # let's get the checksum file from the release
+    release_manifest_url = ""
+    # parse the download url to extract all info needed for the checksum file url
+    urlx = re.findall("^https://github.com/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/releases/download/([a-zA-Z0-9_\-.]+)/([a-zA-Z0-9_\-.]+)$", new_url)
+    if urlx and len(urlx) > 0:
+        (owner, proj, version, filename) = urlx[0]
+        release_manifest_url = "https://github.com/%s/%s/releases/download/%s/%s-%s-checksum.sha256" % (owner, proj, version, proj, version)
+    else:
+        print("No manifest match")
+        return system
+
+    # check if we have already downloaded and parsed that manifest
+    manifest_index = 0
+    manifest_found = False
+    for manifest in release_manifests:
+        if manifest['url'] == release_manifest_url:
+            manifest_found = True
+            break
+        manifest_index = manifest_index + 1
+
+    # download and parse manifest
+    if not manifest_found:
+        manifest = {
+            "url": release_manifest_url,
+            "files": []
+        }
+        release_manifest_contents = requests.get(release_manifest_url).text
+        x = re.findall("\s([a-zA-Z0-9_\-.]+):\s([0-9]+)\s[a-z]+\\n([a-f0-9]+)\s\*.*", release_manifest_contents)
+        if x and len(x) > 0:
+            for line in x:
+                (filename, size, checksum) = line
+                file = {
+                    "name":filename,
+                    "checksum":checksum,
+                    "size":size
+                }
+                manifest["files"].append(file)
+        else:
+            print("No line match")
+            return system
+
+        release_manifests.append(manifest)
+
+    # find the new file in the list and get it's size and checksum
+    for file in release_manifests[manifest_index]['files']:
+        if file['name'] == new_name:
+            system['url'] = new_url
+            system['archiveFileName'] = new_name
+            system["checksum"] = "SHA-256:"+file['checksum']
+            system["size"] = file['size']
+            break
+    return system
 
 if __name__ == '__main__':
 
@@ -126,6 +192,8 @@ if __name__ == '__main__':
                 continue
             else :
                 continue
+
+            system = replace_if_xz(system)
 
             systems.append(system)
 
