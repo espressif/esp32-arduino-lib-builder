@@ -37,7 +37,7 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 
 	# Temporarily patch the ETH driver to support custom SPI
 	cd $IDF_PATH
-	patch -p1 -i ../patches/spi_eth.diff
+	patch -p1 -N -i ../patches/spi_eth.diff
 	cd -
 fi
 
