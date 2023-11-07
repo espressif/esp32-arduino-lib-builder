@@ -485,6 +485,15 @@ if [ -f "build/srmodels/srmodels.bin" ]; then
 	cp -f "partitions.csv" "$AR_SDK/esp_sr/"
 fi
 
+# copy zigbee + zboss lib
+if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
+	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
+fi
+
+if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
+	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
+fi
+
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
 
