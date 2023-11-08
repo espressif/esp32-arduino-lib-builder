@@ -2,7 +2,9 @@ dependencies:
   # Required IDF version
   idf: ">=5.1"
   espressif/esp32-camera:
+    version: "*"
     git: https://github.com/espressif/esp32-camera.git
+    require: public
   espressif/esp-tflite-micro:
     version: ">=1.2.0"
     require: public
