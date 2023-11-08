@@ -33,3 +33,9 @@ add_custom_command(
 	VERBATIM
 )
 add_custom_target(mem-variant DEPENDS "mem_variant")
+
+if(IDF_TARGET MATCHES "esp32s3")
+	set(SR_MODELS_PATH ${CMAKE_SOURCE_DIR}/managed_components/espressif__esp-sr)
+	set(EXTRA_COMPONENT_DIRS ${SR_MODELS_PATH})
+endif()
+
