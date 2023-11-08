@@ -14,6 +14,10 @@ dependencies:
     require: public
     rules:
       - if: "target in [esp32s3]"
+    espressif/esp-sr:
+    version: "^1.4.2"
+    rules:
+      - if: "target in [esp32, esp32s3]"
 
   # esp-sr: "^1.3.1"
   # esp32-camera: "^2.0.4"
