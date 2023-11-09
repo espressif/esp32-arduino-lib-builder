@@ -478,13 +478,6 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
-# sr model.bin
-if [ -f "build/srmodels/srmodels.bin" ]; then
-	mkdir -p "$AR_SDK/esp_sr"
-	cp -f "build/srmodels/srmodels.bin" "$AR_SDK/esp_sr/"
-	cp -f "partitions.csv" "$AR_SDK/esp_sr/"
-fi
-
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
 
