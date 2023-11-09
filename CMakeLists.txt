@@ -2,11 +2,6 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.5)
 
-set(RMAKER_PATH ${CMAKE_SOURCE_DIR}/components/esp-rainmaker)
-set(INSIGHTS_PATH ${RMAKER_PATH}/components/esp-insights)
-
-set(EXTRA_COMPONENT_DIRS ${INSIGHTS_PATH}/components ${RMAKER_PATH}/components)
-
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(arduino-lib-builder)
 
@@ -15,7 +10,7 @@ idf_build_get_property(elf EXECUTABLE GENERATOR_EXPRESSION)
 add_custom_command(
 	OUTPUT "idf_libs" 
 	COMMAND ${CMAKE_SOURCE_DIR}/tools/copy-libs.sh ${IDF_TARGET} "${CONFIG_LIB_BUILDER_FLASHMODE}" "${CONFIG_SPIRAM_MODE_OCT}" "${CONFIG_IDF_TARGET_ARCH_XTENSA}"
-	DEPENDS all 
+	DEPENDS ${elf}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} 
 	VERBATIM
 )
