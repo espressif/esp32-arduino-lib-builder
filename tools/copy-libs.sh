@@ -478,6 +478,15 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
+# copy zigbee + zboss lib
+if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
+	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
+fi
+
+if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
+	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
+fi
+
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
 
