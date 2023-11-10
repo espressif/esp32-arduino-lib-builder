@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     
     strategy:
+      fail-fast: false
       matrix:
         idf_branch: [release/v5.1, release/v4.4] #, release/v3.3]
     steps:
