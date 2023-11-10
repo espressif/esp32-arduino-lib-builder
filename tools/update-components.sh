@@ -25,25 +25,25 @@ TFLITE_REPO_URL="https://github.com/espressif/tflite-micro-esp-examples.git"
 #
 # CLONE/UPDATE ESP-DL
 #
-echo "Updating ESP-DL..."
-if [ ! -d "$AR_COMPS/esp-dl" ]; then
-        git clone $DL_REPO_URL "$AR_COMPS/esp-dl"
+#echo "Updating ESP-DL..."
+#if [ ! -d "$AR_COMPS/esp-dl" ]; then
+#        git clone $DL_REPO_URL "$AR_COMPS/esp-dl"
         #this is a temp measure to fix build issue
-        mv "$AR_COMPS/esp-dl/CMakeLists.txt" "$AR_COMPS/esp-dl/CMakeListsOld.txt"
-        echo "idf_build_get_property(target IDF_TARGET)" > "$AR_COMPS/esp-dl/CMakeLists.txt"
-        echo "if(NOT \${IDF_TARGET} STREQUAL \"esp32c6\" AND NOT \${IDF_TARGET} STREQUAL \"esp32h2\")" >> "$AR_COMPS/esp-dl/CMakeLists.txt"
-        cat "$AR_COMPS/esp-dl/CMakeListsOld.txt" >> "$AR_COMPS/esp-dl/CMakeLists.txt"
-        echo "endif()" >> "$AR_COMPS/esp-dl/CMakeLists.txt"
-        rm -rf "$AR_COMPS/esp-dl/CMakeListsOld.txt"
-else
-        git -C "$AR_COMPS/esp-dl" fetch && \
-        git -C "$AR_COMPS/esp-dl" pull --ff-only
-fi
-if [ $? -ne 0 ]; then exit 1; fi
+#        mv "$AR_COMPS/esp-dl/CMakeLists.txt" "$AR_COMPS/esp-dl/CMakeListsOld.txt"
+#        echo "idf_build_get_property(target IDF_TARGET)" > "$AR_COMPS/esp-dl/CMakeLists.txt"
+#        echo "if(NOT \${IDF_TARGET} STREQUAL \"esp32c6\" AND NOT \${IDF_TARGET} STREQUAL \"esp32h2\")" >> "$AR_COMPS/esp-dl/CMakeLists.txt"
+#        cat "$AR_COMPS/esp-dl/CMakeListsOld.txt" >> "$AR_COMPS/esp-dl/CMakeLists.txt"
+#        echo "endif()" >> "$AR_COMPS/esp-dl/CMakeLists.txt"
+#        rm -rf "$AR_COMPS/esp-dl/CMakeListsOld.txt"
+#else
+#        git -C "$AR_COMPS/esp-dl" fetch && \
+#        git -C "$AR_COMPS/esp-dl" pull --ff-only
+#fi
+#if [ $? -ne 0 ]; then exit 1; fi
 #this is a temp measure to fix build issue
-if [ -f "$AR_COMPS/esp-dl/idf_component.yml" ]; then
-        rm -rf "$AR_COMPS/esp-dl/idf_component.yml"
-fi
+#if [ -f "$AR_COMPS/esp-dl/idf_component.yml" ]; then
+#        rm -rf "$AR_COMPS/esp-dl/idf_component.yml"
+#fi
 
 #
 # CLONE/UPDATE ESP-SR
