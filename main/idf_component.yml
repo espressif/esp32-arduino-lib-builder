@@ -1,6 +1,7 @@
 dependencies:
   # Required IDF version
   idf: ">=5.1"
+    require: public
   espressif/esp32-camera:
     version: "*"
     git: https://github.com/espressif/esp32-camera.git
@@ -9,8 +10,8 @@ dependencies:
     version: ">=1.2.0"
     require: public
   espressif/esp-dl:
-    version: ">=2.0.0"
-    path: ../components/esp-dl
+    version: "*"
+    git: https://github.com/espressif/esp-dl.git
     require: public
     rules:
       - if: "target in [esp32s3]"
