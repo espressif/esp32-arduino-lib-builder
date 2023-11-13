@@ -4,7 +4,7 @@
 			"file":"libspi_flash.a",
 			"src":"build/esp-idf/spi_flash/libspi_flash.a",
 			"out":"lib/libspi_flash.a",
-			"targets":["esp32","esp32c3","esp32s2","esp32s3","esp32c6","esp32h2"]
+			"targets":["esp32","esp32c2","esp32c3","esp32s2","esp32s3","esp32c6","esp32h2"]
 		},
 		{
 			"file":"libesp_psram.a",
@@ -70,6 +70,20 @@
 			],
 			"mem_variants":[
 				["dio","80m"]
+			]
+		},
+		{
+			"target": "esp32c2",
+			"features":[],
+			"idf_libs":["qio","60m"],
+			"bootloaders":[
+				["qio","60m"],
+				["dio","60m"],
+				["qio","30m"],
+				["dio","30m"]
+			],
+			"mem_variants":[
+				["dio","60m"]
 			]
 		},
 		{
