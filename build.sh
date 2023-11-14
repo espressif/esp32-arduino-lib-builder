@@ -158,8 +158,16 @@ echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/
 #targets_count=`jq -c '.targets[] | length' configs/builds.json`
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
     target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
+    target_skip=$(echo "$target_json" | jq -c '.skip // 0')
 
     if [ "$TARGET" != "all" ] && [ "$TARGET" != "$target" ]; then
+        echo "* Skipping Target: $target"
+        continue
+    fi
+
+    # Skip chips that should not be a part of the final libs
+    # WARNING!!! this logic needs to be updated when cron builds are split into jobs
+    if [ "$TARGET" = "all" ] && [ $target_skip -eq 1 ]; then
         echo "* Skipping Target: $target"
         continue
     fi

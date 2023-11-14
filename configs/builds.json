@@ -45,6 +45,21 @@
 	],
 	"targets":[
 		{
+			"target": "esp32c2",
+			"skip": 1,
+			"features":[],
+			"idf_libs":["qio","60m"],
+			"bootloaders":[
+				["qio","60m"],
+				["dio","60m"],
+				["qio","30m"],
+				["dio","30m"]
+			],
+			"mem_variants":[
+				["dio","60m"]
+			]
+		},
+		{
 			"target": "esp32h2",
 			"features":[],
 			"idf_libs":["qio","64m"],
@@ -70,20 +85,6 @@
 			],
 			"mem_variants":[
 				["dio","80m"]
-			]
-		},
-		{
-			"target": "esp32c2",
-			"features":[],
-			"idf_libs":["qio","60m"],
-			"bootloaders":[
-				["qio","60m"],
-				["dio","60m"],
-				["qio","30m"],
-				["dio","30m"]
-			],
-			"mem_variants":[
-				["dio","60m"]
 			]
 		},
 		{
