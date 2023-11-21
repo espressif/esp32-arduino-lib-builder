@@ -5,9 +5,13 @@ dependencies:
     version: "master"
     git: https://github.com/espressif/esp32-camera.git
     require: public
+    rules:
+      - if: "target in [esp32, esp32s2, esp32s3]"
   espressif/esp-tflite-micro:
     version: ">=1.2.0"
     require: public
+    rules:
+      - if: "target not in [esp32c2]"
   espressif/esp-dl:
     version: "master"
     git: https://github.com/espressif/esp-dl.git
