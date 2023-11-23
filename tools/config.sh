@@ -42,6 +42,7 @@ fi
 
 AR_ROOT="$PWD"
 AR_COMPS="$AR_ROOT/components"
+AR_MANAGED_COMPS="$AR_ROOT/managed_components"
 AR_OUT="$AR_ROOT/out"
 AR_TOOLS="$AR_OUT/tools"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"

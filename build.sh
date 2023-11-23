@@ -12,6 +12,7 @@ fi
 
 TARGET="all"
 BUILD_TYPE="all"
+BUILD_DEBUG="default"
 SKIP_ENV=0
 COPY_OUT=0
 ARCHIVE_OUT=0
@@ -20,13 +21,14 @@ if [ -z $DEPLOY_OUT ]; then
 fi
 
 function print_help() {
-    echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf_libs|copy_bootloader|mem_variant>] [config ...]"
+    echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf_libs|copy_bootloader|mem_variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
     echo "       -I     Set which branch of ESP-IDF to be used for compilation"
     echo "       -i     Set which commit of ESP-IDF to be used for compilation"
     echo "       -e     Archive the build to dist"
     echo "       -d     Deploy the build to github arduino-esp32"
+    echo "       -D     Debug level to be set to ESP-IDF. One of default,none,error,warning,info,debug or verbose"
     echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
     echo "       -t     Set the build target(chip). ex. 'esp32s3'"
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
@@ -34,7 +36,7 @@ function print_help() {
     exit 1
 }
 
-while getopts ":A:I:i:c:t:b:sde" opt; do
+while getopts ":A:I:i:c:t:b:D:sde" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
@@ -57,6 +59,9 @@ while getopts ":A:I:i:c:t:b:sde" opt; do
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
+            ;;
+        D )
+            BUILD_DEBUG="$OPTARG"
             ;;
         t )
             TARGET=$OPTARG
@@ -107,8 +112,8 @@ else
     source ./tools/config.sh
 fi
 
-if [ -f "./managed_components/espressif__esp-sr/.component_hash" ]; then
-    rm -rf ./managed_components/espressif__esp-sr/.component_hash
+if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
+    rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
 fi
 
 if [ "$BUILD_TYPE" != "all" ]; then
@@ -116,7 +121,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
         print_help
     fi
-    configs="configs/defconfig.common;configs/defconfig.$TARGET"
+    configs="configs/defconfig.common;configs/defconfig.$TARGET;configs/defconfig.debug_$BUILD_DEBUG"
     
     # Target Features Configs
     for target_json in `jq -c '.targets[]' configs/builds.json`; do
@@ -141,19 +146,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
 fi
 
 rm -rf build sdkconfig out
-
-# Add components version info
-mkdir -p "$AR_TOOLS/esp32-arduino-libs" && rm -rf version.txt && rm -rf "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-component_version="esp-idf: "$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)" "$(git -C "$IDF_PATH" rev-parse --short HEAD)
-echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-for component in `ls "$AR_COMPS"`; do
-    if [ -d "$AR_COMPS/$component/.git" ] || [ -d "$AR_COMPS/$component/.github" ]; then
-        component_version="$component: "$(git -C "$AR_COMPS/$component" symbolic-ref --short HEAD || git -C "$AR_COMPS/$component" tag --points-at HEAD)" "$(git -C "$AR_COMPS/$component" rev-parse --short HEAD)
-        echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-    fi
-done
-component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
-echo $component_version >> version.txt && echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+mkdir -p "$AR_TOOLS/esp32-arduino-libs"
 
 #targets_count=`jq -c '.targets[] | length' configs/builds.json`
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
@@ -175,7 +168,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     echo "* Target: $target"
 
     # Build Main Configs List
-    main_configs="configs/defconfig.common;configs/defconfig.$target"
+    main_configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
     for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
         main_configs="$main_configs;configs/defconfig.$defconf"
     done
@@ -186,8 +179,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         idf_libs_configs="$idf_libs_configs;configs/defconfig.$defconf"
     done
 
-    if [ -f "./managed_components/espressif__esp-sr/.component_hash" ]; then
-        rm -rf ./managed_components/espressif__esp-sr/.component_hash
+    if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
+        rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
     fi
 
     echo "* Build IDF-Libs: $idf_libs_configs"
@@ -215,8 +208,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             bootloader_configs="$bootloader_configs;configs/defconfig.$defconf";
         done
 
-        if [ -f "./managed_components/espressif__esp-sr/.component_hash" ]; then
-            rm -rf ./managed_components/espressif__esp-sr/.component_hash
+        if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
+            rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
 
         echo "* Build BootLoader: $bootloader_configs"
@@ -232,8 +225,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             mem_configs="$mem_configs;configs/defconfig.$defconf";
         done
 
-        if [ -f "./managed_components/espressif__esp-sr/.component_hash" ]; then
-            rm -rf ./managed_components/espressif__esp-sr/.component_hash
+        if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
+            rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
 
         echo "* Build Memory Variant: $mem_configs"
@@ -241,6 +234,37 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem_variant
         if [ $? -ne 0 ]; then exit 1; fi
     done
+done
+
+#
+# Add components version info
+#
+rm -rf "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+# The lib-builder version
+component_version="lib-builder: "$(git -C "$AR_ROOT" symbolic-ref --short HEAD || git -C "$AR_ROOT" tag --points-at HEAD)" "$(git -C "$AR_ROOT" rev-parse --short HEAD)
+echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+# ESP-IDF version
+component_version="esp-idf: "$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)" "$(git -C "$IDF_PATH" rev-parse --short HEAD)
+echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+# components version
+for component in `ls "$AR_COMPS"`; do
+    if [ -d "$AR_COMPS/$component/.git" ]; then
+        component_version="$component: "$(git -C "$AR_COMPS/$component" symbolic-ref --short HEAD || git -C "$AR_COMPS/$component" tag --points-at HEAD)" "$(git -C "$AR_COMPS/$component" rev-parse --short HEAD)
+        echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+    fi
+done
+# TinyUSB version
+component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
+echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+# managed components version
+for component in `ls "$AR_MANAGED_COMPS"`; do
+    if [ -d "$AR_MANAGED_COMPS/$component/.git" ]; then
+        component_version="$component: "$(git -C "$AR_MANAGED_COMPS/$component" symbolic-ref --short HEAD || git -C "$AR_MANAGED_COMPS/$component" tag --points-at HEAD)" "$(git -C "$AR_MANAGED_COMPS/$component" rev-parse --short HEAD)
+        echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+    elif [ -f "$AR_MANAGED_COMPS/$component/idf_component.yml" ]; then
+        component_version="$component: "$(cat "$AR_MANAGED_COMPS/$component/idf_component.yml" | grep "^version: " | cut -d ' ' -f 2)
+        echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+    fi
 done
 
 # update package_esp32_index.template.json
