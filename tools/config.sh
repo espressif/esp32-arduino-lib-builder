@@ -153,7 +153,7 @@ function git_create_pr(){ # git_create_pr <branch> <title>
     local pr_title="$2"
     local pr_target="$3"
     local pr_body=""
-    pr_body+=$(cat "$AR_TOOLS/esp32-arduino-libs/versions.txt")"\r\n"
+    pr_body+="\`\`\`\r\n"$(cat "$AR_TOOLS/esp32-arduino-libs/versions.txt")"\r\n\`\`\`\r\n"
     local pr_data="{\"title\": \"$pr_title\", \"body\": \"$pr_body\", \"head\": \"$AR_USER:$pr_branch\", \"base\": \"$pr_target\"}"
     git_create_pr_res=`echo "$pr_data" | curl -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" --data @- "https://api.github.com/repos/$AR_REPO/pulls"`
     local done_pr=`echo "$git_create_pr_res" | jq -r '.title'`
