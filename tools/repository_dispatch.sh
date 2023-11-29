@@ -14,7 +14,7 @@ commit=`echo "$payload" | jq -r '.commit'`
 builder=`echo "$payload" | jq -r '.builder'`
 arduino=`echo "$payload" | jq -r '.arduino'`
 
-echo "Action: $action, Branch: $branch, Tag: $tag, Commit: $commit, Builder: $builder, Arduino: $arduino, Actor: $GITHUB_ACTOR"
+echo "Action: $action, IDF Branch: $branch, IDF Tag: $tag, IDF Commit: $commit, Builder Branch: $builder, Arduino Branch: $arduino, Actor: $GITHUB_ACTOR"
 
 if [ ! "$action" == "deploy" ] && [ ! "$action" == "build" ]; then
     echo "Bad Action $action"
