@@ -12,3 +12,6 @@ git clone https://github.com/espressif/esp32-arduino-lib-builder
 cd esp32-arduino-lib-builder
 ./build.sh
 ```
+### Documentation
+
+For more information about how to use the Library builder, please refer to this [Documentation page](https://docs.espressif.com/projects/arduino-esp32/en/latest/lib_builder.html?highlight=lib%20builder)
