@@ -5,27 +5,30 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN : \
   && apt-get update \
   && apt-get install -y --no-install-recommends \
-    git \
-    wget \
-    curl \
-    libssl-dev \
-    libncurses-dev \
-    flex \
     bison \
+    ccache \
+    cmake \
+    curl \
+    flex \
+    git \
     gperf \
+    jq \
+    libncurses-dev \
+    libssl-dev \
+    libusb-1.0 \
+    ninja-build \
+    patch \
     python3 \
-    python3-pip \
-    python3-setuptools \
-    python3-serial \
     python3-click \
     python3-cryptography \
     python3-future \
-    python3-pyparsing \
+    python3-pip \
     python3-pyelftools \
-    cmake \
-    ninja-build \
-    ccache \
-    jq \
+    python3-pyparsing \
+    python3-serial \
+    python3-setuptools \
+    python3-venv \
+    wget \
   && pip install --upgrade pip \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/* \
