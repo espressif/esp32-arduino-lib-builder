@@ -15,15 +15,19 @@ then
 	done
 fi
 
-if [ "$(id -u)" = "0" ]; then
+if [ "$(id -u)" = "0" ] && [ -n "${HOST_UID}" ]; then
 	groupadd -g ${HOST_UID} host_user
 	useradd -m -u ${HOST_UID} -g ${HOST_UID} host_user
-	chown -R ${HOST_UID}:${HOST_UID} /arduino-esp32
+
+	if [ -d /arduino-esp32 ]; then
+		chown -R ${HOST_UID}:${HOST_UID} /arduino-esp32
+	fi
+
 	chown -R ${HOST_UID}:${HOST_UID} /opt/esp
 
 	# Add call to gosu to drop from root user to host_user
 	# when running original entrypoint
-	set -- gosu host_user "$@" -c /arduino-esp32
+	set -- gosu host_user "$@"
 fi
 
-exec "$@" -c /arduino-esp32
+exec "$@"

@@ -85,3 +85,4 @@ ENV IDF_CCACHE_ENABLE=1
 
 WORKDIR /opt/esp/lib-builder
 ENTRYPOINT [ "/opt/esp/lib-builder/entrypoint.sh" ]
+CMD [ "bash" ]
