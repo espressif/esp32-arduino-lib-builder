@@ -276,7 +276,11 @@ fi
 
 # Generate PlatformIO manifest file
 if [ "$BUILD_TYPE" = "all" ]; then
-    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s $(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD) -c $(git -C "$IDF_PATH" rev-parse --short HEAD)
+    pushd $IDF_PATH
+    ibr=$(git describe --all --exact-match 2>/dev/null)
+    ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
+    popd
+    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
