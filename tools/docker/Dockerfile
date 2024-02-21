@@ -30,6 +30,7 @@ RUN : \
     python3-pyparsing \
     python3-serial \
     python3-setuptools \
+    python3-textual \
     python3-venv \
     wget \
   && pip install --upgrade pip \
