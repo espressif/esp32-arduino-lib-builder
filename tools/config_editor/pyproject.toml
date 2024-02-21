@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "config_editor"
+version = "0.1.0"
+description = "Configuration Editor"
+authors = ["Lucas Saavedra Vaz <32426024+lucasssvaz@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.8"
+textual = "^0.52.1"
+pyinstaller = "^6.4.0"
+
+[tool.poetry.scripts]
+build = "config_editor.pyinstaller:install"
+app = "config_editor.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
