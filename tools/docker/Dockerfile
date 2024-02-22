@@ -62,6 +62,8 @@ ARG LIBBUILDER_TARGETS=all
 
 ENV LIBBUILDER_PATH=/opt/esp/lib-builder
 ENV ARDUINO_PATH=/opt/esp/lib-builder/arduino-esp32
+# Ccache is installed, enable it by default
+ENV IDF_CCACHE_ENABLE=1
 
 RUN echo LIBBUILDER_CHECKOUT_REF=$LIBBUILDER_CHECKOUT_REF LIBBUILDER_CLONE_BRANCH_OR_TAG=$LIBBUILDER_CLONE_BRANCH_OR_TAG && \
     git clone --recursive \
@@ -79,9 +81,6 @@ RUN echo LIBBUILDER_CHECKOUT_REF=$LIBBUILDER_CHECKOUT_REF LIBBUILDER_CLONE_BRANC
     fi
 
 COPY entrypoint.sh $LIBBUILDER_PATH/entrypoint.sh
-
-# Ccache is installed, enable it by default
-ENV IDF_CCACHE_ENABLE=1
 
 WORKDIR /opt/esp/lib-builder
 ENTRYPOINT [ "/opt/esp/lib-builder/entrypoint.sh" ]
