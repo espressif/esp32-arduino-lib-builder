@@ -25,8 +25,14 @@ jobs:
       run: bash ./tools/prepare-ci.sh
     - name: Build Libs for ${{ matrix.target }}
       run: bash ./build.sh -e -t ${{ matrix.target }}
+    - name: Upload build
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build
+        path: build
     - name: Upload archive
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: artifacts
         path: dist
@@ -48,12 +54,12 @@ jobs:
           cd out/tools/esp32-arduino-libs && tar zcf ../../../dist/esp32-arduino-libs.tar.gz * && cd ../../..
           cp out/package_esp32_index.template.json dist/package_esp32_index.template.json
       - name: Upload full esp32-arduino-libs archive
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: esp32-arduino-libs
           path: dist/esp32-arduino-libs.tar.gz
       - name: Upload package_esp32_index.template.json
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: package-esp32-index-json
           path: dist/package_esp32_index.template.json

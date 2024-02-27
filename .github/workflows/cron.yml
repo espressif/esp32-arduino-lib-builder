@@ -41,8 +41,14 @@ jobs:
       run: |
         git checkout ${{ matrix.idf_branch }} || echo "Using master branch"
         bash ./tools/cron.sh
+    - name: Upload build
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build
+        path: build
     - name: Upload archive
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: artifacts
         path: dist

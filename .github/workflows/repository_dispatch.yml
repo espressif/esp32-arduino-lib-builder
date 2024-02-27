@@ -18,12 +18,12 @@ jobs:
       run: bash ./tools/repository_dispatch.sh
     - name: Upload build
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build
         path: build
     - name: Upload archive
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: artifacts
         path: dist
