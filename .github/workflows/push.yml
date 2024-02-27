@@ -20,7 +20,7 @@ jobs:
         target: [esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6, esp32h2]
       fail-fast: false
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
     - name: Build Libs for ${{ matrix.target }}
@@ -29,12 +29,12 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: build
+        name: build-${{ matrix.target }}
         path: build
     - name: Upload archive
       uses: actions/upload-artifact@v4
       with:
-        name: artifacts
+        name: artifacts-${{ matrix.target }}
         path: dist
 
   combine-artifacts:
@@ -43,10 +43,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: artifacts
           path: dist
+          pattern: artifacts-*
+          merge-multiple: true
       - shell: bash
         run: |
           mkdir -p out
