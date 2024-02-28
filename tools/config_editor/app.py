@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+
+"""
+Arduino Static Libraries Configuration Editor
+"""
+
+from rich.syntax import Syntax
+from rich.traceback import Traceback
+from rich.console import RenderableType
+
+from textual.app import App, ComposeResult
+from textual.containers import Container
+from textual.widgets import Button, Footer, Header, RichLog, Label
+
+from targets import TargetsScreen
+from editor import EditorScreen
+from compile import CompileScreen
+
+target_dict = {}
+
+class ConfigEditorApp(App):
+    """Textual config editor app."""
+
+    ENABLE_COMMAND_PALETTE = False
+    CSS_PATH = "style.tcss"
+    SCREENS = {
+        "targets": TargetsScreen(),
+        "compile": CompileScreen(),
+        "editor": EditorScreen(),
+    }
+    BINDINGS = [
+        ("c", "push_screen('compile')", "Compile"),
+        ("t", "push_screen('targets', update_targets)", "Change Targets"),
+        ("o", "push_screen('editor')", "Change Options"),
+        ("l", "app.toggle_class('RichLog', '-hidden')", "Log"),
+        ("q", "quit", "Quit"),
+    ]
+
+    def log_print(self, renderable: RenderableType) -> None:
+        self.query_one(RichLog).write(renderable)
+
+    def update_targets(self, targets: dict) -> None:
+        """Update the targets dictionary."""
+        self.log_print("Updating targets")
+        self.log_print(targets)
+        if targets:
+            target_dict = targets
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Event handler called when a button is pressed."""
+        if event.button.id == "compile-button":
+            self.log_print("Compile button pressed")
+            self.push_screen('compile')
+        elif event.button.id == "targets-button":
+            self.log_print("Targets button pressed")
+            self.push_screen('targets', self.update_targets)
+        elif event.button.id == "options-button":
+            self.log_print("Options button pressed")
+            self.push_screen('editor')
+        elif event.button.id == "quit-button":
+            self.log_print("Quit button pressed")
+            quit()
+
+    def compose(self) -> ComposeResult:
+        """Compose our UI."""
+        yield Header()
+        with Container(id="main-menu-container"):
+            yield Label("ESP32 Arduino Static Libraries Configuration Editor", id="main-menu-title")
+            yield Button("Compile", id="compile-button", classes="main-menu-button")
+            yield Button("Select Targets", id="targets-button", classes="main-menu-button")
+            yield Button("Change Configuration Options", id="options-button", classes="main-menu-button")
+            yield Button("Quit", id="quit-button", classes="main-menu-button")
+            yield RichLog(classes="-hidden", wrap=False, highlight=True, markup=True)
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.title = "Configurator"
+        self.sub_title = "Main Menu"
+        self.log_print("[b green]Welcome to the ESP32 Arduino Static Libraries Configuration Editor!")
+
+def main() -> None:
+    """Run the app."""
+    ConfigEditorApp().run()
+
+if __name__ == "__main__":
+    main()

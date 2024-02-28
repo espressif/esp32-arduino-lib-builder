@@ -1,29 +1,12 @@
-#!/usr/bin/env python
-
-"""
-Arduino-esp32 Libraries Configuration Editor
-"""
-
 import sys
 
-from rich.syntax import Syntax
-from rich.traceback import Traceback
-
-from textual.app import App, ComposeResult
+from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
+from textual.screen import Screen
 from textual.reactive import var
-from textual.widgets import DirectoryTree, Footer, Header, Static
+from textual.widgets import DirectoryTree, Footer, Header, Static, RichLog
 
-
-class ConfigEditor(App):
-    """Textual config editor app."""
-
-    CSS_PATH = "style.tcss"
-    BINDINGS = [
-        ("f", "toggle_files", "Toggle Files"),
-        ("q", "quit", "Quit"),
-    ]
-
+class EditorScreen(Screen):
     show_tree = var(True)
 
     def watch_show_tree(self, show_tree: bool) -> None:
@@ -41,6 +24,7 @@ class ConfigEditor(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        self.sub_title = "Select a file"
         self.query_one(DirectoryTree).focus()
 
     def on_directory_tree_file_selected(
@@ -69,10 +53,3 @@ class ConfigEditor(App):
         """Called in response to key binding."""
         self.show_tree = not self.show_tree
 
-
-def main() -> None:
-    """Run the app."""
-    ConfigEditor().run()
-
-if __name__ == "__main__":
-    main()
