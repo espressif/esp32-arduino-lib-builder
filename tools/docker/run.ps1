@@ -5,6 +5,7 @@ if (-not $ARDUINO_DIR) {
 
 $ARDUINO_DIR = (Get-Item -Path $ARDUINO_DIR).FullName
 $DOCKER_ARGS = @()
+$DOCKER_ARGS += '-it'
 $DOCKER_ARGS += '-v', "$ARDUINO_DIR:/arduino-esp32"
 $DOCKER_ARGS += '-e', 'TERM=xterm-256color'
 $DOCKER_ARGS += '-e', "HOST_UID=$env:UID"

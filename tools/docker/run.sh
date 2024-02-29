@@ -4,6 +4,7 @@ ARDUINO_DIR=${1:-$PWD/../}
 DOCKER_ARGS=()
 
 ARDUINO_DIR=$(echo $(cd $ARDUINO_DIR; pwd))
+DOCKER_ARGS+=(-it)
 DOCKER_ARGS+=(-v $ARDUINO_DIR:/arduino-esp32)
 DOCKER_ARGS+=(-e TERM=xterm-256color)
 DOCKER_ARGS+=(-e HOST_UID=$UID)
