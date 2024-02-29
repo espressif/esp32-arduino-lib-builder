@@ -10,7 +10,6 @@ class CompileScreen(Screen):
         yield Header()
         with Container():
             yield Static("Compile", id="compile-title")
-        yield Footer()
 
     def on_mount(self) -> None:
         pass

@@ -47,7 +47,6 @@ class TargetsScreen(Screen[dict]):
             yield Button("Select All", id="select-all-button", classes="target-button")
             yield Button("Select None", id="select-none-button", classes="target-button")
             yield Button("Cancel", id="cancel-button", classes="target-button")
-        yield Footer()
 
     def on_mount(self) -> None:
         self.sub_title = "Target Selection"

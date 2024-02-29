@@ -28,13 +28,6 @@ class ConfigEditorApp(App):
         "compile": CompileScreen(),
         "editor": EditorScreen(),
     }
-    BINDINGS = [
-        ("c", "push_screen('compile')", "Compile"),
-        ("t", "push_screen('targets', update_targets)", "Change Targets"),
-        ("o", "push_screen('editor')", "Change Options"),
-        ("l", "app.toggle_class('RichLog', '-hidden')", "Log"),
-        ("q", "quit", "Quit"),
-    ]
 
     def log_print(self, renderable: RenderableType) -> None:
         self.query_one(RichLog).write(renderable)
@@ -71,7 +64,6 @@ class ConfigEditorApp(App):
             yield Button("Change Configuration Options", id="options-button", classes="main-menu-button")
             yield Button("Quit", id="quit-button", classes="main-menu-button")
             yield RichLog(classes="-hidden", wrap=False, highlight=True, markup=True)
-        yield Footer()
 
     def on_mount(self) -> None:
         self.title = "Configurator"

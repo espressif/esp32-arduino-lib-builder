@@ -21,7 +21,6 @@ class EditorScreen(Screen):
             yield DirectoryTree(path, id="tree-view")
             with VerticalScroll(id="code-view"):
                 yield Static(id="code", expand=True)
-        yield Footer()
 
     def on_mount(self) -> None:
         self.sub_title = "Select a file"
