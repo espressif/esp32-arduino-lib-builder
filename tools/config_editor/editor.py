@@ -1,8 +1,7 @@
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll, Horizontal
 from textual.screen import Screen
-from textual.reactive import var
-from textual.widgets import DirectoryTree, Footer, Header, TextArea, RichLog, Button
+from textual.widgets import DirectoryTree, Header, TextArea, Button
 
 class EditorScreen(Screen):
     current_file = ""

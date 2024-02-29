@@ -1,7 +1,7 @@
 from textual.app import ComposeResult
 from textual.containers import VerticalScroll, Container, Horizontal
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Checkbox, Button
+from textual.widgets import Header, Checkbox, Button
 
 class TargetsScreen(Screen[dict]):
     temp_target_dict = {

@@ -8,7 +8,7 @@ from rich.console import RenderableType
 
 from textual.app import App, ComposeResult
 from textual.containers import Container
-from textual.widgets import Button, Footer, Header, RichLog, Label
+from textual.widgets import Button, Header, RichLog, Label
 
 from targets import TargetsScreen
 from editor import EditorScreen
