@@ -9,9 +9,6 @@ Screen {
     width: auto;
     height: 100%;
     dock: left;
-}
-
-ConfigEditorApp.-show-tree #tree-view {
     display: block;
     max-width: 50%;
 }
@@ -22,7 +19,7 @@ ConfigEditorApp.-show-tree #tree-view {
 }
 
 #code {
-    width: auto;
+    width: 100%;
 }
 
 RichLog {
@@ -91,4 +88,22 @@ Button.main-menu-button {
     text-style: bold;
     color: green;
     width: 0.5fr;
+}
+
+.editor-button {
+    width: 20%;
+}
+
+#save-editor-button {
+    dock: left;
+    margin: 1;
+}
+
+#cancel-editor-button {
+    dock: right;
+    margin: 1 3;
+}
+
+#editor-buttons-container {
+    height: 5;
 }

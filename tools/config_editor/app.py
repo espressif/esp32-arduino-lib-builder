@@ -4,8 +4,6 @@
 Arduino Static Libraries Configuration Editor
 """
 
-from rich.syntax import Syntax
-from rich.traceback import Traceback
 from rich.console import RenderableType
 
 from textual.app import App, ComposeResult
@@ -16,10 +14,18 @@ from targets import TargetsScreen
 from editor import EditorScreen
 from compile import CompileScreen
 
-target_dict = {}
-
 class ConfigEditorApp(App):
     """Textual config editor app."""
+
+    target_dict = {
+        "esp32": True,
+        "esp32s2": True,
+        "esp32s3": True,
+        "esp32c2": True,
+        "esp32c3": True,
+        "esp32c6": True,
+        "esp32h2": True
+    }
 
     ENABLE_COMMAND_PALETTE = False
     CSS_PATH = "style.tcss"
@@ -37,7 +43,7 @@ class ConfigEditorApp(App):
         self.log_print("Updating targets")
         self.log_print(targets)
         if targets:
-            target_dict = targets
+            self.target_dict = targets
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Event handler called when a button is pressed."""
@@ -59,7 +65,7 @@ class ConfigEditorApp(App):
         yield Header()
         with Container(id="main-menu-container"):
             yield Label("ESP32 Arduino Static Libraries Configuration Editor", id="main-menu-title")
-            yield Button("Compile", id="compile-button", classes="main-menu-button")
+            yield Button("Compile Static Libraries", id="compile-button", classes="main-menu-button")
             yield Button("Select Targets", id="targets-button", classes="main-menu-button")
             yield Button("Change Configuration Options", id="options-button", classes="main-menu-button")
             yield Button("Quit", id="quit-button", classes="main-menu-button")
@@ -76,3 +82,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
