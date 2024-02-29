@@ -30,10 +30,9 @@ RUN : \
     python3-pyparsing \
     python3-serial \
     python3-setuptools \
-    python3-textual \
     python3-venv \
     wget \
-  && pip install --upgrade pip \
+  && pip3 install --upgrade pip textual-dev \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/* \
   && :

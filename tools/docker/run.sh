@@ -30,6 +30,7 @@ if [ -n "$ARDUINO_DIR" ]; then
 	TRIMMED_ARGS+=(-c /arduino-esp32)
 fi
 
+DOCKER_ARGS+=(-e TERM=xterm-256color)
 DOCKER_ARGS+=(-e HOST_UID=$UID)
 
 if [ -n "$LIBBUILDER_GIT_SAFE_DIR" ]; then
