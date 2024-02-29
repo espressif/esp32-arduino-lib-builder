@@ -83,4 +83,4 @@ COPY entrypoint.sh $LIBBUILDER_PATH/entrypoint.sh
 
 WORKDIR /opt/esp/lib-builder
 ENTRYPOINT [ "/opt/esp/lib-builder/entrypoint.sh" ]
-CMD [ "bash" ]
+CMD [ "python3", "tools/config_editor/app.py" ]
