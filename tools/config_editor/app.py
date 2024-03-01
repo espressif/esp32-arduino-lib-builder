@@ -25,15 +25,7 @@ class ConfigEditorApp(App):
     root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     os.chdir(root_path)
 
-    target_dict = {
-        "esp32": True,
-        "esp32s2": True,
-        "esp32s3": True,
-        "esp32c2": True,
-        "esp32c3": True,
-        "esp32c6": True,
-        "esp32h2": True
-    }
+    target_str = "all"
 
     ENABLE_COMMAND_PALETTE = False
     CSS_PATH = "style.tcss"
@@ -43,29 +35,26 @@ class ConfigEditorApp(App):
         "editor": EditorScreen(),
     }
 
-    def log_print(self, renderable: RenderableType) -> None:
-        self.query_one(RichLog).write(renderable)
-
-    def update_targets(self, targets: dict) -> None:
+    def update_targets(self, targets: str) -> None:
         """Update the targets dictionary."""
-        self.log_print("Updating targets")
-        self.log_print(targets)
+        print("Updating targets in app")
+        print(targets)
         if targets:
-            self.target_dict = dict(targets)
+            self.target_str = str(targets)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Event handler called when a button is pressed."""
         if event.button.id == "compile-button":
-            self.log_print("Compile button pressed")
+            print("Compile button pressed")
             self.push_screen('compile')
         elif event.button.id == "targets-button":
-            self.log_print("Targets button pressed")
+            print("Targets button pressed")
             self.push_screen('targets', self.update_targets)
         elif event.button.id == "options-button":
-            self.log_print("Options button pressed")
+            print("Options button pressed")
             self.push_screen('editor')
         elif event.button.id == "quit-button":
-            self.log_print("Quit button pressed")
+            print("Quit button pressed")
             quit()
 
     def compose(self) -> ComposeResult:
@@ -77,12 +66,11 @@ class ConfigEditorApp(App):
             yield Button("Select Targets", id="targets-button", classes="main-menu-button")
             yield Button("Change Configuration Options", id="options-button", classes="main-menu-button")
             yield Button("Quit", id="quit-button", classes="main-menu-button")
-            yield RichLog(classes="-hidden", wrap=False, highlight=True, markup=True)
 
     def on_mount(self) -> None:
         self.title = "Configurator"
         self.sub_title = "Main Menu"
-        self.log_print("[b green]Welcome to the ESP32 Arduino Static Libraries Configuration Editor!")
+        print("App mounted")
 
 def main() -> None:
     """Run the app."""

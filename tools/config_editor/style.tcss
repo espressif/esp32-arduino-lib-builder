@@ -26,11 +26,11 @@ RichLog {
     background: $surface;
     color: $text;
     height: 50vh;
-    dock: bottom;
     layer: notes;
     border-top: hkey $primary;
     offset-y: 0;
     padding: 0 1 1 1;
+    margin: 2;
 }
 
 RichLog:focus {
@@ -51,14 +51,13 @@ Button.main-menu-button {
     width: 1fr;
 }
 
-#target-selection-container {
+#target-radioset {
     align: center middle;
-    width: 1fr;
+    width: 0.4fr;
 }
 
 #target-scroll-container {
     align: center middle;
-    max-width: 0.4fr;
     min-width: 100%;
 }
 
