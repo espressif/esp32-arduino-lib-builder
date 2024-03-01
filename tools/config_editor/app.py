@@ -48,7 +48,7 @@ class ConfigEditorApp(App):
         self.log_print("Updating targets")
         self.log_print(targets)
         if targets:
-            self.target_dict = targets
+            self.target_dict = dict(targets)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Event handler called when a button is pressed."""
