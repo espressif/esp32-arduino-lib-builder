@@ -8,7 +8,7 @@ from textual.app import ComposeResult
 from textual.events import ScreenResume
 from textual.containers import Container
 from textual.screen import Screen
-from textual.widgets import Header, Static, RichLog, ProgressBar, LoadingIndicator, Button
+from textual.widgets import Header, Static, RichLog, Button
 
 class CompileScreen(Screen):
     """Compile screen."""
@@ -39,7 +39,7 @@ class CompileScreen(Screen):
             command = ["./build.sh", "-c", arduino_path]
         else:
             command = ["./build.sh", "-c", arduino_path, "-t", target]
-        command.append("--help")
+        #command.append("--help") # For testing without compiling
         label.update("Compiling for " + target.upper())
         self.print_output("======== Compiling for " + target.upper() + " ========")
         self.print_output("Running: " + " ".join(command) + "\n")
@@ -67,11 +67,11 @@ class CompileScreen(Screen):
     def compose(self) -> ComposeResult:
         """Compose our UI."""
         yield Header()
-        with Container(id="compile-container"):
+        with Container(id="compile-log-container"):
+            yield RichLog(markup=True, id="compile-log")
+        with Container(id="compile-status-container"):
             yield Static("Compiling for ...", id="compile-title")
-            yield Button("Back", id="compile-back-button", classes="compile-button")
-        with Container():
-            yield RichLog(markup=True)
+            yield Button("Back", id="compile-back-button")
 
     @on(ScreenResume)
     def on_resume(self) -> None:

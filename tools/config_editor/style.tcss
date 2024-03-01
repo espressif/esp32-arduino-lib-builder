@@ -1,6 +1,77 @@
+# General
+
 Screen {
     background: $surface-darken-1;
 }
+
+# Main Screen
+
+Button.main-menu-button {
+        min-width: 100%;
+        max-width: 0.4fr;
+}
+
+#main-menu-container {
+    align: center middle;
+    width: 1fr;
+}
+
+#main-menu-title {
+    text-align: center;
+    margin-bottom: 4;
+    text-style: bold;
+    color: green;
+    width: 0.4fr;
+}
+
+# Compile Screen
+
+#compile-status-container {
+    layout: horizontal;
+    padding: 0 2;
+    height: 4;
+}
+
+#compile-title {
+    dock: left;
+}
+
+#compile-back-button {
+    dock: right;
+}
+
+#compile-log {
+    background: $surface;
+    padding: 0 1 1 1;
+    margin: 1 2;
+}
+
+# Targets Screen
+
+#target-radioset {
+    align: center middle;
+    width: 0.4fr;
+}
+
+#target-scroll-container {
+    align: center middle;
+}
+
+#target-button-container {
+    width: 100%;
+    max-height: 20%;
+    min-height: 5;
+    align: center middle;
+}
+
+.target-button {
+    margin: 1;
+    min-width: 100%;
+    max-width: 0.2fr;
+    align: center middle;
+}
+
+# Editor Screen
 
 #tree-view {
     display: none;
@@ -20,73 +91,6 @@ Screen {
 
 #code {
     width: 100%;
-}
-
-RichLog {
-    background: $surface;
-    color: $text;
-    height: 50vh;
-    layer: notes;
-    border-top: hkey $primary;
-    offset-y: 0;
-    padding: 0 1 1 1;
-    margin: 2;
-}
-
-RichLog:focus {
-    offset: 0 0 !important;
-}
-
-RichLog.-hidden {
-    offset-y: 100%;
-}
-
-Button.main-menu-button {
-    min-width: 100%;
-    max-width: 0.5fr;
-}
-
-#main-menu-container {
-    align: center middle;
-    width: 1fr;
-}
-
-#target-radioset {
-    align: center middle;
-    width: 0.4fr;
-}
-
-#target-scroll-container {
-    align: center middle;
-    min-width: 100%;
-}
-
-#target-button-container {
-    width: 100%;
-    max-height: 20%;
-    min-height: 5;
-    align: center middle;
-}
-
-.target-button {
-    margin: 1;
-    min-width: 100%;
-    max-width: 0.2fr;
-    align: center middle;
-}
-
-.target-checkbox {
-    align: center middle;
-    width: 100%;
-    background: rgb(50, 50, 50);
-}
-
-#main-menu-title {
-    text-align: center;
-    margin-bottom: 4;
-    text-style: bold;
-    color: green;
-    width: 0.5fr;
 }
 
 .editor-button {
