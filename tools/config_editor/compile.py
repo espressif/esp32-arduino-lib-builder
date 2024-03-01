@@ -35,7 +35,11 @@ class CompileScreen(Screen):
         target = self.app.target_str
 
         print("Compiling for " + target.upper())
-        command = ["./build.sh", "-c", arduino_path, "-t", target, "--help"]
+        if target == "all":
+            command = ["./build.sh", "-c", arduino_path]
+        else:
+            command = ["./build.sh", "-c", arduino_path, "-t", target]
+        command.append("--help")
         label.update("Compiling for " + target.upper())
         self.print_output("======== Compiling for " + target.upper() + " ========")
         self.print_output("Running: " + " ".join(command) + "\n")
