@@ -4,6 +4,8 @@
 Arduino Static Libraries Configuration Editor
 """
 
+import os
+
 from rich.console import RenderableType
 
 from textual.app import App, ComposeResult
@@ -16,6 +18,9 @@ from compile import CompileScreen
 
 class ConfigEditorApp(App):
     """Textual config editor app."""
+
+    root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    os.chdir(root_path)
 
     target_dict = {
         "esp32": True,

@@ -1,3 +1,5 @@
+import os
+
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll, Horizontal
 from textual.screen import Screen
@@ -8,7 +10,7 @@ class EditorScreen(Screen):
 
     def compose(self) -> ComposeResult:
         """Compose our UI."""
-        path = "./configs/"
+        path = os.path.join(self.app.root_path, 'configs')
         yield Header()
         with Container():
             yield DirectoryTree(path, id="tree-view")
