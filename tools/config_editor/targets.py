@@ -10,6 +10,8 @@ class TargetsScreen(Screen[dict]):
 
     def update_targets(self) -> None:
         self.temp_target_dict = dict(self.app.target_dict)
+        print("Targets updated:")
+        print(self.temp_target_dict)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Event handler called when a button is pressed."""
@@ -28,7 +30,6 @@ class TargetsScreen(Screen[dict]):
             self.dismiss({})
 
     def compose(self) -> ComposeResult:
-        self.update_targets()
         yield Header()
         with Container(id="target-selection-container"):
             with VerticalScroll(id="target-scroll-container"):
@@ -53,8 +54,6 @@ class TargetsScreen(Screen[dict]):
     def on_resume(self) -> None:
         print("Targets screen resumed")
         self.update_targets()
-        print(self.temp_target_dict)
         for checkbox in self.query("Checkbox"):
             target_text = checkbox.id[:-9]
             checkbox.value = self.temp_target_dict[target_text]
-

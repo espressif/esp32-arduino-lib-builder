@@ -6,11 +6,14 @@ Arduino Static Libraries Configuration Editor
 
 import os
 
-from rich.console import RenderableType
-
-from textual.app import App, ComposeResult
-from textual.containers import Container
-from textual.widgets import Button, Header, RichLog, Label
+try:
+    from rich.console import RenderableType
+    from textual.app import App, ComposeResult
+    from textual.containers import Container
+    from textual.widgets import Button, Header, RichLog, Label
+except ImportError:
+    print("Please install the 'textual-dev' package before running this script.")
+    quit()
 
 from targets import TargetsScreen
 from editor import EditorScreen
