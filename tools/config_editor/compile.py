@@ -4,7 +4,7 @@ import os
 
 from rich.console import RenderableType
 
-from textual import on
+from textual import on, work
 from textual.app import ComposeResult
 from textual.events import ScreenResume
 from textual.containers import Container
@@ -21,7 +21,8 @@ class CompileScreen(Screen):
         # Print output to the RichLog widget
         self.query_one(RichLog).write(renderable)
 
-    def compile_libs(self) -> None:
+    @work(exclusive=True)
+    async def compile_libs(self) -> None:
         # Compile the libraries
 
         # Get the Arduino path from the command line arguments or use the default path
@@ -49,9 +50,8 @@ class CompileScreen(Screen):
             self.print_output("======== Compiling for " + target.upper() + " ========")
             self.print_output("Running: " + " ".join(command) + "\n")
             print("Running: " + " ".join(command))
-            self.child_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            while True:
-                output = self.child_process.stdout.readline()
+            self.child_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+            for output in self.child_process.stdout:
                 if output == '' and self.child_process.poll() is not None:
                     print("Child process finished")
                     break
@@ -67,6 +67,8 @@ class CompileScreen(Screen):
             label.update("Compilation failed for " + target.upper() + ". Invalid path to Arduino core.")
         elif self.child_process.returncode != 0:
             print("Compilation failed for " + target.upper() + ". Return code: " + str(self.child_process.returncode))
+            self.print_output("Compilation failed for " + target.upper() + ". Return code: " + str(self.child_process.returncode))
+            self.print_output("Error: " + self.child_process.stderr.read())
             label.update("Compilation failed for " + target.upper())
         else:
             print("Compilation successful for " + target.upper())
