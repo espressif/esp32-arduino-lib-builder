@@ -4,6 +4,13 @@ Screen {
     background: $surface-darken-1;
 }
 
+Button {
+    margin-bottom: 1;
+    background: rgb(73,158,165);
+    border: rgb(73,158,165);
+    text-style: bold;
+}
+
 # Main Screen
 
 Button.main-menu-button {
@@ -20,7 +27,7 @@ Button.main-menu-button {
     text-align: center;
     margin-bottom: 4;
     text-style: bold;
-    color: green;
+    color: lightgray;
     width: 0.4fr;
 }
 
