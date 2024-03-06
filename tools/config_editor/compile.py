@@ -34,7 +34,7 @@ class CompileScreen(Screen):
 
         label = self.query_one("#compile-title", Static)
         self.child_process = None
-        target = self.app.option_target
+        target = self.app.setting_target
 
         if os.path.exists(arduino_path):
             print("Starting compilation process. Using Arduino path: " + arduino_path)

@@ -27,7 +27,7 @@ except ImportError:
     print("Please install the \"textual-dev\" package before running this script.")
     quit()
 
-from targets import TargetsScreen
+from settings import SettingsScreen
 from editor import EditorScreen
 from compile import CompileScreen
 
@@ -40,29 +40,23 @@ class ConfigEditorApp(App):
     os.chdir(ROOT_PATH)
 
     # Set the application options
-    option_enable_copy = True
+    setting_enable_copy = True
 
     # Options to be set by the command line arguments
-    option_target = None
-    option_arduino_path = None
-    option_arduino_branch = None
-    option_idf_branch = None
-    option_idf_commit = None
-    option_debug_level = None
+    setting_target = None
+    setting_arduino_path = None
+    setting_arduino_branch = None
+    setting_idf_branch = None
+    setting_idf_commit = None
+    setting_debug_level = None
 
     ENABLE_COMMAND_PALETTE = False
     CSS_PATH = "style.tcss"
     SCREENS = {
-        "targets": TargetsScreen(),
+        "settings": SettingsScreen(),
         "compile": CompileScreen(),
         "editor": EditorScreen(),
     }
-
-    def update_targets(self, targets: str) -> None:
-        # Callback function to update the targets after returning from the targets screen
-        print("Updating targets in app, received: " + targets)
-        if targets:
-            self.option_target = str(targets)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # Event handler called when a button is pressed
@@ -71,7 +65,7 @@ class ConfigEditorApp(App):
             self.push_screen("compile")
         elif event.button.id == "targets-button":
             print("Targets button pressed")
-            self.push_screen("targets", self.update_targets)
+            self.push_screen("settings")
         elif event.button.id == "options-button":
             print("Options button pressed")
             self.push_screen("editor")
@@ -94,12 +88,12 @@ class ConfigEditorApp(App):
         self.title = "Configurator"
         self.sub_title = "Main Menu"
         print("App started. Initial Options:")
-        print("Target: " + str(self.option_target))
-        print("Arduino Path: " + str(self.option_arduino_path))
-        print("Arduino Branch: " + str(self.option_arduino_branch))
-        print("IDF Branch: " + str(self.option_idf_branch))
-        print("IDF Commit: " + str(self.option_idf_commit))
-        print("IDF Debug Level: " + str(self.option_debug_level))
+        print("Target: " + str(self.setting_target))
+        print("Arduino Path: " + str(self.setting_arduino_path))
+        print("Arduino Branch: " + str(self.setting_arduino_branch))
+        print("IDF Branch: " + str(self.setting_idf_branch))
+        print("IDF Commit: " + str(self.setting_idf_commit))
+        print("IDF Debug Level: " + str(self.setting_debug_level))
 
 def arduino_default_path():
     sys_name = platform.system()
@@ -163,12 +157,12 @@ def main() -> None:
     args = parser.parse_args()
 
     # Set the options in the app
-    app.option_target = args.target
-    app.option_arduino_path = args.arduino_path
-    app.option_arduino_branch = args.arduino_branch
-    app.option_idf_branch = args.idf_branch
-    app.option_idf_commit = args.idf_commit
-    app.option_debug_level = args.debug_level
+    app.setting_target = args.target
+    app.setting_arduino_path = args.arduino_path
+    app.setting_arduino_branch = args.arduino_branch
+    app.setting_idf_branch = args.idf_branch
+    app.setting_idf_commit = args.idf_commit
+    app.setting_debug_level = args.debug_level
 
     # Main function to run the app
     app.run()

@@ -5,15 +5,15 @@ from textual.screen import Screen
 from textual.events import ScreenResume
 from textual.widgets import Header, RadioButton, Button, RadioSet
 
-class TargetsScreen(Screen[str]):
-    # Target selection screen
+class SettingsScreen(Screen):
+    # Settings screen
 
     # Temporary target string
     temp_target_str = ""
 
     def update_targets(self) -> None:
         # Update the targets in the screen
-        self.temp_target_str = str(self.app.option_target)
+        self.temp_target_str = str(self.app.setting_target)
         print("Target updated in screen: " + self.temp_target_str)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -25,10 +25,11 @@ class TargetsScreen(Screen[str]):
                 if radiobutton.value:
                     self.temp_target_str = target_text
             print("Save button pressed. Selected target: " + self.temp_target_str)
-            self.dismiss(self.temp_target_str)
+            self.app.setting_target = str(self.temp_target_str)
+            self.dismiss()
         elif event.button.id == "cancel-target-button":
             print("Cancel button pressed")
-            self.dismiss("")
+            self.dismiss()
 
     @on(ScreenResume)
     def on_resume(self) -> None:
