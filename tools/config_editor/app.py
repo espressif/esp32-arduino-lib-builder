@@ -35,11 +35,14 @@ class ConfigEditorApp(App):
     # Main application class
 
     # Change to the root directory of the app to the root of the project
-    script_path = os.path.abspath(os.path.dirname(__file__))
-    root_path = os.path.abspath(os.path.join(script_path, "..", ".."))
-    os.chdir(root_path)
+    SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
+    ROOT_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
+    os.chdir(ROOT_PATH)
 
-    # Options
+    # Set the application options
+    option_enable_copy = True
+
+    # Options to be set by the command line arguments
     option_target = None
     option_arduino_path = None
     option_arduino_branch = None
@@ -130,18 +133,21 @@ def main() -> None:
     parser.add_argument("-A", "--arduino-branch",
                         metavar="<arduino branch>",
                         type=str,
+                        default="",
                         required=False,
                         help="Branch of the arduino-esp32 repository to be used")
 
     parser.add_argument("-I", "--idf-branch",
                         metavar="<IDF branch>",
                         type=str,
+                        default="",
                         required=False,
                         help="Branch of the ESP-IDF repository to be used")
 
     parser.add_argument("-i", "--idf-commit",
                         metavar="<IDF commit>",
                         type=str,
+                        default="",
                         required=False,
                         help="Commit of the ESP-IDF repository to be used")
 
