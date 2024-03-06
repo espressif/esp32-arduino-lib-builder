@@ -13,7 +13,7 @@ class TargetsScreen(Screen[str]):
 
     def update_targets(self) -> None:
         # Update the targets in the screen
-        self.temp_target_str = str(self.app.target_str)
+        self.temp_target_str = str(self.app.option_target)
         print("Target updated in screen: " + self.temp_target_str)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
