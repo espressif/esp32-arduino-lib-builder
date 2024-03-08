@@ -55,11 +55,6 @@ Button.main-menu-button {
 
 # Settings Screen
 
-#settings-radioset {
-    align: center middle;
-    width: 0.4fr;
-}
-
 #settings-scroll-container {
     align: center middle;
     padding: 1;
@@ -77,10 +72,6 @@ Button.main-menu-button {
     min-width: 100%;
     max-width: 0.2fr;
     align: center middle;
-}
-
-.settings-labelled-input {
-    margin: 1;
 }
 
 # Editor Screen

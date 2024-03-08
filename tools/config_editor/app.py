@@ -21,7 +21,7 @@ from pathlib import Path
 
 try:
     from textual.app import App, ComposeResult
-    from textual.containers import Container
+    from textual.containers import VerticalScroll
     from textual.widgets import Button, Header, Label
 except ImportError:
     print("Please install the \"textual-dev\" package before running this script.")
@@ -76,7 +76,7 @@ class ConfigEditorApp(App):
     def compose(self) -> ComposeResult:
         # Compose main menu
         yield Header()
-        with Container(id="main-menu-container"):
+        with VerticalScroll(id="main-menu-container"):
             yield Label("ESP32 Arduino Static Libraries Configuration Editor", id="main-menu-title")
             yield Button("Compile Static Libraries", id="compile-button", classes="main-menu-button")
             yield Button("Change sdkconfig Flags", id="editor-button", classes="main-menu-button")

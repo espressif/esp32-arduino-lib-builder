@@ -5,8 +5,8 @@ from textual.widgets import Input, Label, Select
 class LabelledInput(Widget):
     DEFAULT_CSS = """
     LabelledInput {
-        width: 1fr;
         height: 4;
+        margin-bottom: 1;
     }
     LabelledInput Label {
         padding-left: 1;
@@ -47,6 +47,7 @@ class LabelledSelect(Widget):
     DEFAULT_CSS = """
     LabelledSelect {
         height: 4;
+        margin-bottom: 1;
     }
     LabelledSelect Label {
         padding-left: 1;
