@@ -57,18 +57,25 @@ class CompileScreen(Screen):
         self.print_output("Running: " + " ".join(command) + "\n")
         print("Running: " + " ".join(command))
         self.child_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
-        for output in self.child_process.stdout:
-            if output == '' and self.child_process.poll() is not None:
-                print("Child process finished")
-                break
-            if output:
-                self.print_output(output.strip())  # Update RichLog widget with subprocess output
-        self.child_process.stdout.close()
+        try:
+            for output in self.child_process.stdout:
+                if output == '' and self.child_process.poll() is not None:
+                    break
+                if output:
+                    self.print_output(output.strip())  # Update RichLog widget with subprocess output
+            self.child_process.stdout.close()
+        except Exception as e:
+            print("Error reading child process output: " + str(e))
+            print("Process might have terminated")
 
         if not self.child_process:
             print("Compilation failed for " + target.upper() + "Child process failed to start")
             label.update("Compilation failed for " + target.upper() + "Child process failed to start")
-        elif self.child_process.returncode != 0:
+            return
+        else:
+            self.child_process.wait()
+
+        if self.child_process.returncode != 0:
             print("Compilation failed for " + target.upper() + ". Return code: " + str(self.child_process.returncode))
             self.print_output("Compilation failed for " + target.upper() + ". Return code: " + str(self.child_process.returncode))
             self.print_output("Error: " + self.child_process.stderr.read())
