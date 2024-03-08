@@ -25,46 +25,49 @@ class CompileScreen(Screen):
     def compile_libs(self) -> None:
         # Compile the libraries
 
-        # Get the Arduino path from the command line arguments or use the default path
-        arduino_path = ""
-        if len(sys.argv) > 1:
-            arduino_path = sys.argv[1]
-        else:
-            arduino_path = "/arduino-esp32"
-
         label = self.query_one("#compile-title", Static)
         self.child_process = None
         target = self.app.setting_target
 
-        if os.path.exists(arduino_path):
-            print("Starting compilation process. Using Arduino path: " + arduino_path)
+        print("Compiling for " + target.upper())
+        label.update("Compiling for " + target.upper())
+        self.print_output("======== Compiling for " + target.upper() + " ========")
 
-            print("Compiling for " + target.upper())
-            if target == "all":
-                command = ["./build.sh", "-c", arduino_path]
+        command = ["./build.sh", "-t", target, "-D", self.app.setting_debug_level]
+        #command.append("--help") # For testing without compiling
+
+        if self.app.setting_enable_copy:
+            if os.path.isdir(self.app.setting_arduino_path):
+                command.extend(["-c", self.app.setting_arduino_path])
             else:
-                command = ["./build.sh", "-c", arduino_path, "-t", target]
-            #command.append("--help") # For testing without compiling
+                print("Invalid path to Arduino core: " + self.app.setting_arduino_path)
+                self.print_output("Invalid path to Arduino core: " + self.app.setting_arduino_path)
+                label.update("Invalid path to Arduino core")
+                return
 
-            label.update("Compiling for " + target.upper())
-            self.print_output("======== Compiling for " + target.upper() + " ========")
-            self.print_output("Running: " + " ".join(command) + "\n")
-            print("Running: " + " ".join(command))
-            self.child_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
-            for output in self.child_process.stdout:
-                if output == '' and self.child_process.poll() is not None:
-                    print("Child process finished")
-                    break
-                if output:
-                    self.print_output(output.strip())  # Update RichLog widget with subprocess output
-            self.child_process.stdout.close()
-        else:
-            print("Arduino path does not exist: " + arduino_path)
-            self.print_output("Arduino path does not exist: " + arduino_path)
+        if self.app.setting_arduino_branch:
+            command.extend(["-A", self.app.setting_arduino_branch])
+
+        if self.app.setting_idf_branch:
+            command.extend(["-I", self.app.setting_idf_branch])
+
+        if self.app.setting_idf_commit:
+            command.extend(["-i", self.app.setting_idf_commit])
+
+        self.print_output("Running: " + " ".join(command) + "\n")
+        print("Running: " + " ".join(command))
+        self.child_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+        for output in self.child_process.stdout:
+            if output == '' and self.child_process.poll() is not None:
+                print("Child process finished")
+                break
+            if output:
+                self.print_output(output.strip())  # Update RichLog widget with subprocess output
+        self.child_process.stdout.close()
 
         if not self.child_process:
-            print("Compilation failed for " + target.upper() + ". Invalid path to Arduino core.")
-            label.update("Compilation failed for " + target.upper() + ". Invalid path to Arduino core.")
+            print("Compilation failed for " + target.upper() + "Child process failed to start")
+            label.update("Compilation failed for " + target.upper() + "Child process failed to start")
         elif self.child_process.returncode != 0:
             print("Compilation failed for " + target.upper() + ". Return code: " + str(self.child_process.returncode))
             self.print_output("Compilation failed for " + target.upper() + ". Return code: " + str(self.child_process.returncode))
