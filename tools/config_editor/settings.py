@@ -79,11 +79,11 @@ class SettingsScreen(Screen):
             self.target_select = LabelledSelect("Compilation Target", target_options, allow_blank=False, id="target-select")
             yield self.target_select
 
-            with Horizontal(id="settings-enable-copy-container"):
-                yield Label("Copy to arduino-esp32 after compilation", id="enable-copy-label")
-
+            with Horizontal(classes="settings-switch-container"):
                 self.enable_copy_switch = Switch(value=self.app.setting_enable_copy, id="enable-copy-switch")
                 yield self.enable_copy_switch
+
+                yield Label("Copy to arduino-esp32 after compilation")
 
             self.arduino_path_input = LabelledInput("Arduino-esp32 Path", placeholder="Path to your arduino-esp32 installation", value=self.app.setting_arduino_path, id="arduino-path-input")
             yield self.arduino_path_input

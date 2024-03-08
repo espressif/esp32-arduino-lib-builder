@@ -56,7 +56,6 @@ Button.main-menu-button {
 # Settings Screen
 
 #settings-scroll-container {
-    align: center middle;
     padding: 1;
 }
 
@@ -72,6 +71,18 @@ Button.main-menu-button {
     min-width: 100%;
     max-width: 0.2fr;
     align: center middle;
+}
+
+.settings-switch-container {
+    height: 4;
+}
+
+.settings-switch-container Switch {
+    margin-right: 2;
+}
+
+.settings-switch-container Label {
+    margin-top: 1;
 }
 
 # Editor Screen
