@@ -64,7 +64,7 @@ class EditorScreen(Screen):
 
     def compose(self) -> ComposeResult:
         # Compose editor screen
-        path = os.path.join(self.app.root_path, 'configs')
+        path = os.path.join(self.app.ROOT_PATH, 'configs')
         yield Header()
         with Container():
             yield DirectoryTree(path, id="tree-view")

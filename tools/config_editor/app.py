@@ -43,12 +43,12 @@ class ConfigEditorApp(App):
     setting_enable_copy = True
 
     # Options to be set by the command line arguments
-    setting_target = None
-    setting_arduino_path = None
-    setting_arduino_branch = None
-    setting_idf_branch = None
-    setting_idf_commit = None
-    setting_debug_level = None
+    setting_target = ""
+    setting_arduino_path = ""
+    setting_arduino_branch = ""
+    setting_idf_branch = ""
+    setting_idf_commit = ""
+    setting_debug_level = ""
 
     ENABLE_COMMAND_PALETTE = False
     CSS_PATH = "style.tcss"
@@ -63,11 +63,11 @@ class ConfigEditorApp(App):
         if event.button.id == "compile-button":
             print("Compile button pressed")
             self.push_screen("compile")
-        elif event.button.id == "targets-button":
-            print("Targets button pressed")
+        elif event.button.id == "settings-button":
+            print("Settings button pressed")
             self.push_screen("settings")
-        elif event.button.id == "options-button":
-            print("Options button pressed")
+        elif event.button.id == "editor-button":
+            print("Editor button pressed")
             self.push_screen("editor")
         elif event.button.id == "quit-button":
             print("Quit button pressed")
@@ -79,8 +79,8 @@ class ConfigEditorApp(App):
         with Container(id="main-menu-container"):
             yield Label("ESP32 Arduino Static Libraries Configuration Editor", id="main-menu-title")
             yield Button("Compile Static Libraries", id="compile-button", classes="main-menu-button")
-            yield Button("Select Targets", id="targets-button", classes="main-menu-button")
-            yield Button("Change Configuration Options", id="options-button", classes="main-menu-button")
+            yield Button("Change sdkconfig Flags", id="editor-button", classes="main-menu-button")
+            yield Button("Settings", id="settings-button", classes="main-menu-button")
             yield Button("Quit", id="quit-button", classes="main-menu-button")
 
     def on_mount(self) -> None:
@@ -88,6 +88,7 @@ class ConfigEditorApp(App):
         self.title = "Configurator"
         self.sub_title = "Main Menu"
         print("App started. Initial Options:")
+        print("Enable Copy: " + str(self.setting_enable_copy))
         print("Target: " + str(self.setting_target))
         print("Arduino Path: " + str(self.setting_arduino_path))
         print("Arduino Branch: " + str(self.setting_arduino_branch))
