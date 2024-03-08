@@ -62,6 +62,7 @@ Button.main-menu-button {
 
 #settings-scroll-container {
     align: center middle;
+    padding: 1;
 }
 
 #settings-button-container {

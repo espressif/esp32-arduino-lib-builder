@@ -21,8 +21,8 @@ class CompileScreen(Screen):
         # Print output to the RichLog widget
         self.query_one(RichLog).write(renderable)
 
-    @work(exclusive=True)
-    async def compile_libs(self) -> None:
+    @work(name="compliation_worker", group="compilation", exclusive=True, thread=True)
+    def compile_libs(self) -> None:
         # Compile the libraries
 
         # Get the Arduino path from the command line arguments or use the default path

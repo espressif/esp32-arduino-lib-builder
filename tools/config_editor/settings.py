@@ -16,7 +16,7 @@ class SettingsScreen(Screen):
             print("Save button pressed")
 
             # Update the target setting
-            self.app.setting_target = self.query_one("#target-select", LabelledSelect).value
+            self.app.setting_target = self.query_one("#target-select", LabelledSelect).get_select_value()
             print("Target setting updated: " + self.app.setting_target)
 
             self.dismiss()
@@ -30,7 +30,7 @@ class SettingsScreen(Screen):
         print("Settings screen resumed. Updating settings.")
 
         # Update Target selection
-        self.query_one("#target-select", LabelledSelect).value = self.app.setting_target
+        self.query_one("#target-select", LabelledSelect).set_select_value(self.app.setting_target)
 
     def compose(self) -> ComposeResult:
         # Compose the target selection screen
