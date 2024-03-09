@@ -118,12 +118,19 @@ def main() -> None:
                         required=False,
                         help="Target to be compiled. Choose from: " + ", ".join(target_choices))
 
+    parser.add_argument("--no-copy",
+                        type=bool,
+                        action=argparse.BooleanOptionalAction,
+                        default=False,
+                        required=False,
+                        help="Disable copying the compiled libraries to arduino-esp32")
+
     parser.add_argument("-c", "--arduino-path",
                         metavar="<arduino path>",
                         type=str,
                         default=arduino_default_path(),
                         required=False,
-                        help="Path to arduino-esp32 directory")
+                        help="Path to arduino-esp32 directory. Default: " + arduino_default_path())
 
     parser.add_argument("-A", "--arduino-branch",
                         metavar="<arduino branch>",
@@ -159,6 +166,7 @@ def main() -> None:
 
     # Set the options in the app
     app.setting_target = args.target
+    app.setting_enable_copy = not args.no_copy
     app.setting_arduino_path = args.arduino_path
     app.setting_arduino_branch = args.arduino_branch
     app.setting_idf_branch = args.idf_branch
