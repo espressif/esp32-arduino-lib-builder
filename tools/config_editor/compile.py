@@ -34,7 +34,7 @@ class CompileScreen(Screen):
         self.print_output("======== Compiling for " + target.upper() + " ========")
 
         command = ["./build.sh", "-t", target, "-D", self.app.setting_debug_level]
-        #command.append("--help") # For testing without compiling
+        #command.append("--help") # For testing output without compiling
 
         if self.app.setting_enable_copy:
             if os.path.isdir(self.app.setting_arduino_path):
@@ -56,7 +56,7 @@ class CompileScreen(Screen):
 
         self.print_output("Running: " + " ".join(command) + "\n")
         print("Running: " + " ".join(command))
-        self.child_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+        self.child_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try:
             for output in self.child_process.stdout:
                 if output == '' and self.child_process.poll() is not None:
@@ -86,12 +86,17 @@ class CompileScreen(Screen):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # Event handler called when a button is pressed
+        self.workers.cancel_all()
         if self.child_process:
-            # Kill the child process if it is running
+            # Terminate the child process if it is running
             print("Terminating child process")
-            self.child_process.kill()
+            self.child_process.terminate()
+            try:
+                self.child_process.stdout.close()
+                self.child_process.stderr.close()
+            except:
+                pass
             self.child_process.wait()
-            self.child_process = None
         self.dismiss()
 
     @on(ScreenResume)
