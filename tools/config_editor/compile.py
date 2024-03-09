@@ -87,10 +87,11 @@ class CompileScreen(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # Event handler called when a button is pressed
         if self.child_process:
-            # Terminate the child process if it is running
+            # Kill the child process if it is running
             print("Terminating child process")
-            self.child_process.terminate()
+            self.child_process.kill()
             self.child_process.wait()
+            self.child_process = None
         self.dismiss()
 
     @on(ScreenResume)
