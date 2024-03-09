@@ -34,10 +34,9 @@ from compile import CompileScreen
 class ConfigEditorApp(App):
     # Main application class
 
-    # Change to the root directory of the app to the root of the project
+    # Set the root and script paths
     SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
     ROOT_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
-    os.chdir(ROOT_PATH)
 
     # Set the application options
     setting_enable_copy = True
@@ -88,8 +87,10 @@ class ConfigEditorApp(App):
         self.title = "Configurator"
         self.sub_title = "Main Menu"
         print("App started. Initial Options:")
-        print("Enable Copy: " + str(self.setting_enable_copy))
+        print("Root path: " + self.ROOT_PATH)
+        print("Script path: " + self.SCRIPT_PATH)
         print("Target: " + str(self.setting_target))
+        print("Enable Copy: " + str(self.setting_enable_copy))
         print("Arduino Path: " + str(self.setting_arduino_path))
         print("Arduino Branch: " + str(self.setting_arduino_branch))
         print("IDF Branch: " + str(self.setting_idf_branch))
@@ -167,11 +168,14 @@ def main() -> None:
     # Set the options in the app
     app.setting_target = args.target
     app.setting_enable_copy = args.copy
-    app.setting_arduino_path = args.arduino_path
+    app.setting_arduino_path = os.path.abspath(args.arduino_path)
     app.setting_arduino_branch = args.arduino_branch
     app.setting_idf_branch = args.idf_branch
     app.setting_idf_commit = args.idf_commit
     app.setting_debug_level = args.debug_level
+
+    # Change to the root directory of the app to the root of the project
+    os.chdir(app.ROOT_PATH)
 
     # Main function to run the app
     app.run()
