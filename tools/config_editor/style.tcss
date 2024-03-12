@@ -5,15 +5,79 @@ Screen {
 }
 
 Button {
-    margin-bottom: 1;
-    background: rgb(73,158,165);
-    border: rgb(73,158,165);
+    width: auto;
+    min-width: 16;
+    height: auto;
+    color: $text;
+    border: none;
+    background: #038c8c;
+    border-top: tall #026868;
+    border-bottom: tall #6ab8b8;
+    text-align: center;
+    content-align: center middle;
     text-style: bold;
+
+    &:focus {
+        text-style: bold reverse;
+    }
+    &:hover {
+        border-top: tall #014444;
+        border-bottom: tall #3d8080;
+        background: #025b5b;
+        color: $text;
+    }
+    &.-active {
+        background: #025b5b;
+        border-bottom: tall #3d8080;
+        border-top: tall #014444;
+        tint: $background 30%;
+    }
+
+    &.-success {
+        background: $success;
+        color: $text;
+        border-top: tall $success-lighten-2;
+        border-bottom: tall $success-darken-3;
+
+        &:hover {
+            background: $success-darken-2;
+            color: $text;
+            border-top: tall $success;
+        }
+
+        &.-active {
+            background: $success;
+            border-bottom: tall $success-lighten-2;
+            border-top: tall $success-darken-2;
+        }
+    }
+
+    &.-error {
+        background: $error;
+        color: $text;
+        border-top: tall $error-lighten-2;
+        border-bottom: tall $error-darken-3;
+
+        &:hover {
+            background: $error-darken-1;
+            color: $text;
+            border-top: tall $error;
+        }
+
+        &.-active {
+            background: $error;
+            border-bottom: tall $error-lighten-2;
+            border-top: tall $error-darken-2;
+        }
+
+    }
+
 }
 
 # Main Screen
 
 Button.main-menu-button {
+    margin-bottom: 1;
     min-width: 100%;
     max-width: 0.4fr;
 }
