@@ -56,11 +56,23 @@ class SettingsScreen(Screen):
         print("Settings screen resumed. Updating settings.")
         self.target_select.set_select_value(self.app.setting_target)
         self.enable_copy_switch.value = self.app.setting_enable_copy
+        if self.app.setting_enable_copy:
+            self.arduino_path_input.visible = True
+        else:
+            self.arduino_path_input.visible = False
         self.arduino_path_input.set_input_value(self.app.setting_arduino_path)
         self.arduino_branch_input.set_input_value(self.app.setting_arduino_branch)
         self.idf_branch_input.set_input_value(self.app.setting_idf_branch)
         self.idf_commit_input.set_input_value(self.app.setting_idf_commit)
         self.idf_debug_select.set_select_value(self.app.setting_debug_level)
+
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        # Event handler called when a switch is changed
+        if event.switch.id == "enable-copy-switch":
+            if event.switch.value:
+                self.arduino_path_input.visible = True
+            else:
+                self.arduino_path_input.visible = False
 
     def compose(self) -> ComposeResult:
         # Compose the target selection screen
