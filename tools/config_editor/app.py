@@ -26,6 +26,7 @@ Command line arguments:
 import argparse
 import os
 import platform
+import sys
 
 from pathlib import Path
 
@@ -35,7 +36,7 @@ try:
     from textual.widgets import Button, Header, Label
 except ImportError:
     print("Please install the \"textual-dev\" package before running this script.")
-    quit()
+    quit(1)
 
 from settings import SettingsScreen
 from editor import EditorScreen
@@ -96,6 +97,7 @@ class ConfigEditorApp(App):
         # Event handler called when the app is mounted for the first time
         self.title = "Configurator"
         self.sub_title = "Main Menu"
+        print("Using Python version: " + sys.version)
         print("App started. Initial Options:")
         print("Root path: " + self.ROOT_PATH)
         print("Script path: " + self.SCRIPT_PATH)
@@ -118,6 +120,11 @@ def arduino_default_path():
 def main() -> None:
     # Set the PYTHONUNBUFFERED environment variable to "1" to disable the output buffering
     os.environ['PYTHONUNBUFFERED'] = "1"
+
+    # Check Python version
+    if sys.version_info < (3, 9):
+        print("This script requires Python 3.9 or later")
+        quit(1)
 
     app = ConfigEditorApp()
 
