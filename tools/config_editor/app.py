@@ -6,6 +6,8 @@ Arduino Static Libraries Configuration Editor
 This is a simple application to configure the static libraries for the ESP32 Arduino core.
 It allows the user to select the targets to compile, change the configuration options and compile the libraries.
 
+Requires Python 3.9 or later.
+
 The application is built using the "textual" library, which is a Python library for building text-based user interfaces.
 
 Note that this application still needs the requirements from esp32-arduino-lib-builder to be installed.
@@ -114,6 +116,9 @@ def arduino_default_path():
         return os.path.join(home, "Documents", "Arduino", "hardware", "espressif", "esp32")
 
 def main() -> None:
+    # Set the PYTHONUNBUFFERED environment variable to "1" to disable the output buffering
+    os.environ['PYTHONUNBUFFERED'] = "1"
+
     app = ConfigEditorApp()
 
     parser = argparse.ArgumentParser(description="Configure and compile the ESP32 Arduino static libraries")
