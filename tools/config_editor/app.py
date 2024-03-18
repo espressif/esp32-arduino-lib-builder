@@ -209,6 +209,9 @@ def main() -> None:
     # Main function to run the app
     app.run()
 
+    # Propagate the exit code from the app
+    sys.exit(app.return_code or 0)
+
 if __name__ == "__main__":
     # If this script is run directly, start the app
     main()
