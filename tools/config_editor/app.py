@@ -37,7 +37,7 @@ try:
     from textual.widgets import Button, Header, Label
 except ImportError:
     print("Please install the \"textual-dev\" package before running this script.")
-    quit(1)
+    exit(1)
 
 from settings import SettingsScreen
 from editor import EditorScreen
@@ -133,7 +133,7 @@ def main() -> None:
     # Check Python version
     if sys.version_info < (3, 9):
         print("This script requires Python 3.9 or later")
-        quit(1)
+        exit(1)
 
     app = ConfigEditorApp()
 
@@ -210,7 +210,7 @@ def main() -> None:
     app.run()
 
     # Propagate the exit code from the app
-    sys.exit(app.return_code or 0)
+    exit(app.return_code or 0)
 
 if __name__ == "__main__":
     # If this script is run directly, start the app
