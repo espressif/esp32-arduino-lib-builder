@@ -14,6 +14,8 @@ The Windows Terminal can be installed from the Microsoft Store.
 
 ## Usage
 
+These command line arguments can be used to pre-configure the application:
+
 Command line arguments:
     -t, --target <target>          Target to be compiled. Choose from: all, esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6, esp32h2
     --copy, --no-copy              Enable/disable copying the compiled libraries to arduino-esp32. Enabled by default
