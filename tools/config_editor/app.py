@@ -33,6 +33,7 @@ from pathlib import Path
 try:
     from textual.app import App, ComposeResult
     from textual.containers import VerticalScroll
+    from textual.screen import Screen
     from textual.widgets import Button, Header, Label
 except ImportError:
     print("Please install the \"textual-dev\" package before running this script.")
@@ -41,6 +42,50 @@ except ImportError:
 from settings import SettingsScreen
 from editor import EditorScreen
 from compile import CompileScreen
+
+class MainScreen(Screen):
+    # Main screen class
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        # Event handler called when a button is pressed
+        if event.button.id == "compile-button":
+            print("Compile button pressed")
+            self.app.push_screen("compile")
+        elif event.button.id == "settings-button":
+            print("Settings button pressed")
+            self.app.push_screen("settings")
+        elif event.button.id == "editor-button":
+            print("Editor button pressed")
+            self.app.push_screen("editor")
+        elif event.button.id == "quit-button":
+            print("Quit button pressed")
+            quit()
+
+    def compose(self) -> ComposeResult:
+        # Compose main menu
+        yield Header()
+        with VerticalScroll(id="main-menu-container"):
+            yield Label("ESP32 Arduino Static Libraries Configuration Editor", id="main-menu-title")
+            yield Button("Compile Static Libraries", id="compile-button", classes="main-menu-button")
+            yield Button("Change sdkconfig Flags", id="editor-button", classes="main-menu-button")
+            yield Button("Settings", id="settings-button", classes="main-menu-button")
+            yield Button("Quit", id="quit-button", classes="main-menu-button")
+
+    def on_mount(self) -> None:
+        # Event handler called when the app is mounted for the first time
+        self.title = "Configurator"
+        self.sub_title = "Main Menu"
+        print("Using Python version: " + sys.version)
+        print("App started. Initial Options:")
+        print("Root path: " + self.app.ROOT_PATH)
+        print("Script path: " + self.app.SCRIPT_PATH)
+        print("Target: " + str(self.app.setting_target))
+        print("Enable Copy: " + str(self.app.setting_enable_copy))
+        print("Arduino Path: " + str(self.app.setting_arduino_path))
+        print("Arduino Branch: " + str(self.app.setting_arduino_branch))
+        print("IDF Branch: " + str(self.app.setting_idf_branch))
+        print("IDF Commit: " + str(self.app.setting_idf_commit))
+        print("IDF Debug Level: " + str(self.app.setting_debug_level))
 
 class ConfigEditorApp(App):
     # Main application class
@@ -63,51 +108,14 @@ class ConfigEditorApp(App):
     ENABLE_COMMAND_PALETTE = False
     CSS_PATH = "style.tcss"
     SCREENS = {
+        "main": MainScreen(),
         "settings": SettingsScreen(),
         "compile": CompileScreen(),
         "editor": EditorScreen(),
     }
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        # Event handler called when a button is pressed
-        if event.button.id == "compile-button":
-            print("Compile button pressed")
-            self.push_screen("compile")
-        elif event.button.id == "settings-button":
-            print("Settings button pressed")
-            self.push_screen("settings")
-        elif event.button.id == "editor-button":
-            print("Editor button pressed")
-            self.push_screen("editor")
-        elif event.button.id == "quit-button":
-            print("Quit button pressed")
-            quit()
-
-    def compose(self) -> ComposeResult:
-        # Compose main menu
-        yield Header()
-        with VerticalScroll(id="main-menu-container"):
-            yield Label("ESP32 Arduino Static Libraries Configuration Editor", id="main-menu-title")
-            yield Button("Compile Static Libraries", id="compile-button", classes="main-menu-button")
-            yield Button("Change sdkconfig Flags", id="editor-button", classes="main-menu-button")
-            yield Button("Settings", id="settings-button", classes="main-menu-button")
-            yield Button("Quit", id="quit-button", classes="main-menu-button")
-
     def on_mount(self) -> None:
-        # Event handler called when the app is mounted for the first time
-        self.title = "Configurator"
-        self.sub_title = "Main Menu"
-        print("Using Python version: " + sys.version)
-        print("App started. Initial Options:")
-        print("Root path: " + self.ROOT_PATH)
-        print("Script path: " + self.SCRIPT_PATH)
-        print("Target: " + str(self.setting_target))
-        print("Enable Copy: " + str(self.setting_enable_copy))
-        print("Arduino Path: " + str(self.setting_arduino_path))
-        print("Arduino Branch: " + str(self.setting_arduino_branch))
-        print("IDF Branch: " + str(self.setting_idf_branch))
-        print("IDF Commit: " + str(self.setting_idf_commit))
-        print("IDF Debug Level: " + str(self.setting_debug_level))
+        self.push_screen("main")
 
 def arduino_default_path():
     sys_name = platform.system()
