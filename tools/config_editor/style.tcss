@@ -69,14 +69,12 @@ Button {
             border-bottom: tall $error-lighten-2;
             border-top: tall $error-darken-2;
         }
-
     }
-
 }
 
 # Main Screen
 
-Button.main-menu-button {
+.main-menu-button {
     margin-bottom: 1;
     min-width: 100%;
     max-width: 0.4fr;
@@ -91,7 +89,7 @@ Button.main-menu-button {
     text-align: center;
     margin-bottom: 4;
     text-style: bold;
-    color: lightgray;
+    color: auto;
     width: 0.4fr;
 }
 

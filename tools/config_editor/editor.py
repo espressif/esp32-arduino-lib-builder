@@ -2,34 +2,44 @@ import os
 
 from textual import on
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Container, VerticalScroll, Horizontal
 from textual.screen import Screen
 from textual.events import ScreenResume
-from textual.widgets import DirectoryTree, Header, TextArea, Button
+from textual.widgets import DirectoryTree, Header, TextArea, Button, Footer
 
 class EditorScreen(Screen):
     # Configuration file editor screen
 
+    # Set the key bindings
+    BINDINGS = [
+        Binding("ctrl+s", "save", "Save", priority=True),
+        Binding("escape", "app.pop_screen", "Discard")
+    ]
+
     # Current file being edited
     current_file = ""
 
+    def action_save(self) -> None:
+        code_view = self.query_one("#code", TextArea)
+        current_text = code_view.text
+        try:
+            file = open(self.curent_file, "w")
+            file.write(current_text)
+            file.close()
+        except Exception:
+            print("Error saving file: " + self.curent_file)
+            self.sub_title = "ERROR"
+        else:
+            print("File saved: " + self.curent_file)
+            self.sub_title = self.curent_file
+            self.dismiss()
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # Event handler called when a button is pressed
-        code_view = self.query_one("#code", TextArea)
         if event.button.id == "save-editor-button" and self.curent_file != "":
-            current_text = code_view.text
-            try:
-                print("Save button pressed. Trying to save file: " + self.curent_file)
-                file = open(self.curent_file, "w")
-                file.write(current_text)
-                file.close()
-            except Exception:
-                print("Error saving file: " + self.curent_file)
-                self.sub_title = "ERROR"
-            else:
-                print("File saved: " + self.curent_file)
-                self.sub_title = self.curent_file
-                self.dismiss()
+            print("Save button pressed. Trying to save file: " + self.curent_file)
+            self.action_save()
         elif event.button.id == "cancel-editor-button":
             print("Cancel button pressed")
             self.dismiss()
@@ -73,3 +83,4 @@ class EditorScreen(Screen):
             with Horizontal(id="editor-buttons-container"):
                 yield Button("Save", id="save-editor-button", classes="editor-button")
                 yield Button("Cancel", id="cancel-editor-button", classes="editor-button")
+        yield Footer()

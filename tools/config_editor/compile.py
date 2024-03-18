@@ -6,19 +6,39 @@ from rich.console import RenderableType
 
 from textual import on, work
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.events import ScreenResume
 from textual.containers import Container
 from textual.screen import Screen
-from textual.widgets import Header, Static, RichLog, Button
+from textual.widgets import Header, Static, RichLog, Button, Footer
 
 class CompileScreen(Screen):
     # Compile screen
+
+    # Set the key bindings
+    BINDINGS = [
+        Binding("escape", "back", "Back")
+    ]
 
     # Child process running the libraries compilation
     child_process = None
 
     log_widget: RichLog
     button_widget: Button
+
+    def action_back(self) -> None:
+        self.workers.cancel_all()
+        if self.child_process:
+            # Terminate the child process if it is running
+            print("Terminating child process")
+            self.child_process.terminate()
+            try:
+                self.child_process.stdout.close()
+                self.child_process.stderr.close()
+            except:
+                pass
+            self.child_process.wait()
+        self.dismiss()
 
     def print_output(self, renderable: RenderableType, style=None) -> None:
         # Print output to the RichLog widget
@@ -115,18 +135,7 @@ class CompileScreen(Screen):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # Event handler called when a button is pressed
-        self.workers.cancel_all()
-        if self.child_process:
-            # Terminate the child process if it is running
-            print("Terminating child process")
-            self.child_process.terminate()
-            try:
-                self.child_process.stdout.close()
-                self.child_process.stderr.close()
-            except:
-                pass
-            self.child_process.wait()
-        self.dismiss()
+        self.action_back()
 
     @on(ScreenResume)
     def on_resume(self) -> None:
@@ -148,3 +157,4 @@ class CompileScreen(Screen):
             yield Static("Compiling for ...", id="compile-title")
             self.button_widget = Button("Back", id="compile-back-button")
             yield self.button_widget
+        yield Footer()

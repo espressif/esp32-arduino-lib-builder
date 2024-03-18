@@ -32,11 +32,12 @@ from pathlib import Path
 
 try:
     from textual.app import App, ComposeResult
+    from textual.binding import Binding
     from textual.containers import VerticalScroll
     from textual.screen import Screen
-    from textual.widgets import Button, Header, Label
+    from textual.widgets import Button, Header, Label, Footer
 except ImportError:
-    print("Please install the \"textual-dev\" package before running this script.")
+    print("Please install the \"textual\" package before running this script.")
     exit(1)
 
 from settings import SettingsScreen
@@ -45,6 +46,14 @@ from compile import CompileScreen
 
 class MainScreen(Screen):
     # Main screen class
+
+    # Set the key bindings
+    BINDINGS = [
+        Binding("c", "app.push_screen('compile')", "Compile"),
+        Binding("e", "app.push_screen('editor')", "Editor"),
+        Binding("s", "app.push_screen('settings')", "Settings"),
+        Binding("q", "app.quit", "Quit"),
+    ]
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # Event handler called when a button is pressed
@@ -67,9 +76,10 @@ class MainScreen(Screen):
         with VerticalScroll(id="main-menu-container"):
             yield Label("ESP32 Arduino Static Libraries Configuration Editor", id="main-menu-title")
             yield Button("Compile Static Libraries", id="compile-button", classes="main-menu-button")
-            yield Button("Change sdkconfig Flags", id="editor-button", classes="main-menu-button")
+            yield Button("Sdkconfig Editor", id="editor-button", classes="main-menu-button")
             yield Button("Settings", id="settings-button", classes="main-menu-button")
             yield Button("Quit", id="quit-button", classes="main-menu-button")
+        yield Footer()
 
     def on_mount(self) -> None:
         # Event handler called when the app is mounted for the first time

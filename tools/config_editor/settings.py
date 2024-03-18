@@ -1,14 +1,21 @@
 from textual import on
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import VerticalScroll, Container, Horizontal
 from textual.screen import Screen
 from textual.events import ScreenResume
-from textual.widgets import Header, Button, Switch, Label
+from textual.widgets import Header, Button, Switch, Label, Footer
 
 from widgets import LabelledInput, LabelledSelect
 
 class SettingsScreen(Screen):
     # Settings screen
+
+    # Set the key bindings
+    BINDINGS = [
+        Binding("s", "save", "Save"),
+        Binding("escape", "app.pop_screen", "Discard")
+    ]
 
     target_select: LabelledSelect
     enable_copy_switch: Switch
@@ -18,37 +25,37 @@ class SettingsScreen(Screen):
     idf_commit_input: LabelledInput
     idf_debug_select: LabelledSelect
 
+    def action_save(self) -> None:
+        self.app.setting_target = self.target_select.get_select_value()
+        print("Target setting updated: " + self.app.setting_target)
+
+        self.app.setting_enable_copy = self.enable_copy_switch.value
+        print("Enable copy setting updated: " + str(self.app.setting_enable_copy))
+
+        if self.enable_copy_switch.value:
+            self.app.setting_arduino_path = self.arduino_path_input.get_input_value()
+            print("Arduino path setting updated: " + self.app.setting_arduino_path)
+
+        self.app.setting_arduino_branch = self.arduino_branch_input.get_input_value()
+        print("Arduino branch setting updated: " + self.app.setting_arduino_branch)
+
+        self.app.setting_idf_branch = self.idf_branch_input.get_input_value()
+        print("IDF branch setting updated: " + self.app.setting_idf_branch)
+
+        self.app.setting_idf_commit = self.idf_commit_input.get_input_value()
+        print("IDF commit setting updated: " + self.app.setting_idf_commit)
+
+        self.app.setting_debug_level = self.idf_debug_select.get_select_value()
+        print("Debug level setting updated: " + self.app.setting_debug_level)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # Event handler called when a button is pressed
         if event.button.id == "save-settings-button":
             print("Save button pressed")
-
-            self.app.setting_target = self.target_select.get_select_value()
-            print("Target setting updated: " + self.app.setting_target)
-
-            self.app.setting_enable_copy = self.enable_copy_switch.value
-            print("Enable copy setting updated: " + str(self.app.setting_enable_copy))
-
-            if self.enable_copy_switch.value:
-                self.app.setting_arduino_path = self.arduino_path_input.get_input_value()
-                print("Arduino path setting updated: " + self.app.setting_arduino_path)
-
-            self.app.setting_arduino_branch = self.arduino_branch_input.get_input_value()
-            print("Arduino branch setting updated: " + self.app.setting_arduino_branch)
-
-            self.app.setting_idf_branch = self.idf_branch_input.get_input_value()
-            print("IDF branch setting updated: " + self.app.setting_idf_branch)
-
-            self.app.setting_idf_commit = self.idf_commit_input.get_input_value()
-            print("IDF commit setting updated: " + self.app.setting_idf_commit)
-
-            self.app.setting_debug_level = self.idf_debug_select.get_select_value()
-            print("Debug level setting updated: " + self.app.setting_debug_level)
-
-            self.dismiss()
+            self.action_save()
         elif event.button.id == "cancel-settings-button":
             print("Cancel button pressed")
-            self.dismiss()
+        self.dismiss()
 
     @on(ScreenResume)
     def on_resume(self) -> None:
@@ -124,6 +131,7 @@ class SettingsScreen(Screen):
         with Horizontal(id="settings-button-container"):
             yield Button("Save", id="save-settings-button", classes="settings-button")
             yield Button("Cancel", id="cancel-settings-button", classes="settings-button")
+        yield Footer()
 
     def on_mount(self) -> None:
         # Event handler called when the screen is mounted for the first time
