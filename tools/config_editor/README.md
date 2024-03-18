@@ -17,10 +17,10 @@ The Windows Terminal can be installed from the Microsoft Store.
 These command line arguments can be used to pre-configure the application:
 
 Command line arguments:
-    -t, --target <target>          Target to be compiled. Choose from: all, esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6, esp32h2
+    -t, --target <target>          Target to be compiled. Choose from: all, esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6, esp32h2. Default: all
     --copy, --no-copy              Enable/disable copying the compiled libraries to arduino-esp32. Enabled by default
     -c, --arduino-path <path>      Path to arduino-esp32 directory. Default: OS dependent
-    -A, --arduino-branch <branch>  Branch of the arduino-esp32 repository to be used
-    -I, --idf-branch <branch>      Branch of the ESP-IDF repository to be used
-    -i, --idf-commit <commit>      Commit of the ESP-IDF repository to be used
-    -D, --debug-level <level>      Debug level to be set to ESP-IDF. Choose from: default, none, error, warning, info, debug, verbose
+    -A, --arduino-branch <branch>  Branch of the arduino-esp32 repository to be used. Default: set by the build script
+    -I, --idf-branch <branch>      Branch of the ESP-IDF repository to be used. Default: set by the build script
+    -i, --idf-commit <commit>      Commit of the ESP-IDF repository to be used. Default: set by the build script
+    -D, --debug-level <level>      Debug level to be set to ESP-IDF. Choose from: default, none, error, warning, info, debug, verbose. Default: default
