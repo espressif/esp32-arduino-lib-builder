@@ -58,7 +58,7 @@ if [ -d "$IDF_PATH" ]; then
 fi
 
 function get_os(){
-    OSBITS=`uname -m`
+    OSBITS=`arch`
     if [[ "$OSTYPE" == "linux"* ]]; then
         if [[ "$OSBITS" == "i686" ]]; then
             echo "linux32"
