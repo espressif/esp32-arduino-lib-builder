@@ -30,7 +30,7 @@ function print_help() {
     echo "       -d     Deploy the build to github arduino-esp32"
     echo "       -D     Debug level to be set to ESP-IDF. One of default,none,error,warning,info,debug or verbose"
     echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
-    echo "       -t     Set the build target(chip). ex. 'esp32s3'"
+    echo "       -t     Set the build target(chip) ex. 'esp32s3' or select multiple targets(chips) by separating them with comma ex. 'esp32,esp32s3,esp32c3'"
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
@@ -64,7 +64,7 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
             BUILD_DEBUG="$OPTARG"
             ;;
         t )
-            TARGET=$OPTARG
+            IFS=',' read -ra TARGET <<< "$OPTARG"
             ;;
         b )
             b=$OPTARG
@@ -90,6 +90,9 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
 done
 shift $((OPTIND -1))
 CONFIGS=$@
+
+# Output the TARGET array
+echo "TARGET(s): ${TARGET[@]}"
 
 mkdir -p dist
 
@@ -121,27 +124,42 @@ if [ "$BUILD_TYPE" != "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
         print_help
     fi
-    configs="configs/defconfig.common;configs/defconfig.$TARGET;configs/defconfig.debug_$BUILD_DEBUG"
-    
+
     # Target Features Configs
     for target_json in `jq -c '.targets[]' configs/builds.json`; do
         target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
-        if [ "$TARGET" == "$target" ]; then
-            for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
-                configs="$configs;configs/defconfig.$defconf"
-            done
+
+        # Check if $target is in the $TARGET array
+        target_in_array=false
+        for item in "${TARGET[@]}"; do
+            if [ "$item" = "$target" ]; then
+                target_in_array=true
+                break
+            fi
+        done
+
+        if [ "$target_in_array" = false ]; then
+            # Skip building for targets that are not in the $TARGET array
+            continue
         fi
-    done
+                
+        configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
+        for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
+            configs="$configs;configs/defconfig.$defconf"
+        done
 
-    # Configs From Arguments
-    for conf in $CONFIGS; do
-        configs="$configs;configs/defconfig.$conf"
-    done
+        echo "* Building for $target"
 
-    echo "idf.py -DIDF_TARGET=\"$TARGET\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
-    rm -rf build sdkconfig
-    idf.py -DIDF_TARGET="$TARGET" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
-    if [ $? -ne 0 ]; then exit 1; fi
+        # Configs From Arguments
+        for conf in $CONFIGS; do
+            configs="$configs;configs/defconfig.$conf"
+        done
+
+        echo "idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
+        rm -rf build sdkconfig
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
+        if [ $? -ne 0 ]; then exit 1; fi
+    done
     exit 0
 fi
 
@@ -153,11 +171,23 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
     target_skip=$(echo "$target_json" | jq -c '.skip // 0')
 
-    if [ "$TARGET" != "all" ] && [ "$TARGET" != "$target" ]; then
-        echo "* Skipping Target: $target"
-        continue
-    fi
+    # Check if $target is in the $TARGET array if not "all"
+    if [ "$TARGET" != "all" ]; then
+        target_in_array=false
+        for item in "${TARGET[@]}"; do
+            if [ "$item" = "$target" ]; then
+                target_in_array=true
+                break
+            fi
+        done
 
+        # If $target is not in the $TARGET array, skip processing
+        if [ "$target_in_array" = false ]; then
+            echo "* Skipping Target: $target"
+            continue
+        fi
+    fi
+    
     # Skip chips that should not be a part of the final libs
     # WARNING!!! this logic needs to be updated when cron builds are split into jobs
     if [ "$TARGET" = "all" ] && [ $target_skip -eq 1 ]; then
