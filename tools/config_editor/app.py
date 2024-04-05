@@ -24,6 +24,7 @@ Command line arguments:
 """
 
 import argparse
+import json
 import os
 import platform
 import sys
@@ -95,6 +96,7 @@ class ConfigEditorApp(App):
     ROOT_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 
     # Set the application options
+    supported_targets = []
     setting_enable_copy = True
 
     # Options to be set by the command line arguments
@@ -119,7 +121,8 @@ class ConfigEditorApp(App):
         print("Python version: " + sys.version)
         print("Root path: " + self.ROOT_PATH)
         print("Script path: " + self.SCRIPT_PATH)
-        print("Target: " + str(self.setting_target))
+        print("Supported Targets: " + ", ".join(self.supported_targets))
+        print("Default targets: " + self.setting_target)
         print("Enable Copy: " + str(self.setting_enable_copy))
         print("Arduino Path: " + str(self.setting_arduino_path))
         print("Arduino Branch: " + str(self.setting_arduino_branch))
@@ -136,6 +139,9 @@ def arduino_default_path():
     else: # Windows and MacOS
         return os.path.join(home, "Documents", "Arduino", "hardware", "espressif", "esp32")
 
+def check_arduino_path():
+    return os.path.isdir(arduino_default_path())
+
 def main() -> None:
     # Set the PYTHONUNBUFFERED environment variable to "1" to disable the output buffering
     os.environ['PYTHONUNBUFFERED'] = "1"
@@ -147,21 +153,39 @@ def main() -> None:
 
     app = ConfigEditorApp()
 
+    target_choices = []
+
+    # Parse build JSON file
+    build_json_path = os.path.join(app.ROOT_PATH, "configs", "builds.json")
+    if os.path.isfile(build_json_path):
+        with open(build_json_path, "r") as build_json_file:
+            build_json = json.load(build_json_file)
+            for target in build_json["targets"]:
+                try:
+                    default = False if target["skip"] else True
+                except:
+                    default = True
+                target_choices.append((target["target"], default))
+    else:
+        print("Error: configs/builds.json file not found.")
+        exit(1)
+
+    target_choices.sort(key=lambda x: x[0])
+
     parser = argparse.ArgumentParser(description="Configure and compile the ESP32 Arduino static libraries")
 
-    target_choices = ("all", "esp32", "esp32s2", "esp32s3", "esp32c2", "esp32c3", "esp32c6", "esp32h2")
     parser.add_argument("-t", "--target",
                         metavar="<target>",
                         type=str,
-                        default="all",
-                        choices=target_choices,
+                        default="default",
                         required=False,
-                        help="Target to be compiled. Choose from: " + ", ".join(target_choices))
+                        help="Comma separated list of targets to be compiled. Choose from: " + ", ".join([x[0] for x in target_choices])
+                             + ". Default: All except " + ", ".join([x[0] for x in target_choices if not x[1]]))
 
     parser.add_argument("--copy",
                         type=bool,
                         action=argparse.BooleanOptionalAction,
-                        default=True,
+                        default=True if check_arduino_path() else False,
                         required=False,
                         help="Enable/disable copying the compiled libraries to arduino-esp32. Enabled by default")
 
@@ -205,6 +229,12 @@ def main() -> None:
     args = parser.parse_args()
 
     # Set the options in the app
+    if args.target.strip() == "default":
+        args.target = ",".join([x[0] for x in target_choices if x[1]])
+    elif args.target.strip() == "all":
+        args.target = ",".join([x[0] for x in target_choices])
+
+    app.supported_targets = [x[0] for x in target_choices]
     app.setting_target = args.target
     app.setting_enable_copy = args.copy
     app.setting_arduino_path = os.path.abspath(args.arduino_path)

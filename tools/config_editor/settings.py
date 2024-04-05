@@ -1,10 +1,12 @@
+import math
+
 from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalScroll, Container, Horizontal
 from textual.screen import Screen
 from textual.events import ScreenResume
-from textual.widgets import Header, Button, Switch, Label, Footer
+from textual.widgets import Header, Button, Switch, Label, Footer, Checkbox
 
 from widgets import LabelledInput, LabelledSelect
 
@@ -17,7 +19,6 @@ class SettingsScreen(Screen):
         Binding("escape", "app.pop_screen", "Discard")
     ]
 
-    target_select: LabelledSelect
     enable_copy_switch: Switch
     arduino_path_input: LabelledInput
     arduino_branch_input: LabelledInput
@@ -26,7 +27,13 @@ class SettingsScreen(Screen):
     idf_debug_select: LabelledSelect
 
     def action_save(self) -> None:
-        self.app.setting_target = self.target_select.get_select_value()
+        checkboxes = self.query(Checkbox)
+        self.app.setting_target = ""
+        for checkbox in checkboxes:
+            if checkbox.value:
+                if self.app.setting_target:
+                    self.app.setting_target += ","
+                self.app.setting_target += checkbox.id.replace("-checkbox", "")
         print("Target setting updated: " + self.app.setting_target)
 
         self.app.setting_enable_copy = self.enable_copy_switch.value
@@ -61,7 +68,12 @@ class SettingsScreen(Screen):
     def on_resume(self) -> None:
         # Event handler called every time the screen is activated
         print("Settings screen resumed. Updating settings.")
-        self.target_select.set_select_value(self.app.setting_target)
+        targets = self.app.setting_target.split(",")
+        checkboxes = self.query(Checkbox)
+        for checkbox in checkboxes:
+            checkbox.value = False
+            if checkbox.id.replace("-checkbox", "") in targets:
+                checkbox.value = True
         self.enable_copy_switch.value = self.app.setting_enable_copy
         if self.app.setting_enable_copy:
             self.arduino_path_input.visible = True
@@ -85,18 +97,11 @@ class SettingsScreen(Screen):
         # Compose the target selection screen
         yield Header()
         with VerticalScroll(id="settings-scroll-container"):
-            target_options = [
-                ("All", "all"),
-                ("ESP32", "esp32"),
-                ("ESP32-S2", "esp32s2"),
-                ("ESP32-S3", "esp32s3"),
-                ("ESP32-C2 (ESP8684)", "esp32c2"),
-                ("ESP32-C3", "esp32c3"),
-                ("ESP32-C6", "esp32c6"),
-                ("ESP32-H2", "esp32h2")
-            ]
-            self.target_select = LabelledSelect("Compilation Target", target_options, allow_blank=False, id="target-select")
-            yield self.target_select
+
+            yield Label("Compilation Targets", id="settings-target-label")
+            with Container(id="settings-target-container"):
+                for target in self.app.supported_targets:
+                    yield Checkbox(target.upper(), id=target + "-checkbox")
 
             with Horizontal(classes="settings-switch-container"):
                 self.enable_copy_switch = Switch(value=self.app.setting_enable_copy, id="enable-copy-switch")
@@ -136,4 +141,9 @@ class SettingsScreen(Screen):
     def on_mount(self) -> None:
         # Event handler called when the screen is mounted for the first time
         self.sub_title = "Settings"
+        target_container = self.query_one("#settings-target-container")
+        # Height needs to be 3 for each row of targets + 1
+        height_value = str(int(math.ceil(len(self.app.supported_targets) / int(target_container.styles.grid_size_columns)) * 3 + 1))
+        print("Target container height: " + height_value)
+        target_container.styles.height = height_value
         print("Settings screen mounted")

@@ -72,12 +72,15 @@ class CompileScreen(Screen):
 
         label = self.query_one("#compile-title", Static)
         self.child_process = None
-        target = self.app.setting_target
+        if self.app.setting_target == ",".join(self.app.supported_targets):
+            target = "all targets"
+        else:
+            target = self.app.setting_target.replace(",", ", ").upper()
 
-        label.update("Compiling for " + target.upper())
-        self.print_info("======== Compiling for " + target.upper() + " ========")
+        label.update("Compiling for " + target)
+        self.print_info("======== Compiling for " + target + " ========")
 
-        command = ["./build.sh", "-t", target, "-D", self.app.setting_debug_level]
+        command = ["./build.sh", "-t", self.app.setting_target, "-D", self.app.setting_debug_level]
 
         #command.append("--help") # For testing output without compiling
 
@@ -112,14 +115,14 @@ class CompileScreen(Screen):
             print("Process might have terminated")
 
         if not self.child_process:
-            self.print_error("Compilation failed for " + target.upper() + "Child process failed to start")
-            label.update("Compilation failed for " + target.upper() + "Child process failed to start")
+            self.print_error("Compilation failed for " + target + "Child process failed to start")
+            label.update("Compilation failed for " + target + "Child process failed to start")
             return
         else:
             self.child_process.wait()
 
         if self.child_process.returncode != 0:
-            self.print_error("Compilation failed for " + target.upper() + ". Return code: " + str(self.child_process.returncode))
+            self.print_error("Compilation failed for " + target + ". Return code: " + str(self.child_process.returncode))
             self.print_error("Errors:")
             try:
                 for error in self.child_process.stderr:
@@ -128,10 +131,10 @@ class CompileScreen(Screen):
                 self.child_process.stderr.close()
             except Exception as e:
                 print("Error reading child process errors: " + str(e))
-            label.update("Compilation failed for " + target.upper())
+            label.update("Compilation failed for " + target)
         else:
-            self.print_success("Compilation successful for " + target.upper())
-            label.update("Compilation successful for " + target.upper())
+            self.print_success("Compilation successful for " + target)
+            label.update("Compilation successful for " + target)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         # Event handler called when a button is pressed
