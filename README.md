@@ -18,6 +18,8 @@ cd esp32-arduino-lib-builder
 You can more easily build the libraries using the user interface found in the `tools/config_editor/` folder.
 It is a Python script that allows you to select and edit the options for the libraries you want to build.
 The script has mouse support and can also be pre-configured using the same command line arguments as the `build.sh` script.
+For more information and troubleshooting, please refer to the [UI README](tools/config_editor/README.md).
+
 To use it, follow these steps:
 
 1. Make sure you have the required dependencies installed:
