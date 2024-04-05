@@ -13,7 +13,7 @@ The application is built using the "textual" library, which is a Python library 
 Note that this application still needs the requirements from esp32-arduino-lib-builder to be installed.
 
 Command line arguments:
-    -t, --target <target>          Comma separated list of targets to be compiled.
+    -t, --target <target>          Comma-separated list of targets to be compiled.
                                    Choose from: all, esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6, esp32h2. Default: all except esp32c2
     --copy, --no-copy              Enable/disable copying the compiled libraries to arduino-esp32. Enabled by default
     -c, --arduino-path <path>      Path to arduino-esp32 directory. Default: OS dependent
@@ -155,6 +155,7 @@ def main() -> None:
 
     app = ConfigEditorApp()
 
+    # List of tuples for the target choices containing the target name and if it is enabled by default
     target_choices = []
 
     # Parse build JSON file
@@ -181,7 +182,7 @@ def main() -> None:
                         type=str,
                         default="default",
                         required=False,
-                        help="Comma separated list of targets to be compiled. Choose from: " + ", ".join([x[0] for x in target_choices])
+                        help="Comma-separated list of targets to be compiled. Choose from: " + ", ".join([x[0] for x in target_choices])
                              + ". Default: All except " + ", ".join([x[0] for x in target_choices if not x[1]]))
 
     parser.add_argument("--copy",
@@ -237,11 +238,20 @@ def main() -> None:
         args.target = ",".join([x[0] for x in target_choices])
 
     app.supported_targets = [x[0] for x in target_choices]
+
+    for target in args.target.split(","):
+        if target not in app.supported_targets:
+            print("Invalid target: " + target)
+            exit(1)
+
     app.setting_target = args.target
 
     if args.copy:
         if check_arduino_path(args.arduino_path):
             app.setting_enable_copy = True
+        elif args.arduino_path == arduino_default_path():
+            print("Warning: Default Arduino path not found. Disabling copy to Arduino.")
+            app.setting_enable_copy = False
         else:
             print("Invalid path to Arduino core: " + os.path.abspath(args.arduino_path))
             exit(1)
