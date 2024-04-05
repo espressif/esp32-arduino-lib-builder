@@ -141,8 +141,8 @@ def arduino_default_path():
     else: # Windows and MacOS
         return os.path.join(home, "Documents", "Arduino", "hardware", "espressif", "esp32")
 
-def check_arduino_path():
-    return os.path.isdir(arduino_default_path())
+def check_arduino_path(path):
+    return os.path.isdir(path)
 
 def main() -> None:
     # Set the PYTHONUNBUFFERED environment variable to "1" to disable the output buffering
@@ -187,7 +187,7 @@ def main() -> None:
     parser.add_argument("--copy",
                         type=bool,
                         action=argparse.BooleanOptionalAction,
-                        default=True if check_arduino_path() else False,
+                        default=True,
                         required=False,
                         help="Enable/disable copying the compiled libraries to arduino-esp32. Enabled by default")
 
@@ -238,7 +238,16 @@ def main() -> None:
 
     app.supported_targets = [x[0] for x in target_choices]
     app.setting_target = args.target
-    app.setting_enable_copy = args.copy
+
+    if args.copy:
+        if check_arduino_path(args.arduino_path):
+            app.setting_enable_copy = True
+        else:
+            print("Invalid path to Arduino core: " + os.path.abspath(args.arduino_path))
+            exit(1)
+    else:
+        app.setting_enable_copy = False
+
     app.setting_arduino_path = os.path.abspath(args.arduino_path)
     app.setting_arduino_branch = args.arduino_branch
     app.setting_idf_branch = args.idf_branch
