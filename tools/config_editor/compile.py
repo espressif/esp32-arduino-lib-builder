@@ -72,6 +72,11 @@ class CompileScreen(Screen):
 
         label = self.query_one("#compile-title", Static)
         self.child_process = None
+
+        if not self.app.setting_target:
+            self.print_error("No target selected")
+            label.update("No target selected")
+            return
         if self.app.setting_target == ",".join(self.app.supported_targets):
             target = "all targets"
         else:
@@ -161,3 +166,8 @@ class CompileScreen(Screen):
             self.button_widget = Button("Back", id="compile-back-button")
             yield self.button_widget
         yield Footer()
+
+    def on_mount(self) -> None:
+        # Event handler called when the screen is mounted
+        print("Compile screen mounted")
+        self.sub_title = "Compilation"

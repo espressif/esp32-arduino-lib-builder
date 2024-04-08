@@ -86,7 +86,6 @@ class MainScreen(Screen):
 
     def on_mount(self) -> None:
         # Event handler called when the app is mounted for the first time
-        self.title = "Configurator"
         self.sub_title = "Main Menu"
         print("Main screen mounted.")
 
@@ -131,6 +130,7 @@ class ConfigEditorApp(App):
         print("IDF Branch: " + str(self.setting_idf_branch))
         print("IDF Commit: " + str(self.setting_idf_commit))
         print("IDF Debug Level: " + str(self.setting_debug_level))
+        self.title = "Configurator"
         self.push_screen("main")
 
 def arduino_default_path():
@@ -256,8 +256,11 @@ def main() -> None:
         elif args.arduino_path == arduino_default_path():
             print("Warning: Default Arduino path not found. Disabling copy to Arduino.")
             app.setting_enable_copy = False
+        elif args.arduino_path == "/arduino-esp32": # Docker mount point
+            print("Error: Arduino folder not mounted to /arduino-esp32 in Docker container.")
+            exit(1)
         else:
-            print("Invalid path to Arduino core: " + os.path.abspath(args.arduino_path))
+            print("Error: Invalid path to Arduino core: " + os.path.abspath(args.arduino_path))
             exit(1)
     else:
         app.setting_enable_copy = False
