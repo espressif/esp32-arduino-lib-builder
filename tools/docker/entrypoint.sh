@@ -15,11 +15,11 @@ then
 	done
 fi
 
-# Check if /arduino-esp32 exists
+# Check if the mount point /arduino-esp32 exists
 if [ -d "/arduino-esp32" ]; then
-    # If it exists, add the -p argument
-    exec "$@" -p `stat -c "%u:%g" /arduino-esp32`
+    # If it exists, add the -p and -c arguments
+    exec "$@" -c /arduino-esp32 -p `stat -c "%u:%g" /arduino-esp32`
 else
-    # If it doesn't exist, just execute the command without the -p argument
+    # If it doesn't exist, just execute the command without them
     exec "$@"
 fi
