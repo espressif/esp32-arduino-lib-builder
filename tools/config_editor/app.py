@@ -103,6 +103,7 @@ class ConfigEditorApp(App):
     # Options to be set by the command line arguments
     setting_target = ""
     setting_arduino_path = ""
+    setting_arduino_permissions = ""
     setting_arduino_branch = ""
     setting_idf_branch = ""
     setting_idf_commit = ""
@@ -199,6 +200,13 @@ def main() -> None:
                         required=False,
                         help="Path to arduino-esp32 directory. Default: " + arduino_default_path())
 
+    parser.add_argument("-p", "--arduino-permissions",
+                        metavar="<uid:gid>",
+                        type=str,
+                        default="",
+                        required=False,
+                        help=argparse.SUPPRESS) # Hidden option. It is only supposed to be used by the docker container
+
     parser.add_argument("-A", "--arduino-branch",
                         metavar="<arduino branch>",
                         type=str,
@@ -267,6 +275,7 @@ def main() -> None:
 
     # Set the other options
     app.setting_arduino_path = os.path.abspath(args.arduino_path)
+    app.setting_arduino_permissions = args.arduino_permissions
     app.setting_arduino_branch = args.arduino_branch
     app.setting_idf_branch = args.idf_branch
     app.setting_idf_commit = args.idf_commit

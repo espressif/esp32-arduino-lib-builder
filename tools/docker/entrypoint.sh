@@ -15,19 +15,9 @@ then
 	done
 fi
 
-if [ "$(id -u)" = "0" ] && [ -n "${HOST_UID}" ]; then
-	groupadd -g ${HOST_UID} host_user
-	useradd -m -u ${HOST_UID} -g ${HOST_UID} host_user
-
-	if [ -d /arduino-esp32 ]; then
-		chown -R ${HOST_UID}:${HOST_UID} /arduino-esp32
-	fi
-
-	chown -R ${HOST_UID}:${HOST_UID} /opt/esp
-
-	# Add call to gosu to drop from root user to host_user
-	# when running original entrypoint
-	set -- gosu host_user "$@"
-fi
-
 exec "$@"
+
+if [ -d /arduino-esp32 ]; then
+	echo "Fixing permissions on /arduino-esp32"
+	chown -R `stat -c "%u:%g" /arduino-esp32` /arduino-esp32
+fi

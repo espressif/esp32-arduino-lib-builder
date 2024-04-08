@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import os
+import re
 
 from rich.console import RenderableType
 
@@ -138,6 +139,20 @@ class CompileScreen(Screen):
                 print("Error reading child process errors: " + str(e))
             label.update("Compilation failed for " + target)
         else:
+            regex = r"^[1-9][0-9]*:[1-9][0-9]*$"  # Regex to match the line:column format
+            if self.app.setting_arduino_permissions and re.match(regex, self.app.setting_arduino_permissions):
+                chown_process = None
+                try:
+                    chown_process = subprocess.run(["chown", "-R", self.app.setting_arduino_permissions, self.app.setting_arduino_path])
+                except Exception as e:
+                    print("Error changing permissions: " + str(e))
+
+                if chown_process and chown_process.returncode != 0:
+                    self.print_error("Error changing permissions.")
+                    self.print_error("Please change the ownership of generated files manually")
+                else:
+                    self.print_success("Permissions changed successfully")
+
             self.print_success("Compilation successful for " + target)
             label.update("Compilation successful for " + target)
 

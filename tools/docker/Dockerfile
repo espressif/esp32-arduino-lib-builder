@@ -37,13 +37,6 @@ RUN : \
   && rm -rf /var/lib/apt/lists/* \
   && :
 
-# install gosu for a better su+exec command
-ARG GOSU_VERSION=1.17
-RUN dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')" \
- && wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch" \
- && chmod +x /usr/local/bin/gosu \
- && gosu nobody true
-
 # To build the image for a branch or a tag of the lib-builder, pass --build-arg LIBBUILDER_CLONE_BRANCH_OR_TAG=name.
 # To build the image with a specific commit ID of lib-builder, pass --build-arg LIBBUILDER_CHECKOUT_REF=commit-id.
 # It is possibe to combine both, e.g.:
@@ -60,7 +53,6 @@ ARG LIBBUILDER_CLONE_SHALLOW_DEPTH=1
 ARG LIBBUILDER_TARGETS=all
 
 ENV LIBBUILDER_PATH=/opt/esp/lib-builder
-ENV ARDUINO_PATH=/opt/esp/lib-builder/arduino-esp32
 # Ccache is installed, enable it by default
 ENV IDF_CCACHE_ENABLE=1
 
@@ -83,4 +75,4 @@ COPY entrypoint.sh $LIBBUILDER_PATH/entrypoint.sh
 
 WORKDIR /opt/esp/lib-builder
 ENTRYPOINT [ "/opt/esp/lib-builder/entrypoint.sh" ]
-CMD [ "python3", "tools/config_editor/app.py" ]
+CMD [ "python3", "tools/config_editor/app.py", "-c", "/arduino-esp32" ]
