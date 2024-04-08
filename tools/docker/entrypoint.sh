@@ -15,9 +15,11 @@ then
 	done
 fi
 
-exec "$@"
-
-if [ -d /arduino-esp32 ]; then
-	echo "Fixing permissions on /arduino-esp32"
-	chown -R `stat -c "%u:%g" /arduino-esp32` /arduino-esp32
+# Check if /arduino-esp32 exists
+if [ -d "/arduino-esp32" ]; then
+    # If it exists, add the -p argument
+    exec "$@" -p `stat -c "%u:%g" /arduino-esp32`
+else
+    # If it doesn't exist, just execute the command without the -p argument
+    exec "$@"
 fi

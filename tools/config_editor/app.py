@@ -265,8 +265,8 @@ def main() -> None:
             print("Warning: Default Arduino path not found. Disabling copy to Arduino.")
             app.setting_enable_copy = False
         elif args.arduino_path == "/arduino-esp32": # Docker mount point
-            print("Error: Arduino folder not mounted to /arduino-esp32 in Docker container.")
-            exit(1)
+            print("Warning: Docker mount point not found. Disabling copy to Arduino.")
+            app.setting_enable_copy = False
         else:
             print("Error: Invalid path to Arduino core: " + os.path.abspath(args.arduino_path))
             exit(1)
