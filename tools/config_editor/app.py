@@ -231,10 +231,13 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Set the options in the app
-    if args.target.strip() == "default":
+    # Force targets to be lower case
+    args.target = args.target.lower()
+
+    # Check if the target is valid
+    if args.target == "default":
         args.target = ",".join([x[0] for x in target_choices if x[1]])
-    elif args.target.strip() == "all":
+    elif args.target == "all":
         args.target = ",".join([x[0] for x in target_choices])
 
     app.supported_targets = [x[0] for x in target_choices]
@@ -246,6 +249,7 @@ def main() -> None:
 
     app.setting_target = args.target
 
+    # Check if the Arduino path is valid
     if args.copy:
         if check_arduino_path(args.arduino_path):
             app.setting_enable_copy = True
@@ -258,6 +262,7 @@ def main() -> None:
     else:
         app.setting_enable_copy = False
 
+    # Set the other options
     app.setting_arduino_path = os.path.abspath(args.arduino_path)
     app.setting_arduino_branch = args.arduino_branch
     app.setting_idf_branch = args.idf_branch

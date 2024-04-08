@@ -26,6 +26,7 @@ If you are using MacOS and the application looks weird, check [this guide from T
 
 These command line arguments can be used to pre-configure the application:
 
+```
 Command line arguments:
     -t, --target <target>          Comma-separated list of targets to be compiled.
                                    Choose from: all, esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6, esp32h2. Default: all except esp32c2
@@ -36,3 +37,4 @@ Command line arguments:
     -i, --idf-commit <commit>      Commit of the ESP-IDF repository to be used. Default: set by the build script
     -D, --debug-level <level>      Debug level to be set to ESP-IDF.
                                    Choose from: default, none, error, warning, info, debug, verbose. Default: default
+```
