@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 # switch to root, let the entrypoint drop back to host user
 USER root
+SHELL ["/bin/bash", "-c"]
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -50,7 +51,6 @@ ARG LIBBUILDER_CLONE_BRANCH_OR_TAG=master
 ARG LIBBUILDER_CHECKOUT_REF=
 ARG LIBBUILDER_CLONE_SHALLOW=
 ARG LIBBUILDER_CLONE_SHALLOW_DEPTH=1
-ARG LIBBUILDER_TARGETS=all
 
 ENV LIBBUILDER_PATH=/opt/esp/lib-builder
 # Ccache is installed, enable it by default
