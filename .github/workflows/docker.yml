@@ -67,8 +67,6 @@ jobs:
           push: true
           tags: ${{ env.DOCKERHUB_REPO }}:${{ env.TAG_NAME }}
           platforms: ${{ env.BUILD_PLATFORMS }}
-          cache-from: type=registry,ref=${{ env.DOCKERHUB_REPO }}:${{ env.TAG_NAME }}
-          cache-to: type=inline
           build-args: |
             LIBBUILDER_CLONE_URL=${{ github.server_url }}/${{ github.repository }}.git
             LIBBUILDER_CLONE_BRANCH_OR_TAG=${{ env.CLONE_BRANCH_OR_TAG }}
