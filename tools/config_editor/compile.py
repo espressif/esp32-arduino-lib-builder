@@ -78,7 +78,7 @@ class CompileScreen(Screen):
             self.print_error("No target selected")
             label.update("No target selected")
             return
-        if self.app.setting_target == ",".join(self.app.supported_targets):
+        elif self.app.setting_target == ",".join(self.app.supported_targets):
             target = "all targets"
         else:
             target = self.app.setting_target.replace(",", ", ").upper()
