@@ -57,5 +57,5 @@ if ($env:LIBBUILDER_GIT_SAFE_DIR) {
     $DOCKER_ARGS += '-e', "LIBBUILDER_GIT_SAFE_DIR=$env:LIBBUILDER_GIT_SAFE_DIR"
 }
 
-Write-Output "Running: docker run $($DOCKER_ARGS -join ' ') lucassvaz/esp32-arduino-lib-builder"
-docker run @($DOCKER_ARGS) lucassvaz/esp32-arduino-lib-builder
+Write-Output "Running: docker run $($DOCKER_ARGS -join ' ') espressif/esp32-arduino-lib-builder"
+docker run @($DOCKER_ARGS) espressif/esp32-arduino-lib-builder

@@ -30,5 +30,5 @@ if [ -n "$LIBBUILDER_GIT_SAFE_DIR" ]; then
 	DOCKER_ARGS+=(-e LIBBUILDER_GIT_SAFE_DIR=$LIBBUILDER_GIT_SAFE_DIR)
 fi
 
-echo "Running: docker run ${DOCKER_ARGS[@]} lucassvaz/esp32-arduino-lib-builder"
-docker run ${DOCKER_ARGS[@]} lucassvaz/esp32-arduino-lib-builder
+echo "Running: docker run ${DOCKER_ARGS[@]} espressif/esp32-arduino-lib-builder"
+docker run ${DOCKER_ARGS[@]} espressif/esp32-arduino-lib-builder
