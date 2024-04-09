@@ -1,3 +1,4 @@
+# To Do: Check if it is worth to use espressif/idf as base image (image size will be much bigger)
 FROM ubuntu:22.04
 
 # switch to root, let the entrypoint drop back to host user
