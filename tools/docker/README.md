@@ -10,6 +10,10 @@ This is a Docker image for the [ESP32 Arduino Lib Builder](https://github.com/es
 
 This image contains a copy of the esp32-arduino-lib-builder repository and already include or will obtain all the required tools and dependencies to build the Arduino static libraries.
 
+Currently supported architectures are:
+  - `amd64`
+  - `arm64`
+
 ## Tags
 
 Multiple tags of this image are maintained:
