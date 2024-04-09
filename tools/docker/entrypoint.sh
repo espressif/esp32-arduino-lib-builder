@@ -17,8 +17,8 @@ fi
 
 # Check if the mount point /arduino-esp32 exists
 if [ -d "/arduino-esp32" ] && [[ "$@" == "python3 tools/config_editor/app.py"* ]]; then
-    # Running UI with mount point detected, adding -p and -c arguments
-    exec "$@" -c /arduino-esp32 -p `stat -c "%u:%g" /arduino-esp32`
+    # Running UI with mount point detected, adding -c and --output-permissions arguments
+    exec "$@" -c /arduino-esp32 --output-permissions `stat -c "%u:%g" /arduino-esp32`
 else
     # Running UI without mount point detected or running another command
     exec "$@"

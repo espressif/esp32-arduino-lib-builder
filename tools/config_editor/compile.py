@@ -140,11 +140,11 @@ class CompileScreen(Screen):
             label.update("Compilation failed for " + target)
         else:
             regex = r"^[1-9][0-9]*:[1-9][0-9]*$"  # Regex to match the uid:gid format
-            if self.app.setting_arduino_permissions and re.match(regex, self.app.setting_arduino_permissions):
+            if self.app.setting_output_permissions and re.match(regex, self.app.setting_output_permissions):
                 print_info("Changing permissions of generated files")
                 chown_process = None
                 try:
-                    chown_process = subprocess.run(["chown", "-R", self.app.setting_arduino_permissions, self.app.setting_arduino_path])
+                    chown_process = subprocess.run(["chown", "-R", self.app.setting_output_permissions, self.app.setting_arduino_path])
                     chown_process.wait()
                 except Exception as e:
                     print("Error changing permissions: " + str(e))

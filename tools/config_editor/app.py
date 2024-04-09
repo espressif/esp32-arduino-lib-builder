@@ -103,7 +103,7 @@ class ConfigEditorApp(App):
     # Options to be set by the command line arguments
     setting_target = ""
     setting_arduino_path = ""
-    setting_arduino_permissions = ""
+    setting_output_permissions = ""
     setting_arduino_branch = ""
     setting_idf_branch = ""
     setting_idf_commit = ""
@@ -200,7 +200,7 @@ def main() -> None:
                         required=False,
                         help="Path to arduino-esp32 directory. Default: " + arduino_default_path())
 
-    parser.add_argument("-p", "--arduino-permissions",
+    parser.add_argument("--output-permissions",
                         metavar="<uid:gid>",
                         type=str,
                         default="",
@@ -275,7 +275,7 @@ def main() -> None:
 
     # Set the other options
     app.setting_arduino_path = os.path.abspath(args.arduino_path)
-    app.setting_arduino_permissions = args.arduino_permissions
+    app.setting_output_permissions = args.output_permissions
     app.setting_arduino_branch = args.arduino_branch
     app.setting_idf_branch = args.idf_branch
     app.setting_idf_commit = args.idf_commit
