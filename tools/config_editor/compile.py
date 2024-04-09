@@ -61,6 +61,11 @@ class CompileScreen(Screen):
         self.button_widget.add_class("-success")
         #print("Success: " + message) # For debugging
 
+    def print_warning(self, message: str) -> None:
+        # Print warning message to the RichLog widget
+        self.log_widget.write("[b bright_yellow]" + message)
+        #print("Warning: " + message) # For debugging
+
     def print_info(self, message: str) -> None:
         # Print info message to the RichLog widget
         self.log_widget.write("[b bright_cyan]" + message)
@@ -155,6 +160,10 @@ class CompileScreen(Screen):
                         self.print_error("Please change the ownership of generated files manually")
                     else:
                         self.print_success("Permissions changed successfully")
+                elif self.app.setting_output_permissions == "0:0":
+                    self.print_warning("Permissions settings are set to root (0:0)")
+                    self.print_warning("Please change the ownership of generated files manually")
+                    self.print_warning("If you are compiling for Windows, you may ignore this warning")
                 else:
                     self.print_error("Invalid permissions format: " + self.app.setting_output_permissions)
                     self.print_error("Please change the ownership of generated files manually")
