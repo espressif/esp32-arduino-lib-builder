@@ -9,7 +9,7 @@ on:
       - 'v*.*'
 
 env:
-  # Platforms to build the image for amd64 and arm64.
+  # Build the image for amd64 and arm64
   BUILD_PLATFORMS: linux/amd64,linux/arm64
   DOCKERHUB_REPO: ${{ github.repository_owner }}/esp32-arduino-lib-builder
 
