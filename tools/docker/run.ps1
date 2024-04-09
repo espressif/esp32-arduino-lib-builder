@@ -1,24 +1,54 @@
 # This is an example of how to run the docker container.
 # This script is not part of the container, it is meant to be run on the host machine.
-# Usage: ./run.ps1 <path_to_arduino_esp32>
+# Usage: .\run.ps1 <path_to_arduino_esp32>
 
-if (-not (Test-Path -Path (Get-Command docker).Source)) {
-    Write-Host "ERROR: Docker is not installed! Please install docker first."
+# Exit on error
+$ErrorActionPreference = "stop"
+
+# https://devblogs.microsoft.com/scripting/use-a-powershell-function-to-see-if-a-command-exists/
+# Check if command exists
+Function Test-CommandExists
+{
+    Param ($command)
+    try {
+        if (Get-Command $command) {
+            RETURN $true
+        }
+    }
+    catch {
+        RETURN $false
+    }
+}
+
+# Check if path exists
+Function Test-PathExists
+{
+    Param ($path)
+    try {
+        if (Test-Path -Path $path) {
+            RETURN $true
+        }
+    }
+    catch {
+        RETURN $false
+    }
+}
+
+if (-not (Test-CommandExists docker)) {
+    Write-Host "ERROR: Docker is not installed! Please install docker first." -ForegroundColor red
     exit 1
 }
 
 if ($args.Count -gt 0) {
-    $ARDUINO_DIR = $args[0] -replace '\\', '/'
-} else {
-    $ARDUINO_DIR = ''
+    $ARDUINO_DIR = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($args[0])
 }
 
 $DOCKER_ARGS = @()
 $DOCKER_ARGS += '-it'
 $DOCKER_ARGS += '-e', 'TERM=xterm-256color'
 
-if ((Test-Path $ARDUINO_DIR)) {
-    $DOCKER_ARGS += '-v', "$ARDUINO_DIR:/arduino-esp32"
+if ((Test-PathExists $ARDUINO_DIR)) {
+    $DOCKER_ARGS += '-v', "${ARDUINO_DIR}:/arduino-esp32"
 } else {
     Write-Output "Warning: Invalid arduino directory: '$ARDUINO_DIR'. Ignoring it."
 }
@@ -28,4 +58,4 @@ if ($env:LIBBUILDER_GIT_SAFE_DIR) {
 }
 
 Write-Output "Running: docker run $($DOCKER_ARGS -join ' ') lucassvaz/esp32-arduino-lib-builder"
-#docker run @($DOCKER_ARGS) lucassvaz/esp32-arduino-lib-builder
+docker run @($DOCKER_ARGS) lucassvaz/esp32-arduino-lib-builder
