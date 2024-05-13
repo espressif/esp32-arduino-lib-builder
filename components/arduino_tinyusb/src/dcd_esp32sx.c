@@ -37,9 +37,20 @@
 #include "soc/dport_reg.h"
 #include "soc/gpio_sig_map.h"
 #include "soc/usb_periph.h"
+#include "soc/usb_reg.h"
+#include "soc/usb_struct.h"
 #include "soc/periph_defs.h" // for interrupt source
+#include "soc/usb_wrap_struct.h"
 
 #include "device/dcd.h"
+
+#ifndef USB_OUT_EP_NUM
+#define USB_OUT_EP_NUM ((int) (sizeof(USB0.out_ep_reg) / sizeof(USB0.out_ep_reg[0])))
+#endif
+
+#ifndef USB_IN_EP_NUM
+#define USB_IN_EP_NUM ((int) (sizeof(USB0.in_ep_reg) / sizeof(USB0.in_ep_reg[0])))
+#endif
 
 // Max number of bi-directional endpoints including EP0
 // Note: ESP32S2 specs say there are only up to 5 IN active endpoints include EP0
