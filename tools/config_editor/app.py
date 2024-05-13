@@ -86,7 +86,6 @@ class MainScreen(Screen):
 
     def on_mount(self) -> None:
         # Event handler called when the app is mounted for the first time
-        self.title = "Configurator"
         self.sub_title = "Main Menu"
         print("Main screen mounted.")
 
@@ -104,6 +103,7 @@ class ConfigEditorApp(App):
     # Options to be set by the command line arguments
     setting_target = ""
     setting_arduino_path = ""
+    setting_output_permissions = ""
     setting_arduino_branch = ""
     setting_idf_branch = ""
     setting_idf_commit = ""
@@ -131,6 +131,7 @@ class ConfigEditorApp(App):
         print("IDF Branch: " + str(self.setting_idf_branch))
         print("IDF Commit: " + str(self.setting_idf_commit))
         print("IDF Debug Level: " + str(self.setting_debug_level))
+        self.title = "Configurator"
         self.push_screen("main")
 
 def arduino_default_path():
@@ -199,6 +200,13 @@ def main() -> None:
                         required=False,
                         help="Path to arduino-esp32 directory. Default: " + arduino_default_path())
 
+    parser.add_argument("--output-permissions",
+                        metavar="<uid:gid>",
+                        type=str,
+                        default="",
+                        required=False,
+                        help=argparse.SUPPRESS) # Hidden option. It is only supposed to be used by the docker container
+
     parser.add_argument("-A", "--arduino-branch",
                         metavar="<arduino branch>",
                         type=str,
@@ -256,14 +264,18 @@ def main() -> None:
         elif args.arduino_path == arduino_default_path():
             print("Warning: Default Arduino path not found. Disabling copy to Arduino.")
             app.setting_enable_copy = False
+        elif args.arduino_path == "/arduino-esp32": # Docker mount point
+            print("Warning: Docker mount point not found. Disabling copy to Arduino.")
+            app.setting_enable_copy = False
         else:
-            print("Invalid path to Arduino core: " + os.path.abspath(args.arduino_path))
+            print("Error: Invalid path to Arduino core: " + os.path.abspath(args.arduino_path))
             exit(1)
     else:
         app.setting_enable_copy = False
 
     # Set the other options
     app.setting_arduino_path = os.path.abspath(args.arduino_path)
+    app.setting_output_permissions = args.output_permissions
     app.setting_arduino_branch = args.arduino_branch
     app.setting_idf_branch = args.idf_branch
     app.setting_idf_commit = args.idf_commit

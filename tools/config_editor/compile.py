@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import os
+import re
 
 from rich.console import RenderableType
 
@@ -60,6 +61,11 @@ class CompileScreen(Screen):
         self.button_widget.add_class("-success")
         #print("Success: " + message) # For debugging
 
+    def print_warning(self, message: str) -> None:
+        # Print warning message to the RichLog widget
+        self.log_widget.write("[b bright_yellow]" + message)
+        #print("Warning: " + message) # For debugging
+
     def print_info(self, message: str) -> None:
         # Print info message to the RichLog widget
         self.log_widget.write("[b bright_cyan]" + message)
@@ -72,7 +78,12 @@ class CompileScreen(Screen):
 
         label = self.query_one("#compile-title", Static)
         self.child_process = None
-        if self.app.setting_target == ",".join(self.app.supported_targets):
+
+        if not self.app.setting_target:
+            self.print_error("No target selected")
+            label.update("No target selected")
+            return
+        elif self.app.setting_target == ",".join(self.app.supported_targets):
             target = "all targets"
         else:
             target = self.app.setting_target.replace(",", ", ").upper()
@@ -133,6 +144,30 @@ class CompileScreen(Screen):
                 print("Error reading child process errors: " + str(e))
             label.update("Compilation failed for " + target)
         else:
+            if self.app.setting_output_permissions:
+                regex = r"^[1-9][0-9]*:[1-9][0-9]*$"  # Regex to match the uid:gid format. Note that 0:0 (root) is not allowed
+                if re.match(regex, self.app.setting_output_permissions):
+                    print_info("Setting permissions to: " + self.app.setting_output_permissions)
+                    chown_process = None
+                    try:
+                        chown_process = subprocess.run(["chown", "-R", self.app.setting_output_permissions, self.app.setting_arduino_path])
+                        chown_process.wait()
+                    except Exception as e:
+                        print("Error changing permissions: " + str(e))
+
+                    if chown_process and chown_process.returncode != 0:
+                        self.print_error("Error changing permissions")
+                        self.print_error("Please change the ownership of generated files manually")
+                    else:
+                        self.print_success("Permissions changed successfully")
+                elif self.app.setting_output_permissions == "0:0":
+                    self.print_warning("Permissions settings are set to root (0:0)")
+                    self.print_warning("Please change the ownership of generated files manually")
+                    self.print_warning("If you are compiling for Windows, you may ignore this warning")
+                else:
+                    self.print_error("Invalid permissions format: " + self.app.setting_output_permissions)
+                    self.print_error("Please change the ownership of generated files manually")
+
             self.print_success("Compilation successful for " + target)
             label.update("Compilation successful for " + target)
 
@@ -161,3 +196,8 @@ class CompileScreen(Screen):
             self.button_widget = Button("Back", id="compile-back-button")
             yield self.button_widget
         yield Footer()
+
+    def on_mount(self) -> None:
+        # Event handler called when the screen is mounted
+        print("Compile screen mounted")
+        self.sub_title = "Compilation"
