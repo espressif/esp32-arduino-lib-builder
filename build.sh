@@ -16,6 +16,7 @@ BUILD_DEBUG="default"
 SKIP_ENV=0
 COPY_OUT=0
 ARCHIVE_OUT=0
+IDF_InstallSilent=0 # 0 = not silent, 1 = silent
 if [ -z $DEPLOY_OUT ]; then
     DEPLOY_OUT=0
 fi
@@ -31,6 +32,7 @@ function print_help() {
     echo "       -D     Debug level to be set to ESP-IDF. One of default,none,error,warning,info,debug or verbose"
     echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
     echo "       -t     Set the build target(chip) ex. 'esp32s3' or select multiple targets(chips) by separating them with comma ex. 'esp32,esp32s3,esp32c3'"
+    echo "       -S     Silent mode for installing ESP-IDF and components. Don't use this unless you are sure the install goes without errors"
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
@@ -39,6 +41,10 @@ function print_help() {
 echo -e '\n---------- Check build.sh given ARGUMENTS ----------'
 while getopts ":A:I:i:c:t:b:D:sde" opt; do
     case ${opt} in
+        S )
+            IDF_InstallSilent=1
+            echo -e '-S \t Silent mode for installing ESP-IDF and components'
+            ;;
         s )
             SKIP_ENV=1
             echo -e '-s \t Skip installing/updating of components'
@@ -126,7 +132,7 @@ if [ $SKIP_ENV -eq 0 ]; then
 
     # install esp-idf
     echo '-- Load esp-idf component'
-    IDF_InstallSilent=1 && export IDF_InstallSilent
+    IDF_InstallSilent=1
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '--------------- Components load DONE -----------------\n'
