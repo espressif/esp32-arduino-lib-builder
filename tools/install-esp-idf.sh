@@ -11,8 +11,8 @@ fi
 # CLONE ESP-IDF
 #
 if [ ! -d "$IDF_PATH" ]; then
-	echo "...ESP-IDF installing local copy"
-	echo "   to: $IDF_PATH"
+	echo "...ESP-IDF installing local copy..."
+	echo "   cloning $IDF_REPO_URL to: $IDF_PATH"
 	git clone $IDF_REPO_URL -b $IDF_BRANCH --quiet
 	idf_was_installed="1"
 fi
@@ -28,8 +28,16 @@ fi
 #
 if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	echo "...Updating Tools and Modules"
+	echo "   to same path like above"
 	git -C $IDF_PATH submodule update --init --recursive --quiet
-	$IDF_PATH/install.sh
+	echo "...Installing ESP-IDF Tools"
+	if [ -x $IDFinstallSilent ] ; then
+		$IDF_PATH/install.sh > /dev/null
+	else
+		$IDF_PATH/install.sh 
+	fi
+
+	echo "...export environment variables"
 	export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
 	export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)
 

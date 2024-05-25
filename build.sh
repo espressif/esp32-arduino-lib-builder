@@ -126,6 +126,7 @@ if [ $SKIP_ENV -eq 0 ]; then
 
     # install esp-idf
     echo '-- Load esp-idf component'
+    IDFinstallSilent=1
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '--------------- Components load DONE -----------------\n'
