@@ -123,7 +123,7 @@ if [ $SKIP_ENV -eq 0 ]; then
     # install arduino component
     ./tools/install-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
-exit 1
+
     # install esp-idf
     echo '-- Load esp-idf component'
     source ./tools/install-esp-idf.sh
@@ -140,7 +140,7 @@ fi
 if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
     rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
 fi
-
+exit 1
 # **********************************************
 # *****     BUILD the given TARGETS       ******
 # **********************************************
