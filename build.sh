@@ -122,12 +122,12 @@ if [ $SKIP_ENV -eq 0 ]; then
     echo -e '--------------------- Load the Compontents -----------------------'
     echo '-- Load arduino_tinyusb component'
     # update components from git
-#    ./tools/update-components.sh
+    ./tools/update-components.sh
     if [ $? -ne 0 ]; then exit 1; fi
     
     echo '-- Load arduino-esp32 component'
     # install arduino component
-#    ./tools/install-arduino.sh
+    ./tools/install-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 
     # install esp-idf
@@ -146,18 +146,22 @@ fi
 if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
     rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
 fi
-exit 1
+
 # **********************************************
-# *****     BUILD the given TARGETS       ******
+# *****   Build slected Target NOT ALL   ******
 # **********************************************
 if [ "$BUILD_TYPE" != "all" ]; then
+    echo -e '----------------- BUILD Target-List (NOT ALL) -----------------'
+    
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
         print_help
     fi
 
     # Target Features Configs
+    echo -e '***** Loop over given the Targets *****'
     for target_json in `jq -c '.targets[]' configs/builds.json`; do
+        # Get the target name from the json
         target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
 
         # Check if $target is in the $TARGET array
@@ -179,20 +183,24 @@ if [ "$BUILD_TYPE" != "all" ]; then
             configs="$configs;configs/defconfig.$defconf"
         done
 
-        echo "* Building for $target"
-
+        echo "-- Building for Target:$target"
         # Configs From Arguments
         for conf in $CONFIGS; do
+        echo "   ...Get his configs"
             configs="$configs;configs/defconfig.$conf"
         done
 
-        echo "idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
+        echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
         rm -rf build sdkconfig
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
         if [ $? -ne 0 ]; then exit 1; fi
+        echo "   Building for Target:$target DONE"
     done
+    echo -e '----------------- BUILD Target-List   DONE    -----------------'
     exit 0
 fi
+
+exit 1
 # **********************************************
 # ******     BUILD the Components        *******
 # **********************************************
