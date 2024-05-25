@@ -225,15 +225,18 @@ fi
 # **********************************************
 # ******     BUILD the Components        *******
 # **********************************************
-echo -e '----------------- BUILD Target-List -----------------'
+echo -e '----------------------- BUILD for Named Targets -----------------------'
 
 rm -rf build sdkconfig out
-echo -e "-- Create the Out-folder\n   to$PF$AR_TOOLS/esp32-arduino-libs$eNO" 
+echo -e "-- Create the Out-folder\n   to$ePF$AR_TOOLS/esp32-arduino-libs$eNO" 
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
 
 targets_count=0
-for dummy in `jq -c '.targets[]' configs/builds.json`; do; targets_count=$((targets_count+1));done 
-echo "...Number of Targets= $targets_count" 
+for dummy in `jq -c '.targets[]' configs/builds.json`
+do
+    targets_count=$((targets_count+1))
+done 
+echo "...Number of Targets= $targets_count"
 
 echo -e '**********   Loop over given the Targets   **********'
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
@@ -367,16 +370,20 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         if [ $? -ne 0 ]; then exit 1; fi
     done
-echo "#######################  FINISHED Building for Target :$target #######################\n"
+    echo "#######################  FINISHED Building for Target :$target #######################\n"
 done
+echo -e '--------------------- DONE: BUILD for Named Targets ---------------------\n'
 
 exit 1
 
-#
-# Add components version info
-#
+# **********************************************
+# ******  Add components version info    *******
+# **********************************************#
+echo -e '----------------------- Create Version Info -----------------------'
 rm -rf "$AR_TOOLS/esp32-arduino-libs/versions.txt"
+
 # The lib-builder version
+echo -e '-- Lib-Builder Version'
 component_version="lib-builder: "$(git -C "$AR_ROOT" symbolic-ref --short HEAD || git -C "$AR_ROOT" tag --points-at HEAD)" "$(git -C "$AR_ROOT" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 # ESP-IDF version
@@ -390,6 +397,7 @@ for component in `ls "$AR_COMPS"`; do
     fi
 done
 # TinyUSB version
+echo -e '-- TinyUSB Version'
 component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 # managed components version
@@ -412,6 +420,7 @@ fi
 
 # Generate PlatformIO manifest file
 if [ "$BUILD_TYPE" = "all" ]; then
+    echo -e '-- Generate PlatformIO manifest file'
     pushd $IDF_PATH
     ibr=$(git describe --all --exact-match 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
@@ -421,19 +430,23 @@ if [ "$BUILD_TYPE" = "all" ]; then
 fi
 
 # copy everything to arduino-esp32 installation
+
 if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
+    echo -e '-- Copy all to arduino-esp32 installation'
     ./tools/copy-to-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 # push changes to esp32-arduino-libs and create pull request into arduino-esp32
 if [ $DEPLOY_OUT -eq 1 ]; then
+    echo -e '-- Push changes to esp32-arduino-libs'
     ./tools/push-to-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 # archive the build
 if [ $ARCHIVE_OUT -eq 1 ]; then
+    echo -e '-- Move the build to dist-folder'
     ./tools/archive-build.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
