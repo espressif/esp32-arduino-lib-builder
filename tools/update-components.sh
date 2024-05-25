@@ -8,7 +8,7 @@ source ./tools/config.sh
 echo "...Component TinyUSB installing/updating local copy...."
 TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
 TINYUSB_REPO_DIR="$AR_COMPS/arduino_tinyusb/tinyusb"
-echo -e "   cloning $TINYUSB_REPO_URL\n   to:\e[35m $TINYUSB_REPO_DIR \e[0m"
+echo -e '   cloning $TINYUSB_REPO_URL\n   to:\e[35m $TINYUSB_REPO_DIR \e[0m'
 if [ ! -d "$TINYUSB_REPO_DIR" ]; then
     git clone "$TINYUSB_REPO_URL" "$TINYUSB_REPO_DIR"  --quiet
 else
