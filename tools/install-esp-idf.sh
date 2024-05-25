@@ -54,7 +54,14 @@ fi
 # SETUP ESP-IDF ENV
 #
 echo "...Setting up ESP-IDF Environment with $IDF_PATH/export.sh"
-source $IDF_PATH/export.sh
+if [ $IDF_InstallSilent ] ; then
+	echo "   !Silent install - don't use this as long as your not sure install goes without errors!"
+	source $IDF_PATH/export.sh > /dev/null
+else
+	echo "   NOT Silent install - use this if you want to see the output of the install script!"
+	source $IDF_PATH/export.sh
+fi
+
 #
 # SETUP ARDUINO DEPLOY
 #
