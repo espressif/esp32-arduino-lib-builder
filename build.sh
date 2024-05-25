@@ -290,7 +290,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     echo "   ...Build IDF-Libs for the target"
     rm -rf build sdkconfig
     echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" idf-libs"
-    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs $IDF_BT_addon
+    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
@@ -307,7 +307,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             cp -f "partitions.csv" "$AR_SDK/esp_sr/"
         fi
     fi
-
+exit 1
     # Build Bootloaders
     echo "   ...Build Bootloaders for the target"
     for boot_conf in `echo "$target_json" | jq -c '.bootloaders[]'`; do
