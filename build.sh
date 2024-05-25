@@ -139,22 +139,20 @@ mkdir -p dist
 # ******     LOAD needed Components      *******
 # **********************************************
 if [ $SKIP_ENV -eq 0 ]; then
-    echo -e '--------------------- Load the Compontents -----------------------'
+    echo -e '--------------------------- Load the Compontents -----------------------------'
     echo '-- Load arduino_tinyusb component'
     # update components from git
     ./tools/update-components.sh
-    if [ $? -ne 0 ]; then exit 1; fi
-    
+    if [ $? -ne 0 ]; then exit 1; fi    
     echo '-- Load arduino-esp32 component'
     # install arduino component
     ./tools/install-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
-
     # install esp-idf
     echo '-- Load esp-idf component'
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
-    echo -e   '--------------------- Components load DONE -----------------------\n'
+    echo -e   '--------------------------- Components load DONE -----------------------------\n'
 else
     echo -e '\n--- NO load of Components: Just get the Pathes ----'
     # $IDF_PATH/install.sh
@@ -177,7 +175,6 @@ if [ "$BUILD_TYPE" != "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
         print_help
     fi
-
     # Target Features Configs
     echo -e '***** Loop over given the Targets *****'
     for target_json in `jq -c '.targets[]' configs/builds.json`; do
@@ -192,24 +189,20 @@ if [ "$BUILD_TYPE" != "all" ]; then
                 break
             fi
         done
-
         if [ "$target_in_array" = false ]; then
             # Skip building for targets that are not in the $TARGET array
             continue
         fi
-                
         configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
         for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
             configs="$configs;configs/defconfig.$defconf"
         done
-
         echo "-- Building for Target:$target"
         # Configs From Arguments
         for conf in $CONFIGS; do
         echo "   ...Get his configs"
             configs="$configs;configs/defconfig.$conf"
         done
-
         echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
         rm -rf build sdkconfig
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
@@ -218,15 +211,11 @@ if [ "$BUILD_TYPE" != "all" ]; then
     done
     echo -e '----------------- BUILD Target-List   DONE    -----------------\n'
     exit 0
-fi
-
-
 
 # **********************************************
 # ******     BUILD the Components        *******
 # **********************************************
 echo -e '----------------------- BUILD for Named Targets -----------------------'
-
 rm -rf build sdkconfig out
 echo -e "-- Create the Out-folder\n   to$ePF $AR_TOOLS/esp32-arduino-libs$eNO" 
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
@@ -263,7 +252,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo "-- Skipping Target: $target"
         continue
     fi
-    echo -e "*******************   Building for Target:$ePT $target $eNO *******************"
+    echo -e "*******************   Building for Target:$eTG $target $eNO *******************"
     # Build Main Configs List
     echo "-- 1) Getting his Configs-List"
     main_configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
@@ -281,7 +270,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     fi
     echo "-- 3) Build IDF-Libs for the target"
     rm -rf build sdkconfig
-    echo "   Build with > idf.py -Target:$ePT $target $eNOt"
+    echo "   Build with > idf.py -Target:$eTG $target $eNO"
     echo "     -Config: $idf_libs_configs"
     echo "     -Mode:   idf-libs"
     if [ IDF_BuildTargetSilent ]; then
@@ -293,7 +282,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     # Build SR Models
     if [ "$target" == "esp32s3" ]; then
         echo " -- 3b) Build SR (esp32s3) Models for the target"
-        echo "   Build with > idf.py -Target:$ePT $target $eNOt"
+        echo "   Build with > idf.py -Target:$eTG $target $eNO"
         echo "     -Config: $idf_libs_configs"
         echo "     -Mode:   srmodels_bin"
         if [ IDF_BuildTargetSilent ]; then
@@ -323,7 +312,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         echo " -- 4) Build BootLoader"
         rm -rf build sdkconfig
-        echo "   Build with > idf.py -Target:$ePT $target $eNOt"
+        echo "   Build with > idf.py -Target:$eTG $target $eNO"
         echo "     -Config: $idf_libs_configs"
         echo "     -Mode:   copy-bootloader"     
         if [ IDF_BuildTargetSilent ]; then
@@ -346,7 +335,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
         rm -rf build sdkconfig
-        echo "   Build with > idf.py -Target:$ePT $target $eNOt"
+        echo "   Build with > idf.py -Target:$eTG $target $eNO"
         echo "     -Config: $idf_libs_configs"
         echo "     -Mode:   mem-variant"
         if [ IDF_BuildTargetSilent ]; then
@@ -356,7 +345,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         if [ $? -ne 0 ]; then exit 1; fi
     done
-    echo -e "****************  FINISHED Building for Target:$ePT $target $eNOt  ***************\n"
+    echo -e "****************  FINISHED Building for Target:$eTG $target $eNO  ***************\n"
 done
 echo -e '--------------------- DONE: BUILD for Named Targets ---------------------\n'
 
