@@ -310,7 +310,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
             rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
-        echo " -- 4) Build BootLoader"
+        echo "-- 4) Build BootLoader"
         rm -rf build sdkconfig
         echo "   Build with > idf.py -Target:$eTG $target $eNO"
         echo "     -Config: $idf_libs_configs"
