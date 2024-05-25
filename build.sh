@@ -96,11 +96,11 @@ while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
             echo -e '-S \t Silent mode for installing ESP-IDF and components'
             ;;
         V )
-            IDF_BuildTargetSilent=1 && IDF_BT_addon=" > /dev/null"
+            IDF_BuildTargetSilent=1 && IDF_BT_addon="> /dev/null"
             echo -e '-V \t Silent mode for building Targets with idf.py'
             ;;
         W )
-            IDF_BuildOtherSilent=1 && IDF_BO_addon=" > /dev/null"
+            IDF_BuildOtherSilent=1 && IDF_BO_addon="> /dev/null"
             echo -e '-W \t Silent mode for building OTHER with idf.py'
             ;;
         b )
@@ -287,13 +287,21 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     echo "   ...Build IDF-Libs for the target"
     rm -rf build sdkconfig
     echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" idf-libs"
-    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > ${eIDF_BT_addon}
+    if [ IDF_BuildTargetSilent ]; then
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
+    else
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs;
+    fi
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
         echo "   ...Build SR (esp32s3) Models for the target"
         echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" srmodels_bin"
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin ${eIDF_BT_addon}
+        if [ IDF_BuildTargetSilent ]; then
+            idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin > /dev/null
+        else
+            idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin;
+        fi
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -304,7 +312,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             cp -f "partitions.csv" "$AR_SDK/esp_sr/"
         fi
     fi
-exit 1
+
     # Build Bootloaders
     echo "   ...Build Bootloaders for the target"
     for boot_conf in `echo "$target_json" | jq -c '.bootloaders[]'`; do
@@ -320,7 +328,11 @@ exit 1
         echo "...BootLoader Config: $bootloader_configs"
         rm -rf build sdkconfig
         echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$bootloader_configs\" copy-bootloader"
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader ${eIDF_BT_addon}
+        if [ IDF_BuildOtherSilent ]; then
+            idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader ${eIDF_BT_addon} > /dev/null
+        else
+            idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader ${eIDF_BT_addon}
+        fi
         if [ $? -ne 0 ]; then exit 1; fi
     done
 
@@ -339,7 +351,11 @@ exit 1
         echo "...Build Memory Variant for the targe"
         rm -rf build sdkconfig
         echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$mem_configs\" mem-variant"
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant ${eIDF_BT_addon}
+        if [ IDF_BuildOtherSilent ]; then
+            idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant ${eIDF_BT_addon} > /dev/null
+        else
+            idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant ${eIDF_BT_addon}
+        fi
         if [ $? -ne 0 ]; then exit 1; fi
     done
 echo "-- Building for Target :$target FINISCHED --------------------------------------------------\n"
