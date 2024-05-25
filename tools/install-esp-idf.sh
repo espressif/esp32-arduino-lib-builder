@@ -13,6 +13,7 @@ fi
 if [ ! -d "$IDF_PATH" ]; then
 	echo "...ESP-IDF installing local copy..."
 	echo -e "   cloning $eGI$IDF_REPO_URL$eNO\n   to:$ePF $IDF_PATH $eNO"
+	echo -e "   Checkout Branch:$eTG '$IDF_BRANCH' $eNO"
 	git clone $IDF_REPO_URL -b $IDF_BRANCH --quiet
 	idf_was_installed="1"
 fi

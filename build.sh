@@ -26,7 +26,7 @@ ARCHIVE_OUT=0
 
 IDF_InstallSilent=0     # 0 = not silent, 1 = silent
 IDF_BuildTargetSilent=0 # 0 = not silent, 1 = silent
-IDF_BuildOtherSilent=0  # 0 = not silent, 1 = silent
+IDF_BuildInfosSilent=0  # 0 = not silent, 1 = silent
 
 if [ -z $DEPLOY_OUT ]; then
     DEPLOY_OUT=0
@@ -45,7 +45,7 @@ function print_help() {
     echo "       -t     Set the build target(chip) ex. 'esp32s3' or select multiple targets(chips) by separating them with comma ex. 'esp32,esp32s3,esp32c3'"
     echo "       -S     Silent mode for installing ESP-IDF and components. Don't use this unless you are sure the install goes without errors"
     echo "       -V     Silent mode for Building - Targets with idf.py. Don't use this unless you are sure the compilations goes without errors"
-    echo "       -W     Silent mode for Building - OTHER with idf.py. Don't use this unless you are sure the compilations goes without errors"
+    echo "       -W     Silent mode for Building - Infos. Don't use this unless you are sure the compilations goes without errors"
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
@@ -99,8 +99,8 @@ while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
             echo -e '-V \t Silent mode for building Targets with idf.py'
             ;;
         W )
-            IDF_BuildOtherSilent=1
-            echo -e '-W \t Silent mode for building OTHER with idf.py'
+            IDF_BuildInfosSilent=1
+            echo -e '-W \t Silent mode for building of Infos.'
             ;;
         b )
             b=$OPTARG
@@ -253,6 +253,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         continue
     fi
     echo -e "*******************   Building for Target:$eTG $target $eNO *******************"
+    echo -e "-- Target Out-folder\n   to$ePF $AR_TOOLS/esp32-arduino-libs/$target $eNO" 
     # Build Main Configs List
     echo "-- 1) Getting his Configs-List"
     main_configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
@@ -324,7 +325,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     done
 
     # Build Memory Variants
-    echo "   ...5) Build Memory Variants for the target"
+    echo "-- 5) Build Memory Variants for the target"
     for mem_conf in `echo "$target_json" | jq -c '.mem_variants[]'`; do
         mem_configs="$main_configs"
         for defconf in `echo "$mem_conf" | jq -c '.[]' | tr -d '"'`; do
@@ -376,7 +377,6 @@ done
 echo -e '   ...2) Write TinyUSB Version'
 component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-
 # managed components version
 echo -e '   ...3) Write Managed components version'
 for component in `ls "$AR_MANAGED_COMPS"`; do
@@ -391,25 +391,37 @@ done
 
 # update package_esp32_index.template.json
 if [ "$BUILD_TYPE" = "all" ]; then
-    echo -e '-- Update package_esp32_index.template.json'
-    echo -e "   at: $ePF$AR_TOOLS/esp32-arduino-libs/versions.txt$eNO"
-    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
-    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/"
+    echo -e "-- Wrote 'package_esp32_index.template.json'"
+    echo -e "   at:$ePF $AR_COMPS/arduino/package/package_esp32_index.template.json$eNO"
+    echo -e "   at:$ePF $AR_OUT/"
+    echo -e "   at:$ePF $TOOLS_JSON_OUT/"
+    if [ IDF_BuildInfosSilent ]; then
+        python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" > /dev/null
+        python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" > /dev/null
+    else
+        python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
+        python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/"
+    fi
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 # Generate PlatformIO manifest file
 if [ "$BUILD_TYPE" = "all" ]; then
-    echo -e '-- Generate PlatformIO manifest file'
+    echo -e "-- Generate $eTG PlatformIO$eNO manifest file"
     pushd $IDF_PATH
     ibr=$(git describe --all --exact-match 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
-    popd
-    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
+    if [ IDF_BuildInfosSilent ]; then
+        popd
+        python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" > /dev/null
+    else
+        popd
+        python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
+    if    
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
-# copy everything to arduino-esp32 installation
+# Copy everything to arduino-esp32 installation
 
 if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
     echo -e '-- Copy all to arduino-esp32 installation'
