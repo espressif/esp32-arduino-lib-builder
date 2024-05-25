@@ -116,7 +116,7 @@ if [ $SKIP_ENV -eq 0 ]; then
     echo -e '--------------- Load the Compontents -----------------'
     echo '-- Load arduino_tinyusb component'
     # update components from git
-    ./tools/update-components.sh
+#    ./tools/update-components.sh
     if [ $? -ne 0 ]; then exit 1; fi
     
     echo '-- Load arduino-esp32 component'
@@ -126,7 +126,7 @@ if [ $SKIP_ENV -eq 0 ]; then
 
     # install esp-idf
     echo '-- Load esp-idf component'
-    source ./tools/install-esp-idf.sh
+#    source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '--------------- Components load DONE -----------------\n'
 else
