@@ -30,7 +30,7 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	echo "...Updating Tools and Modules"
 	echo "   to same path like above"
 	git -C $IDF_PATH submodule update --init --recursive --quiet
-	echo "...Installing ESP-IDF Tools"	
+	echo "...Installing ESP-IDF Tools with $IDF_PATH/install.sh"	
 	if [ $IDF_InstallSilent ] ; then
 		echo "   !Silent install - don't use this as long as your not sure install goes without errors!"
 		$IDF_PATH/install.sh > /dev/null
@@ -47,7 +47,7 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	cd $IDF_PATH
 	echo "...Patch difference..."
 	patch --quiet -p1 -N -i ../patches/esp32s2_i2c_ll_master_init.diff
-	cd -
+	#cd -
 fi
 
 #
