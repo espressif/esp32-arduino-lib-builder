@@ -10,6 +10,10 @@ if ! [ -x "$(command -v git)" ]; then
     exit 1
 fi
 
+ePF='\e[35m' # echo Color (Purple) for Path and File outputs
+eNO='\e[0m'  # Reset Color
+
+
 TARGET="all"
 BUILD_TYPE="all"
 BUILD_DEBUG="default"
@@ -122,6 +126,10 @@ while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
     esac
 done
 echo -e   '------------------- ARGUMENTS Done ------------------\n'
+
+echo $IDF_BT_addon
+
+exit 1
 
 shift $((OPTIND -1))
 CONFIGS=$@
