@@ -196,11 +196,12 @@ if [ "$BUILD_TYPE" != "all" ]; then
         if [ $? -ne 0 ]; then exit 1; fi
         echo "   Building for Target:$target DONE"
     done
-    echo -e '----------------- BUILD Target-List   DONE    -----------------'
+    echo -e '----------------- BUILD Target-List   DONE    -----------------\n'
     exit 0
 fi
 
-exit 1
+echo -e '----------------- BUILD BLOCK II    -----------------'
+
 # **********************************************
 # ******     BUILD the Components        *******
 # **********************************************
