@@ -52,12 +52,12 @@ if [ $? -ne 0 ]; then exit 1; fi
 # CLONE/UPDATE ESP32-ARDUINO-LIBS
 #
 if [ ! -d "$IDF_LIBS_DIR" ]; then
-	echo "...Cloning esp32-arduino-libs...$eGI$AR_LIBS_REPO_URL$eNO"
-	echo "   to:$ePF $IDF_LIBS_DIR $eNo"
+	echo -e "...Cloning esp32-arduino-libs...$eGI$AR_LIBS_REPO_URL$eNO"
+	echo -e "   to:$ePF $IDF_LIBS_DIR $eNo"
 	git clone "$AR_LIBS_REPO_URL" "$IDF_LIBS_DIR" --quiet
 else
-	echo "...Updating esp32-arduino-libs..."
-	echo "   in: $dPF$IDF_LIBS_DIR$eNO"
+	echo    "...Updating esp32-arduino-libs..."
+	echo -e "   in: $dPF$IDF_LIBS_DIR$eNO"
 	git -C "$IDF_LIBS_DIR" fetch --quiet && \
 	git -C "$IDF_LIBS_DIR" pull --quiet --ff-only
 fi

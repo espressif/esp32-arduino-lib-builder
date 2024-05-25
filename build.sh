@@ -25,9 +25,7 @@ ARCHIVE_OUT=0
 
 IDF_InstallSilent=0     # 0 = not silent, 1 = silent
 IDF_BuildTargetSilent=0 # 0 = not silent, 1 = silent
-IDF_BT_addon=""
 IDF_BuildOtherSilent=0  # 0 = not silent, 1 = silent
-IDF_BO_addon=""
 
 if [ -z $DEPLOY_OUT ]; then
     DEPLOY_OUT=0
@@ -97,11 +95,11 @@ while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
             echo -e '-S \t Silent mode for installing ESP-IDF and components'
             ;;
         V )
-            IDF_BuildTargetSilent=1 && IDF_BT_addon="> /dev/null"
+            IDF_BuildTargetSilent=1
             echo -e '-V \t Silent mode for building Targets with idf.py'
             ;;
         W )
-            IDF_BuildOtherSilent=1 && IDF_BO_addon="> /dev/null"
+            IDF_BuildOtherSilent=1
             echo -e '-W \t Silent mode for building OTHER with idf.py'
             ;;
         b )
@@ -230,13 +228,14 @@ fi
 echo -e '----------------- BUILD Target-List -----------------'
 
 rm -rf build sdkconfig out
-echo -e "-- Create the Out-folder\n...$AR_TOOLS/esp32-arduino-libs" 
+echo -e "-- Create the Out-folder\n   to$PF$AR_TOOLS/esp32-arduino-libs$eNO" 
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
 
-targets_count=`jq -c '.targets[] | length' configs/builds.json`
+targets_count=0
+for dummy in `jq -c '.targets[]' configs/builds.json`; do; targets_count=$((targets_count+1));done 
 echo "...Number of Targets= $targets_count" 
 
-echo -e '***** Loop over given the Targets *****'
+echo -e '**********   Loop over given the Targets   **********'
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
     target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
     target_skip=$(echo "$target_json" | jq -c '.skip // 0')
@@ -253,7 +252,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
         # If $target is not in the $TARGET array, skip processing
         if [ "$target_in_array" = false ]; then
-            echo "* Skipping Target: $target"
+            echo "-- Skipping Target: $target"
             continue
         fi
     fi
@@ -261,21 +260,21 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     # Skip chips that should not be a part of the final libs
     # WARNING!!! this logic needs to be updated when cron builds are split into jobs
     if [ "$TARGET" = "all" ] && [ $target_skip -eq 1 ]; then
-        echo "* Skipping Target: $target"
+        echo "-- Skipping Target: $target"
         continue
     fi
 
-    echo "-- Building for Target:$target      ------------------------------------------------"
+    echo "###################   Building for Target :$target ###################\n"
 
     # Build Main Configs List
-    echo "   ...Getting his Configs-List"
+    echo "   ...1) Getting his Configs-List"
     main_configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
     for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
         main_configs="$main_configs;configs/defconfig.$defconf"
     done
 
     # Build IDF Libs
-    echo "   ...Getting his Lib-List"
+    echo "   ...2) Getting his Lib-List"
     idf_libs_configs="$main_configs"
     for defconf in `echo "$target_json" | jq -c '.idf_libs[]' | tr -d '"'`; do
         idf_libs_configs="$idf_libs_configs;configs/defconfig.$defconf"
@@ -285,9 +284,11 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
     fi
     
-    echo "   ...Build IDF-Libs for the target"
+    echo "   ...3) Build IDF-Libs for the target"
     rm -rf build sdkconfig
-    echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" idf-libs"
+    echo "      Build with > idf.py"
+    echo "                   -Target: $target"
+    echo "                   -Config:   $idf_libs_configs"
     if [ IDF_BuildTargetSilent ]; then
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
     else
@@ -296,8 +297,11 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
-        echo "   ...Build SR (esp32s3) Models for the target"
-        echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" srmodels_bin"
+        echo "   ...3b) Build SR (esp32s3) Models for the target"
+        echo "      Build with > idf.py"
+        echo "                   -Target: $target"
+        echo "                   -Config:   $idf_libs_configs"
+        echo "                   +Option: srmodels_bin"
         if [ IDF_BuildTargetSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin > /dev/null
         else
@@ -326,9 +330,12 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
 
-        echo "...BootLoader Config: $bootloader_configs"
+        echo "   ...4) Build BootLoader"
         rm -rf build sdkconfig
-        echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$bootloader_configs\" copy-bootloader"
+        echo "      Build with > idf.py"
+        echo "                   -Target: $target"
+        echo "                   -Config: $bootloader_configs"
+        echo "                   +Option: copy-bootloader"     
         if [ IDF_BuildOtherSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader ${eIDF_BT_addon} > /dev/null
         else
@@ -338,7 +345,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     done
 
     # Build Memory Variants
-    echo "   ...Build Memory Variants for the target"
+    echo "   ...5) Build Memory Variants for the target"
     for mem_conf in `echo "$target_json" | jq -c '.mem_variants[]'`; do
         mem_configs="$main_configs"
         for defconf in `echo "$mem_conf" | jq -c '.[]' | tr -d '"'`; do
@@ -348,10 +355,11 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
             rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
-
-        echo "...Build Memory Variant for the targe"
         rm -rf build sdkconfig
-        echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$mem_configs\" mem-variant"
+        echo "      Build with > idf.py"
+        echo "                   -Target: $target"
+        echo "                   -Config: $mem_configs"
+        echo "                   +Option: mem-variant"
         if [ IDF_BuildOtherSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant ${eIDF_BT_addon} > /dev/null
         else
@@ -359,8 +367,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         if [ $? -ne 0 ]; then exit 1; fi
     done
-echo "-- Building for Target :$target FINISCHED --------------------------------------------------\n"
-exit 1
+echo "#######################  FINISHED Building for Target :$target #######################\n"
 done
 
 exit 1
