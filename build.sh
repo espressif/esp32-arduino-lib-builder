@@ -17,7 +17,7 @@ eNO="\033[0m"    # Reset Color
 #export ePF 
 #export eNO
 
-#echo -e "Just test Color $ePF Color fof Path and File $eGI Github links $eNO"
+echo -e "Just test Color $ePF Color fof Path and File $eGI Github links $eNO"
 
 
 
