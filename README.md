@@ -1,17 +1,39 @@
-# ESP32 Arduino Lib Builder [![ESP32 Arduino Libs CI](https://github.com/espressif/esp32-arduino-lib-builder/actions/workflows/push.yml/badge.svg)](https://github.com/espressif/esp32-arduino-lib-builder/actions/workflows/push.yml)
+# ESP32 Arduino Lib Builder
 
-This repository contains the scripts that produce the libraries included with esp32-arduino.
+This repository is a FORK of the espressif/esp32-arduino-lib-builder and contains the scripts that produce the libraries included with esp32-arduino.
 
-Tested on Ubuntu (32 and 64 bit), Raspberry Pi and MacOS.
+It contains modifications in the manner to ... 
+* Get info in Terminal to see what is going on and what folders are created where
+* Get it running on macOS
 
-### Build on Ubuntu and Raspberry Pi
+## Used in macOS Moneytary 12.7.5 (Intel) and macOS Ventura (ARM)
+
+### Install needed tools on macOS:
+* Install [Xcode](https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://apps.apple.com/us/app/xcode/id497799835%3Fmt%3D12&ved=2ahUKEwjwn4vkzqiGAxUahf0HHTb6CXQQFnoECBMQAQ&usg=AOvVaw2fEvMbfRtGhB4SPHYB54NX) as it provide the needed ***build*** cababilities
+* This tools are already installed with macOS or XCode: **git**, ***flex***,  ***bison***, ***gperf*** <br/>
+  - You and simply check if installed example: *git --version*
+* Install [Phython for macOS](https://www.python.org/downloads)
+  - Don't forget to update the Certificates with 'Install Certificates.command' after installation!
+* Install with [Homebrew](https://brew.sh)
+  ```bash 
+  # See what already is installed 
+  brew list # All
+  brew list wget # Check a certain package
+  # Install what is missing - ONE BY ONE!!! NOT in one line like here.. 
+  brew install wget, curl, openssl, ncurses, cmake, ninja, ccache, jq, gsed, gawk, dfu-util
+  ```
+
+* Install Python-Modules with ***pip***
+
+### Build on macOS
+
 ```bash
-sudo apt-get install git wget curl libssl-dev libncurses-dev flex bison gperf python python-pip python-setuptools python-serial python-click python-cryptography python-future python-pyparsing python-pyelftools cmake ninja-build ccache jq
 sudo pip install --upgrade pip
-git clone https://github.com/espressif/esp32-arduino-lib-builder
+git clone https://github.com/twischi/esp32-arduino-lib-builder
 cd esp32-arduino-lib-builder
 ./build.sh
 ```
+
 
 ### Using the User Interface
 
