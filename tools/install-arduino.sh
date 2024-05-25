@@ -57,7 +57,7 @@ if [ ! -d "$IDF_LIBS_DIR" ]; then
 	git clone "$AR_LIBS_REPO_URL" "$IDF_LIBS_DIR" --quiet
 else
 	echo    "...Updating esp32-arduino-libs..."
-	echo -e "   in: $dPF$IDF_LIBS_DIR$eNO"
+	echo -e "   in:$ePF $IDF_LIBS_DIR $eNO"
 	git -C "$IDF_LIBS_DIR" fetch --quiet && \
 	git -C "$IDF_LIBS_DIR" pull --quiet --ff-only
 fi
