@@ -5,7 +5,7 @@ source ./tools/config.sh
 #
 # CLONE/UPDATE ARDUINO
 #
-echo     "...Updating ESP32 Arduino... ---"
+echo     "...Component ESP32 Arduino installing/updating local copy...."
 if [ ! -d "$AR_COMPS/arduino" ]; then
 	echo "   cloning $AR_REPO_URL to: $AR_COMPS/arduino"
 	git clone $AR_REPO_URL "$AR_COMPS/arduino" --quiet

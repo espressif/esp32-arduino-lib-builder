@@ -5,7 +5,7 @@ source ./tools/config.sh
 #
 # CLONE/UPDATE TINYUSB
 #
-echo "...Updating TinyUSB... ---"
+echo "...Component TinyUSB installing/updating local copy...."
 TINYUSB_REPO_URL="https://github.com/hathach/tinyusb.git"
 TINYUSB_REPO_DIR="$AR_COMPS/arduino_tinyusb/tinyusb"
 echo "   cloning $TINYUSB_REPO_URL to: $TINYUSB_REPO_DIR"
