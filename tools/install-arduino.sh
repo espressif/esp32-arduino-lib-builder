@@ -5,18 +5,18 @@ source ./tools/config.sh
 #
 # CLONE/UPDATE ARDUINO
 #
-echo "Updating ESP32 Arduino..."
+echo "...Updating ESP32 Arduino..."
 if [ ! -d "$AR_COMPS/arduino" ]; then
 	git clone $AR_REPO_URL "$AR_COMPS/arduino"
 fi
 
 if [ -z $AR_BRANCH ]; then
 	if [ -z $GITHUB_HEAD_REF ]; then
-		current_branch=`git branch --show-current`
+		current_branch=`git branch --show-current --quiet`
 	else
 		current_branch="$GITHUB_HEAD_REF"
 	fi
-	echo "Current Branch: $current_branch"
+	echo "...Current Branch: $current_branch"
 	if [[ "$current_branch" != "master" && `git_branch_exists "$AR_COMPS/arduino" "$current_branch"` == "1" ]]; then
 		export AR_BRANCH="$current_branch"
 	else
@@ -41,9 +41,9 @@ fi
 
 if [ "$AR_BRANCH" ]; then
 	echo "AR_BRANCH='$AR_BRANCH'"
-	git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH" && \
-	git -C "$AR_COMPS/arduino" fetch && \
-	git -C "$AR_COMPS/arduino" pull --ff-only
+	git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH" --quiet && \
+	git -C "$AR_COMPS/arduino" fetch --quiet && \
+	git -C "$AR_COMPS/arduino" pull --quiet --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 
@@ -51,12 +51,12 @@ if [ $? -ne 0 ]; then exit 1; fi
 # CLONE/UPDATE ESP32-ARDUINO-LIBS
 #
 if [ ! -d "$IDF_LIBS_DIR" ]; then
-	echo "Cloning esp32-arduino-libs..."
-	git clone "$AR_LIBS_REPO_URL" "$IDF_LIBS_DIR"
+	echo "...Cloning esp32-arduino-libs..."
+	git clone "$AR_LIBS_REPO_URL" "$IDF_LIBS_DIR" --quiet
 else
-	echo "Updating esp32-arduino-libs..."
-	git -C "$IDF_LIBS_DIR" fetch && \
-	git -C "$IDF_LIBS_DIR" pull --ff-only
+	echo "...Updating esp32-arduino-libs..."
+	git -C "$IDF_LIBS_DIR" fetch --quiet && \
+	git -C "$IDF_LIBS_DIR" pull --quiet --ff-only
 fi
 if [ $? -ne 0 ]; then exit 1; fi
 

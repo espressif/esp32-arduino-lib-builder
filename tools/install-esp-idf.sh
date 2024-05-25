@@ -30,7 +30,7 @@ fi
 #
 
 if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
-	git -C $IDF_PATH submodule update --init --recursive
+	git -C $IDF_PATH submodule update --init --recursive --quiet
 	$IDF_PATH/install.sh
 	export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
 	export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)
