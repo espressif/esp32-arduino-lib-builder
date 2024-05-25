@@ -12,12 +12,12 @@ fi
 #
 if [ ! -d "$IDF_PATH" ]; then
 	echo "...ESP-IDF installing local copy..."
-	echo -e "   cloning $IDF_REPO_URL \n   to:${ePF} $IDF_PATH ${eNo}"
+	echo -e "   cloning $eGI$IDF_REPO_URL$eNO\n   to:$ePF $IDF_PATH $eNO"
 	git clone $IDF_REPO_URL -b $IDF_BRANCH --quiet
 	idf_was_installed="1"
 fi
 if [ "$IDF_TAG" ]; then
-	echo "   checkout tags/$IDF_TAG of: $IDF_PATH"
+	echo "   checkout tags/$IDF_TAG of: $ePF$IDF_PATH$eNO"
     git -C "$IDF_PATH" checkout "tags/$IDF_TAG" --quiet
     idf_was_installed="1"
 elif [ "$IDF_COMMIT" ]; then
@@ -32,7 +32,7 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	echo "...Updating Tools and Modules"
 	echo "   to same path like above"
 	git -C $IDF_PATH submodule update --init --recursive --quiet
-	echo "...Installing ESP-IDF Tools with $IDF_PATH/install.sh"	
+	echo "...Installing ESP-IDF Tools with $dPF$IDF_PATH/install.sh$eNO"	
 	if [ $IDF_InstallSilent ] ; then
 		echo "   !Silent install - don't use this as long as your not sure install goes without errors!"
 		$IDF_PATH/install.sh > /dev/null

@@ -7,7 +7,7 @@ source ./tools/config.sh
 #
 echo     "...Component ESP32 Arduino installing/updating local copy...."
 if [ ! -d "$AR_COMPS/arduino" ]; then
-	echo -e "   cloning $AR_REPO_URL \n   to:${ePF} $AR_COMPS/arduino ${eNo}"
+	echo -e "   cloning $eGI$AR_REPO_URL$eNO\n   to:$ePF $AR_COMPS/arduino$eNO"
 	git clone $AR_REPO_URL "$AR_COMPS/arduino" --quiet
 fi
 
@@ -52,12 +52,12 @@ if [ $? -ne 0 ]; then exit 1; fi
 # CLONE/UPDATE ESP32-ARDUINO-LIBS
 #
 if [ ! -d "$IDF_LIBS_DIR" ]; then
-	echo "...Cloning esp32-arduino-libs... $AR_LIBS_REPO_URL"
+	echo "...Cloning esp32-arduino-libs...$eGI$AR_LIBS_REPO_URL$eNO"
 	echo "   to:$ePF $IDF_LIBS_DIR $eNo"
 	git clone "$AR_LIBS_REPO_URL" "$IDF_LIBS_DIR" --quiet
 else
-	echo "...Updating esp32-arduino-libs... $IDF_LIBS_DIR"
-	echo "   in: $IDF_LIBS_DIR"
+	echo "...Updating esp32-arduino-libs..."
+	echo "   in: $dPF$IDF_LIBS_DIR$eNO"
 	git -C "$IDF_LIBS_DIR" fetch --quiet && \
 	git -C "$IDF_LIBS_DIR" pull --quiet --ff-only
 fi
