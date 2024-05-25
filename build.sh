@@ -121,12 +121,12 @@ if [ $SKIP_ENV -eq 0 ]; then
     
     echo '-- Load arduino-esp32 component'
     # install arduino component
-    ./tools/install-arduino.sh
+#    ./tools/install-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 
     # install esp-idf
     echo '-- Load esp-idf component'
-#    source ./tools/install-esp-idf.sh
+    source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '--------------- Components load DONE -----------------\n'
 else
