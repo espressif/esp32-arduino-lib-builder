@@ -16,7 +16,13 @@ BUILD_DEBUG="default"
 SKIP_ENV=0
 COPY_OUT=0
 ARCHIVE_OUT=0
-IDF_InstallSilent=0 # 0 = not silent, 1 = silent
+
+IDF_InstallSilent=0     # 0 = not silent, 1 = silent
+IDF_BuildTargetSilent=0 # 0 = not silent, 1 = silent
+IDF_BT_addon =''
+IDF_BT_addon ='> /dev/null'
+IDF_BuildOtherSilent=0  # 0 = not silent, 1 = silent
+
 if [ -z $DEPLOY_OUT ]; then
     DEPLOY_OUT=0
 fi
@@ -33,13 +39,15 @@ function print_help() {
     echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
     echo "       -t     Set the build target(chip) ex. 'esp32s3' or select multiple targets(chips) by separating them with comma ex. 'esp32,esp32s3,esp32c3'"
     echo "       -S     Silent mode for installing ESP-IDF and components. Don't use this unless you are sure the install goes without errors"
+    echo "       -V     Silent mode for Building - Targets with idf.py. Don't use this unless you are sure the compilations goes without errors"
+    echo "       -W     Silent mode for Building - OTHER with idf.py. Don't use this unless you are sure the compilations goes without errors"
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
 
 echo -e '\n---------- Report given ARGUMENTS as Check ----------'
-while getopts ":A:I:i:c:t:b:D:sdeS" opt; do
+while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
@@ -81,6 +89,14 @@ while getopts ":A:I:i:c:t:b:D:sdeS" opt; do
         S )
             IDF_InstallSilent=1
             echo -e '-S \t Silent mode for installing ESP-IDF and components'
+            ;;
+        V )
+            IDF_BuildTargetSilent=1 && IDF_BT_addon ='> /dev/null'
+            echo -e '-V \t Silent mode for building Targets with idf.py'
+            ;;
+        W )
+            IDF_BuildOtherSilent=1
+            echo -e '-W \t Silent mode for building OTHER with idf.py'
             ;;
         b )
             b=$OPTARG
@@ -148,7 +164,7 @@ if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
 fi
 
 # **********************************************
-# *****   Build slected Target NOT ALL   ******
+# *****   Build II ALL   ******
 # **********************************************
 if [ "$BUILD_TYPE" != "all" ]; then
     echo -e '----------------- BUILD Target-List (NOT ALL) -----------------'
@@ -200,15 +216,21 @@ if [ "$BUILD_TYPE" != "all" ]; then
     exit 0
 fi
 
-echo -e '----------------- BUILD BLOCK II    -----------------'
+
 
 # **********************************************
 # ******     BUILD the Components        *******
 # **********************************************
+echo -e '----------------- BUILD Target-List -----------------'
+
 rm -rf build sdkconfig out
+echo -e "-- Create the Out-folder\n...$AR_TOOLS/esp32-arduino-libs" 
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
 
-#targets_count=`jq -c '.targets[] | length' configs/builds.json`
+targets_count=`jq -c '.targets[] | length' configs/builds.json`
+echo "...Number of Targets= $targets_count" 
+
+echo -e '***** Loop over given the Targets *****'
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
     target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
     target_skip=$(echo "$target_json" | jq -c '.skip // 0')
@@ -237,15 +259,17 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         continue
     fi
 
-    echo "* Target: $target"
+    echo "-- Building for Target:$target      ------------------------------------------------"
 
     # Build Main Configs List
+    echo "   ...Getting his Configs-List"
     main_configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
     for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
         main_configs="$main_configs;configs/defconfig.$defconf"
     done
 
     # Build IDF Libs
+    echo "   ...Getting his Lib-List"
     idf_libs_configs="$main_configs"
     for defconf in `echo "$target_json" | jq -c '.idf_libs[]' | tr -d '"'`; do
         idf_libs_configs="$idf_libs_configs;configs/defconfig.$defconf"
@@ -254,14 +278,17 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
         rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
     fi
-
-    echo "* Build IDF-Libs: $idf_libs_configs"
+    
+    echo "   ...Build IDF-Libs for the target"
     rm -rf build sdkconfig
-    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
+    echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" idf-libs"
+    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs $IDF_BT_addon
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
+        echo "   ...Build SR (esp32s3) Models for the target"
+        echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" srmodels_bin"
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin $IDF_BT_addon
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -274,6 +301,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     fi
 
     # Build Bootloaders
+    echo "   ...Build Bootloaders for the target"
     for boot_conf in `echo "$target_json" | jq -c '.bootloaders[]'`; do
         bootloader_configs="$main_configs"
         for defconf in `echo "$boot_conf" | jq -c '.[]' | tr -d '"'`; do
@@ -284,13 +312,15 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
 
-        echo "* Build BootLoader: $bootloader_configs"
+        echo "...BootLoader Config: $bootloader_configs"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
+        echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$bootloader_configs\" copy-bootloader"
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader $IDF_BT_addon
         if [ $? -ne 0 ]; then exit 1; fi
     done
 
     # Build Memory Variants
+    echo "   ...Build Memory Variants for the target"
     for mem_conf in `echo "$target_json" | jq -c '.mem_variants[]'`; do
         mem_configs="$main_configs"
         for defconf in `echo "$mem_conf" | jq -c '.[]' | tr -d '"'`; do
@@ -301,12 +331,17 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
 
-        echo "* Build Memory Variant: $mem_configs"
+        echo "...Build Memory Variant for the targe"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
+        echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$mem_configs\" mem-variant"
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant $IDF_BT_addon
         if [ $? -ne 0 ]; then exit 1; fi
     done
+echo "-- Building for Target :$target FINISCHED --------------------------------------------------\n"
+exit 1
 done
+
+exit 1
 
 #
 # Add components version info
