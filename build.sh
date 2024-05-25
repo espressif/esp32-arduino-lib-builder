@@ -38,7 +38,7 @@ function print_help() {
     exit 1
 }
 
-echo -e '\n---------- Check build.sh given ARGUMENTS ----------'
+echo -e '\n---------- Report given ARGUMENTS as Check ----------'
 while getopts ":A:I:i:c:t:b:D:sdeS" opt; do
     case ${opt} in
         s )
@@ -105,7 +105,7 @@ while getopts ":A:I:i:c:t:b:D:sdeS" opt; do
             ;;
     esac
 done
-echo -e '---------- ARGUMENTS Done: Step into build ----------\n'
+echo -e   '------------------- ARGUMENTS Done ------------------\n'
 
 shift $((OPTIND -1))
 CONFIGS=$@
@@ -119,7 +119,7 @@ mkdir -p dist
 # ******     LOAD needed Components      *******
 # **********************************************
 if [ $SKIP_ENV -eq 0 ]; then
-    echo -e '--------------- Load the Compontents -----------------'
+    echo -e '--------------------- Load the Compontents -----------------------'
     echo '-- Load arduino_tinyusb component'
     # update components from git
 #    ./tools/update-components.sh
@@ -132,10 +132,9 @@ if [ $SKIP_ENV -eq 0 ]; then
 
     # install esp-idf
     echo '-- Load esp-idf component'
-#    IDF_InstallSilent=1
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
-    echo -e   '--------------- Components load DONE -----------------\n'
+    echo -e   '--------------------- Components load DONE -----------------------\n'
 else
     echo -e '\n--- NO load of Components: Just get the Pathes ----'
     # $IDF_PATH/install.sh
