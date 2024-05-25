@@ -13,7 +13,7 @@ fi
 # Define the colors for the echo output 
 export ePF="\033[35m" # echo Color (Purple) for Path and File outputs
 export eGI="\033[32m" # echo Color (Green) for Git-Urls
-export eNO="\033[0m"  # Reset Color
+export eNO="\033[30m" # Back to (Black)
 
 
 echo -e "Just test Color $ePF Color fof Path and File $eGI Github links $eNO"
