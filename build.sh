@@ -12,7 +12,8 @@ fi
 
 ePF='\e[35m' # echo Color (Purple) for Path and File outputs
 eNO='\e[0m'  # Reset Color
-export ePF eNO
+export ePF 
+export eNO
 
 TARGET="all"
 BUILD_TYPE="all"
