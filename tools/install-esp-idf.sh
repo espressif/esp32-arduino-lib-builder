@@ -47,7 +47,9 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	cd $IDF_PATH
 	echo "...Patch difference..."
 	patch --quiet -p1 -N -i ../patches/esp32s2_i2c_ll_master_init.diff
-	#cd -
+	echo "   cd"
+	cd -
+	echo "   done"
 fi
 
 #

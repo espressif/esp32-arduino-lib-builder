@@ -41,10 +41,6 @@ function print_help() {
 echo -e '\n---------- Check build.sh given ARGUMENTS ----------'
 while getopts ":A:I:i:c:t:b:D:sde" opt; do
     case ${opt} in
-        S )
-            IDF_InstallSilent=1
-            echo -e '-S \t Silent mode for installing ESP-IDF and components'
-            ;;
         s )
             SKIP_ENV=1
             echo -e '-s \t Skip installing/updating of components'
@@ -81,6 +77,10 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
         t )
             IFS=',' read -ra TARGET <<< "$OPTARG"
             echo -e '-t \t Set the build target(chip):' ${TARGET[@]}
+            ;;
+        S )
+            IDF_InstallSilent=1
+            echo -e '-S \t Silent mode for installing ESP-IDF and components'
             ;;
         b )
             b=$OPTARG
@@ -132,7 +132,7 @@ if [ $SKIP_ENV -eq 0 ]; then
 
     # install esp-idf
     echo '-- Load esp-idf component'
-    IDF_InstallSilent=1
+#    IDF_InstallSilent=1
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '--------------- Components load DONE -----------------\n'
