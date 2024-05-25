@@ -39,7 +39,7 @@ function print_help() {
 }
 
 echo -e '\n---------- Check build.sh given ARGUMENTS ----------'
-while getopts ":A:I:i:c:t:b:D:sde" opt; do
+while getopts ":A:I:i:c:t:b:D:sdeS" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
