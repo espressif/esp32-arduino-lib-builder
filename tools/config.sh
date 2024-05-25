@@ -1,18 +1,19 @@
 #!/bin/bash
 
-
+# If the IDF_PATH is not set, set it to the current directory
 if [ -z $IDF_PATH ]; then
+    # Set the default path to the ESP-IDF
     export IDF_PATH="$PWD/esp-idf"
 fi
-
+# If the AR_PATH is not set, set it to the current directory
 if [ -z $IDF_BRANCH ]; then
     IDF_BRANCH="release/v5.1"
 fi
-
+# If the AR_PATH is not set, set it to the current directory
 if [ -z $AR_PR_TARGET_BRANCH ]; then
     AR_PR_TARGET_BRANCH="master"
 fi
-
+# If the AR_PATH is not set, set it to the current directory
 if [ -z $IDF_TARGET ]; then
     if [ -f sdkconfig ]; then
         IDF_TARGET=`cat sdkconfig | grep CONFIG_IDF_TARGET= | cut -d'"' -f2`
