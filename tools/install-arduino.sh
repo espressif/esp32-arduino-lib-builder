@@ -41,7 +41,7 @@ if [ -z $AR_BRANCH ]; then
 fi
 
 if [ "$AR_BRANCH" ]; then
-	echo "AR_BRANCH='$AR_BRANCH'"
+	echo "...Checkout BRANCH:'$AR_BRANCH'"
 	git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH" --quiet && \
 	git -C "$AR_COMPS/arduino" fetch --quiet && \
 	git -C "$AR_COMPS/arduino" pull --quiet --ff-only
