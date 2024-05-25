@@ -10,13 +10,12 @@ fi
 #
 # CLONE ESP-IDF
 #
-
 if [ ! -d "$IDF_PATH" ]; then
-	echo "ESP-IDF is not installed! Installing local copy"
+	echo "...ESP-IDF installing local copy"
+	echo "   to: $IDF_PATH"
 	git clone $IDF_REPO_URL -b $IDF_BRANCH --quiet
 	idf_was_installed="1"
 fi
-
 if [ "$IDF_TAG" ]; then
     git -C "$IDF_PATH" checkout "tags/$IDF_TAG" --quiet
     idf_was_installed="1"
@@ -24,12 +23,11 @@ elif [ "$IDF_COMMIT" ]; then
     git -C "$IDF_PATH" checkout "$IDF_COMMIT" --quiet
     commit_predefined="1"
 fi
-
 #
 # UPDATE ESP-IDF TOOLS AND MODULES
 #
-
 if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
+	echo "...Updating Tools and Modules"
 	git -C $IDF_PATH submodule update --init --recursive --quiet
 	$IDF_PATH/install.sh
 	export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
@@ -37,7 +35,8 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 
 	# Temporarily patch the ESP32-S2 I2C LL driver to keep the clock source
 	cd $IDF_PATH
-	patch -p1 -N -i ../patches/esp32s2_i2c_ll_master_init.diff
+	echo "...Patch difference..."
+	patch --quiet -p1 -N -i ../patches/esp32s2_i2c_ll_master_init.diff
 	cd -
 fi
 
