@@ -11,11 +11,10 @@ if ! [ -x "$(command -v git)" ]; then
 fi
 
 # Define the colors for the echo output 
-ePF="\033[35m" # echo Color (Purple) for Path and File outputs
-eGI="\033[32m" # echo Color (Green) for Git-Urls
-eNO="\033[0m"  # Reset Color
-export ePF 
-export eNO
+export ePF="\033[35m" # echo Color (Purple) for Path and File outputs
+export eGI="\033[32m" # echo Color (Green) for Git-Urls
+export eNO="\033[0m"  # Reset Color
+
 
 echo -e "Just test Color $ePF Color fof Path and File $eGI Github links $eNO"
 
