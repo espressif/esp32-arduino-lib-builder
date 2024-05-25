@@ -13,15 +13,15 @@ fi
 
 if [ ! -d "$IDF_PATH" ]; then
 	echo "ESP-IDF is not installed! Installing local copy"
-	git clone $IDF_REPO_URL -b $IDF_BRANCH
+	git clone $IDF_REPO_URL -b $IDF_BRANCH --quiet
 	idf_was_installed="1"
 fi
 
 if [ "$IDF_TAG" ]; then
-    git -C "$IDF_PATH" checkout "tags/$IDF_TAG"
+    git -C "$IDF_PATH" checkout "tags/$IDF_TAG" --quiet
     idf_was_installed="1"
 elif [ "$IDF_COMMIT" ]; then
-    git -C "$IDF_PATH" checkout "$IDF_COMMIT"
+    git -C "$IDF_PATH" checkout "$IDF_COMMIT" --quiet
     commit_predefined="1"
 fi
 

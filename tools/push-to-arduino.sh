@@ -1,11 +1,12 @@
 #!/bin/bash
 source ./tools/config.sh
 
+# Was the GITHUB_TOKEN given? 
 if [ -x $GITHUB_TOKEN ]; then
 	echo "ERROR: GITHUB_TOKEN was not defined"
 	exit 1
 fi
-
+# Was the GITHUB_ACTOR given?
 if ! [ -d "$AR_COMPS/arduino" ]; then
 	echo "ERROR: Target arduino folder does not exist!"
 	exit 1
@@ -30,10 +31,10 @@ if [ $LIBS_HAS_COMMIT == "0" ] || [ $AR_HAS_COMMIT == "0" ]; then
 	if [ "$LIBS_HAS_BRANCH" == "1" ]; then
 		echo "Branch '$AR_NEW_BRANCH_NAME' Already Exists"
 		echo "Switching to esp32-arduino-libs branch '$AR_NEW_BRANCH_NAME'..."
-		git -C "$IDF_LIBS_DIR" checkout $AR_NEW_BRANCH_NAME
+		git -C "$IDF_LIBS_DIR" checkout $AR_NEW_BRANCH_NAME --quiet
 	else
 		echo "Creating esp32-arduino-libs branch '$AR_NEW_BRANCH_NAME'..."
-		git -C "$IDF_LIBS_DIR" checkout -b $AR_NEW_BRANCH_NAME
+		git -C "$IDF_LIBS_DIR" checkout -b $AR_NEW_BRANCH_NAME --quiet
 	fi
 	if [ $? -ne 0 ]; then
 		echo "ERROR: Checkout of branch '$AR_NEW_BRANCH_NAME' failed"
@@ -52,7 +53,7 @@ if [ $LIBS_HAS_COMMIT == "0" ] || [ $AR_HAS_COMMIT == "0" ]; then
 	# did any of the files change?
 	if [ -n "$(git status --porcelain)" ]; then
 		echo "Pushing changes to esp32-arduino-libs branch '$AR_NEW_BRANCH_NAME'..."
-	    git add . && git commit --message "$AR_NEW_COMMIT_MESSAGE" && git push -u origin $AR_NEW_BRANCH_NAME
+	    git add . && git commit --message "$AR_NEW_COMMIT_MESSAGE" && git push -u origin $AR_NEW_BRANCH_NAME --quiet
 		if [ $? -ne 0 ]; then
 		    echo "ERROR: Pushing to branch '$AR_NEW_BRANCH_NAME' failed"
 			exit 1
@@ -94,7 +95,7 @@ if [ $LIBS_HAS_COMMIT == "0" ] || [ $AR_HAS_COMMIT == "0" ]; then
 	    echo "No changes in esp32-arduino-libs branch '$AR_NEW_BRANCH_NAME'"
 	    if [ $LIBS_HAS_BRANCH == "0" ]; then
 	    	echo "Delete created branch '$AR_NEW_BRANCH_NAME'"
-	    	git branch -d $AR_NEW_BRANCH_NAME
+	    	git branch -d $AR_NEW_BRANCH_NAME --quiet
 	    fi
 	    exit 0
 	fi
@@ -109,10 +110,10 @@ if [ $AR_HAS_COMMIT == "0" ]; then
 	# create or checkout the branch
 	if [ ! $AR_HAS_BRANCH == "0" ]; then
 		echo "Switching to arduino branch '$AR_NEW_BRANCH_NAME'..."
-		git -C "$AR_COMPS/arduino" checkout $AR_NEW_BRANCH_NAME
+		git -C "$AR_COMPS/arduino" checkout $AR_NEW_BRANCH_NAME --quiet
 	else
 		echo "Creating arduino branch '$AR_NEW_BRANCH_NAME'..."
-		git -C "$AR_COMPS/arduino" checkout -b $AR_NEW_BRANCH_NAME
+		git -C "$AR_COMPS/arduino" checkout -b $AR_NEW_BRANCH_NAME --quiet
 	fi
 	if [ $? -ne 0 ]; then
 	    echo "ERROR: Checkout of branch '$AR_NEW_BRANCH_NAME' failed"
@@ -128,7 +129,7 @@ if [ $AR_HAS_COMMIT == "0" ]; then
 	# did any of the files change?
 	if [ -n "$(git status --porcelain)" ]; then
 		echo "Pushing changes to branch '$AR_NEW_BRANCH_NAME'..."
-	    git add . && git commit --message "$AR_NEW_COMMIT_MESSAGE" && git push -u origin $AR_NEW_BRANCH_NAME
+	    git add . && git commit --message "$AR_NEW_COMMIT_MESSAGE" && git push -u origin $AR_NEW_BRANCH_NAME --quiet
 		if [ $? -ne 0 ]; then
 		    echo "ERROR: Pushing to branch '$AR_NEW_BRANCH_NAME' failed"
 			exit 1
@@ -137,7 +138,7 @@ if [ $AR_HAS_COMMIT == "0" ]; then
 	    echo "No changes in branch '$AR_NEW_BRANCH_NAME'"
 	    if [ $AR_HAS_BRANCH == "0" ]; then
 	    	echo "Delete created branch '$AR_NEW_BRANCH_NAME'"
-	    	git branch -d $AR_NEW_BRANCH_NAME
+	    	git branch -d $AR_NEW_BRANCH_NAME --quiet
 	    fi
 	    exit 0
 	fi
