@@ -287,13 +287,13 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     echo "   ...Build IDF-Libs for the target"
     rm -rf build sdkconfig
     echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" idf-libs"
-    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
+    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > ${eIDF_BT_addon}
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
         echo "   ...Build SR (esp32s3) Models for the target"
         echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$idf_libs_configs\" srmodels_bin"
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin $IDF_BT_addon
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin ${eIDF_BT_addon}
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -320,7 +320,7 @@ exit 1
         echo "...BootLoader Config: $bootloader_configs"
         rm -rf build sdkconfig
         echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$bootloader_configs\" copy-bootloader"
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader $IDF_BT_addon
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader ${eIDF_BT_addon}
         if [ $? -ne 0 ]; then exit 1; fi
     done
 
@@ -339,7 +339,7 @@ exit 1
         echo "...Build Memory Variant for the targe"
         rm -rf build sdkconfig
         echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$mem_configs\" mem-variant"
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant $IDF_BT_addon
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant ${eIDF_BT_addon}
         if [ $? -ne 0 ]; then exit 1; fi
     done
 echo "-- Building for Target :$target FINISCHED --------------------------------------------------\n"
