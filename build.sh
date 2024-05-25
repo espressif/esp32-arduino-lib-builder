@@ -127,10 +127,6 @@ while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
 done
 echo -e   '------------------- ARGUMENTS Done ------------------\n'
 
-echo $IDF_BT_addon
-
-exit 1
-
 shift $((OPTIND -1))
 CONFIGS=$@
 
