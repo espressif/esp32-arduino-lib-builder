@@ -43,13 +43,12 @@ fi
 #
 # SETUP ESP-IDF ENV
 #
-
+echo "...Setting up ESP-IDF Environment with $IDF_PATH/export.sh"
 source $IDF_PATH/export.sh
-
 #
 # SETUP ARDUINO DEPLOY
 #
-
+echo "...Setting up Arduino Deploy"
 if [ "$GITHUB_EVENT_NAME" == "schedule" ] || [ "$GITHUB_EVENT_NAME" == "repository_dispatch" -a "$GITHUB_EVENT_ACTION" == "deploy" ]; then
 	# format new branch name and pr title
 	if [ -x $commit_predefined ]; then #commit was not specified at build time
