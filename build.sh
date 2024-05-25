@@ -19,9 +19,9 @@ ARCHIVE_OUT=0
 
 IDF_InstallSilent=0     # 0 = not silent, 1 = silent
 IDF_BuildTargetSilent=0 # 0 = not silent, 1 = silent
-IDF_BT_addon =''
-IDF_BT_addon ='> /dev/null'
+IDF_BT_addon=''
 IDF_BuildOtherSilent=0  # 0 = not silent, 1 = silent
+IDF_BO_addon=''
 
 if [ -z $DEPLOY_OUT ]; then
     DEPLOY_OUT=0
@@ -91,11 +91,11 @@ while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
             echo -e '-S \t Silent mode for installing ESP-IDF and components'
             ;;
         V )
-            IDF_BuildTargetSilent=1 && IDF_BT_addon ='> /dev/null'
+            IDF_BuildTargetSilent=1 && IDF_BT_addon='> /dev/null'
             echo -e '-V \t Silent mode for building Targets with idf.py'
             ;;
         W )
-            IDF_BuildOtherSilent=1
+            IDF_BuildOtherSilent=1 && IDF_BO_addon='> /dev/null'
             echo -e '-W \t Silent mode for building OTHER with idf.py'
             ;;
         b )
