@@ -113,7 +113,7 @@ mkdir -p dist
 # ******     LOAD needed Components      *******
 # **********************************************
 if [ $SKIP_ENV -eq 0 ]; then
-    echo -e '---------- Load the Compontents ------------'
+    echo -e '--------------- Load the Compontents -----------------'
     echo '-- Load arduino_tinyusb component'
     # update components from git
     ./tools/update-components.sh
@@ -128,7 +128,7 @@ exit 1
     echo '-- Load esp-idf component'
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
-    echo -e   '---------- Components load DONE ------------\n'
+    echo -e   '--------------- Components load DONE -----------------\n'
 else
     echo -e '\n--- NO load of Components: Just get the Pathes ----'
     # $IDF_PATH/install.sh
