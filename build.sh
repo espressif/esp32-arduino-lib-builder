@@ -36,35 +36,45 @@ function print_help() {
     exit 1
 }
 
+echo -e '\n---------- Check build.sh given ARGUMENTS ----------'
 while getopts ":A:I:i:c:t:b:D:sde" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
+            echo -e '-s \t Skip installing/updating of components'
             ;;
         d )
             DEPLOY_OUT=1
+            echo -e '-d \t Deploy the build to github arduino-esp32'
             ;;
         e )
             ARCHIVE_OUT=1
+            echo -e '-e \t Archive the build to dist-Folder'
             ;;
         c )
             export ESP32_ARDUINO="$OPTARG"
+            echo -e '-c \t Copy the build to arduino-esp32 folder:' $ESP32_ARDUINO
             COPY_OUT=1
             ;;
         A )
             export AR_BRANCH="$OPTARG"
+            echo -e '-A \t Set branch of arduino-esp32 for compilation:' $AR_BRANCH
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
+            echo -e '-I \t Set branch of ESP-IDF for compilation:' $IDF_BRANCH
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
+            echo -e '-i \t Set commit of ESP-IDF for compilation:' $IDF_COMMIT
             ;;
         D )
             BUILD_DEBUG="$OPTARG"
+            echo -e '-D \t Debug level to be set to ESP-IDF:' $BUILD_DEBUG
             ;;
         t )
             IFS=',' read -ra TARGET <<< "$OPTARG"
+            echo -e '-t \t Set the build target(chip):' ${TARGET[@]}
             ;;
         b )
             b=$OPTARG
@@ -77,6 +87,7 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
                 print_help
             fi
             BUILD_TYPE="$b"
+            echo -e '-b \t Set the build type:' $BUILD_TYPE
             ;;
         \? )
             echo "Invalid option: -$OPTARG" 1>&2
@@ -88,37 +99,51 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
             ;;
     esac
 done
+echo -e '---------- ARGUMENTS Done: Step into build ----------\n'
+
 shift $((OPTIND -1))
 CONFIGS=$@
 
 # Output the TARGET array
-echo "TARGET(s): ${TARGET[@]}"
+#echo "TARGET(s): ${TARGET[@]}"
 
 mkdir -p dist
 
+# **********************************************
+# ******     LOAD needed Components      *******
+# **********************************************
 if [ $SKIP_ENV -eq 0 ]; then
-    echo "* Installing/Updating ESP-IDF and all components..."
+    echo -e '---------- Load the Compontents ------------'
+    echo '-- Load arduino_tinyusb component'
     # update components from git
     ./tools/update-components.sh
     if [ $? -ne 0 ]; then exit 1; fi
 
+    echo '-- Load arduino-esp32 component'
     # install arduino component
     ./tools/install-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 
     # install esp-idf
+    echo '-- Load esp-idf component'
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
+    echo -e   '---------- Components load DONE ------------\n'
 else
+    echo -e '\n--- NO load of Components: Just get the Pathes ----'
     # $IDF_PATH/install.sh
     # source $IDF_PATH/export.sh
     source ./tools/config.sh
+    echo -e   '--- NO load of Components: DONE--------------------\n'
 fi
-
+# Hash of managed components
 if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
     rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
 fi
 
+# **********************************************
+# *****     BUILD the given TARGETS       ******
+# **********************************************
 if [ "$BUILD_TYPE" != "all" ]; then
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
@@ -162,7 +187,9 @@ if [ "$BUILD_TYPE" != "all" ]; then
     done
     exit 0
 fi
-
+# **********************************************
+# ******     BUILD the Components        *******
+# **********************************************
 rm -rf build sdkconfig out
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
 
