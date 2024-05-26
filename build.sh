@@ -139,7 +139,7 @@ mkdir -p dist
 # ******     LOAD needed Components      *******
 # **********************************************
 if [ $SKIP_ENV -eq 0 ]; then
-    echo -e '--------------------------- Load the Compontents -----------------------------'
+    echo -e '----------------------------- Load the Compontents  -------------------------------'
     echo '-- Load arduino_tinyusb component'
     # update components from git
     ./tools/update-components.sh
@@ -152,7 +152,7 @@ if [ $SKIP_ENV -eq 0 ]; then
     echo '-- Load esp-idf component'
     source ./tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
-    echo -e   '--------------------------- Components load DONE -----------------------------\n'
+    echo -e   '----------------------------- Components load DONE  -------------------------------\n'
 else
     echo -e '\n--- NO load of Components: Just get the Pathes ----'
     # $IDF_PATH/install.sh
@@ -215,7 +215,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
 # **********************************************
 # ******     BUILD the Components        *******
 # **********************************************
-echo -e '----------------------- BUILD for Named Targets -----------------------'
+echo -e '----------------------------- BUILD for Named Targets -----------------------------'
 rm -rf build sdkconfig out
 echo -e "-- Create the Out-folder\n   to$ePF $AR_TOOLS/esp32-arduino-libs$eNO" 
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
@@ -348,13 +348,13 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     done
     echo -e "****************  FINISHED Building for Target:$eTG $target $eNO  ***************\n"
 done
-echo -e '--------------------- DONE: BUILD for Named Targets ---------------------\n'
-
+echo -e '-------------------------- DONE: BUILD for Named Targets --------------------------\n'
 
 # **********************************************
 # ******  Add components version info    *******
 # **********************************************#
-echo -e '----------------------- Create Version Info -----------------------'
+echo -e '------------------------------- Create Version Info -------------------------------'
+
 echo -e '-- Create NEW Version Info-File'
 echo -e "   at: $ePF$AR_TOOLS/esp32-arduino-libs/versions.txt$eNO"
 rm -rf "$AR_TOOLS/esp32-arduino-libs/versions.txt"
@@ -417,7 +417,7 @@ if [ "$BUILD_TYPE" = "all" ]; then
     else
         popd
         python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
-    if    
+    fi    
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
@@ -442,3 +442,4 @@ if [ $ARCHIVE_OUT -eq 1 ]; then
     ./tools/archive-build.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
+echo -e '---------------------------- DONE Create Version Info -----------------------------'
