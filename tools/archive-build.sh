@@ -5,7 +5,7 @@ IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" 
 idf_version_string=${IDF_BRANCH//\//_}"-$IDF_COMMIT"
 
 archive_path="dist/arduino-esp32-libs-$1-$idf_version_string.tar.gz"
-echo -e "   to:$ePF $archive_path$eNO"
+echo -e "   to:$ePF   $archive_path$eNO"
 
 mkdir -p dist && rm -rf "$archive_path"
 if [ -d "out" ]; then

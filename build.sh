@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source extractConfigFNs.sh # For pretty output of compiler configs
+
 if ! [ -x "$(command -v python3)" ]; then
     echo "ERROR: python is not installed! Please install python first."
     exit 1
@@ -282,7 +284,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     echo "-- 3) Build IDF-Libs for the target"
     rm -rf build sdkconfig
     echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
-    echo -e "     -Config:$eUS $idf_libs_configs $eNO"
+    echo -e "     -Config:$eUS "$(extractFileName $idf_libs_configs)"$eNO"
+    #echo -e "     -Config:$eUS $idf_libs_configs $eNO"
     echo    "     -Mode:   idf-libs"
     if [ $IDF_BuildTargetSilent ]; then
         echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
@@ -295,7 +298,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     if [ "$target" == "esp32s3" ]; then
         echo " -- 3b) Build SR (esp32s3) Models for the target"
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
-        echo -e "     -Config:$eUS $idf_libs_configs $eNO"
+        echo -e "     -Config:$eUS "$(extractFileName $idf_libs_configs)"$eNO"
+        #echo -e "     -Config:$eUS $idf_libs_configs $eNO"
         echo    "     -Mode:   srmodels_bin"
         if [ $IDF_BuildTargetSilent ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
@@ -327,7 +331,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo "-- 4.$countBootloaders) Build BootLoader"
         rm -rf build sdkconfig
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
-        echo -e "     -Config:$eUS $bootloader_configs $eNO"
+        echo -e "     -Config:$eUS "$(extractFileName $bootloader_configs)"$eNO"
+        #echo -e "     -Config:$eUS $bootloader_configs $eNO"
         echo    "     -Mode:   copy-bootloader"     
         if [ $IDF_BuildTargetSilent ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
@@ -351,7 +356,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         rm -rf build sdkconfig
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
-        echo -e "     -Config:$eUS $mem_configs $eNO"
+        echo -e "     -Config:$eUS "$(extractFileName $mem_configs)"$eNO"
+        #echo -e "     -Config:$eUS $mem_configs $eNO"
         echo    "     -Mode:   mem-variant"
         if [ $IDF_BuildTargetSilent ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
@@ -426,7 +432,7 @@ if [ "$BUILD_TYPE" = "all" ]; then
     ibr=$(git describe --all --exact-match 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
     popd
-    echo -e "   at: $ePF $TOOLS_JSON_OUT/$eNO"
+    echo -e "   at:  $ePF $TOOLS_JSON_OUT/$eNO"
     echo -e "   with:$eUS ./tools/gen_platformio_manifest.py $eNO"
     if [ $IDF_BuildInfosSilent ]; then
         echo -e "  $eTG Silent Info creation$eNO - don't use this as long as your not sure creation goes without errors!"
@@ -440,7 +446,7 @@ fi
 # Copy everything to arduino-esp32 installation
 if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
     echo -e '-- Copy all to arduino-esp32 installation path'
-    echo -e "   at: $ePF $ESP32_ARDUINO $eNO"
+    echo -e "   at:  $ePF $ESP32_ARDUINO $eNO"
     echo -e "   with:$eUS ./tools/copy-to-arduino.sh $eNO"
     ./tools/copy-to-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
