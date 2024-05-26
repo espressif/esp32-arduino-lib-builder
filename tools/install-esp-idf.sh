@@ -33,9 +33,10 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	echo "...Updating Tools and Modules"
 	echo "   to same path like above"
 	git -C $IDF_PATH submodule update --init --recursive --quiet
-	echo -e "...Installing ESP-IDF Tools with $dPF$IDF_PATH/install.sh$eNO"	
+	echo -e "...Installing ESP-IDF Tools"
+	echo -e "   with:$eUS $IDF_PATH/install.sh$eNO"	
 	if [ $IDF_InstallSilent ] ; then
-		echo "   !Silent install - don't use this as long as your not sure install goes without errors!"
+		echo "  $eTG Silent install$eNO - don't use this as long as your not sure install goes without errors!"
 		$IDF_PATH/install.sh > /dev/null
 	else
 		echo "   NOT Silent install - use this if you want to see the output of the install script!"
@@ -56,9 +57,10 @@ fi
 #
 # SETUP ESP-IDF ENV
 #
-echo "...Setting up ESP-IDF Environment with $IDF_PATH/export.sh"
+echo -e "...Setting up ESP-IDF Environment"
+echo -e "   with:$eUS $IDF_PATH/export.sh$eNO"
 if [ $IDF_InstallSilent ] ; then
-	echo "   !Silent install - don't use this as long as your not sure install goes without errors!"
+	echo -e "  $eTG Silent install$eNO - don't use this as long as your not sure install goes without errors!"
 	source $IDF_PATH/export.sh > /dev/null
 else
 	echo "   NOT Silent install - use this if you want to see the output of the install script!"
