@@ -211,7 +211,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
     done
     echo -e '----------------- BUILD Target-List   DONE    -----------------\n'
     exit 0
-
+fi
 # **********************************************
 # ******     BUILD the Components        *******
 # **********************************************
@@ -274,7 +274,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     echo "   Build with > idf.py -Target:$eTG $target $eNO"
     echo "     -Config: $idf_libs_configs"
     echo "     -Mode:   idf-libs"
-    if [ IDF_BuildTargetSilent ]; then
+    if [ $IDF_BuildTargetSilent ]; then
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
     else
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs;
@@ -286,7 +286,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo "   Build with > idf.py -Target:$eTG $target $eNO"
         echo "     -Config: $idf_libs_configs"
         echo "     -Mode:   srmodels_bin"
-        if [ IDF_BuildTargetSilent ]; then
+        if [ $IDF_BuildTargetSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin > /dev/null
         else
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin;
@@ -316,7 +316,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo "   Build with > idf.py -Target:$eTG $target $eNO"
         echo "     -Config: $idf_libs_configs"
         echo "     -Mode:   copy-bootloader"     
-        if [ IDF_BuildTargetSilent ]; then
+        if [ $IDF_BuildTargetSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader > /dev/null
         else
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
@@ -339,7 +339,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo "   Build with > idf.py -Target:$eTG $target $eNO"
         echo "     -Config: $idf_libs_configs"
         echo "     -Mode:   mem-variant"
-        if [ IDF_BuildTargetSilent ]; then
+        if [ $IDF_BuildTargetSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant > /dev/null
         else
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
@@ -442,4 +442,4 @@ if [ $ARCHIVE_OUT -eq 1 ]; then
     ./tools/archive-build.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
-echo -e '---------------------------- DONE Create Version Info -----------------------------'
+#echo -e '---------------------------- DONE Create Version Info -----------------------------'
