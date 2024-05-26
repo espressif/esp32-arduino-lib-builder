@@ -15,13 +15,13 @@ export eGI="\x1B[32m" # echo Color (Green) for Git-Urls
 export eTG="\x1B[31m" # echo Color (Red) for Targets
 export eNO="\x1B[0m"  # Back to    (Black)
 
-echo -e   "~~~~~~~~~~~~~~~~ $eTG Starting of the build.sh $eNO to get the Arduino-Libs ~~~~~~~~~~~~~~~~"
+echo -e "\n~~~~~~~~~~~~~~~~ $eTG Starting of the build.sh $eNO to get the Arduino-Libs ~~~~~~~~~~~~~~~~"
 echo -e   "~~ Purpose: Get the Arduino-Libs for manifold  ESP32-Variants > Targets"
 echo -e   "~~          It will generate 'Static Libraries'-Files (*.a)"
 echo -e   "~~          along with may others neeed files."
 echo -e   "~~ Steps of Sricpt:"
 echo -e   "~~          1) Check & Process Parameter with calling build.sh"
-echo -e   "~~          2) Load or Update  Components/Tools to do compile"
+echo -e   "~~          2) Load or Update Components/Tools to do compile"
 echo -e   "~~          3) Compile the Targets with the given Configurations"
 echo -e   "~~          4) Create and move created files"
 echo -e   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
