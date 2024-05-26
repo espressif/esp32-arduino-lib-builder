@@ -285,7 +285,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     rm -rf build sdkconfig
     echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
     echo -e "     -Config:$eUS "$(extractFileName $idf_libs_configs)"$eNO"
-    #echo -e "     -Config:$eUS $idf_libs_configs $eNO"
     echo    "     -Mode:   idf-libs"
     if [ $IDF_BuildTargetSilent ]; then
         echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
@@ -299,7 +298,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo " -- 3b) Build SR (esp32s3) Models for the target"
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $idf_libs_configs)"$eNO"
-        #echo -e "     -Config:$eUS $idf_libs_configs $eNO"
         echo    "     -Mode:   srmodels_bin"
         if [ $IDF_BuildTargetSilent ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
@@ -332,7 +330,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         rm -rf build sdkconfig
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $bootloader_configs)"$eNO"
-        #echo -e "     -Config:$eUS $bootloader_configs $eNO"
         echo    "     -Mode:   copy-bootloader"     
         if [ $IDF_BuildTargetSilent ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
@@ -357,7 +354,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         rm -rf build sdkconfig
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $mem_configs)"$eNO"
-        #echo -e "     -Config:$eUS $mem_configs $eNO"
         echo    "     -Mode:   mem-variant"
         if [ $IDF_BuildTargetSilent ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
