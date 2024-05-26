@@ -392,7 +392,7 @@ done
 
 # update package_esp32_index.template.json
 if [ "$BUILD_TYPE" = "all" ]; then
-    echo -e "-- Wrote 'package_esp32_index.template.json'"
+    echo -e "-- Write 'package_esp32_index.template.json'"
     echo -e "   at:$ePF $AR_COMPS/arduino/package/package_esp32_index.template.json$eNO"
     echo -e "   at:$ePF $AR_OUT/$eNO"
     echo -e "   at:$ePF $TOOLS_JSON_OUT/$eNO"
