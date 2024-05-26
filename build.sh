@@ -407,22 +407,21 @@ fi
 
 # Generate PlatformIO manifest file
 if [ "$BUILD_TYPE" = "all" ]; then
-    echo -e "-- Generate $eTG PlatformIO$eNO manifest file"
+    echo -e "-- Generate$eTG PlatformIO$eNO manifest file"
+    echo -e "   at: $ePF $TOOLS_JSON_OUT/$eNO"
     pushd $IDF_PATH
     ibr=$(git describe --all --exact-match 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
+    popd
     if [ $IDF_BuildInfosSilent ]; then
-        popd > /dev/null
         python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" > /dev/null
     else
-        popd
         python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
     fi    
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 # Copy everything to arduino-esp32 installation
-
 if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
     echo -e '-- Copy all to arduino-esp32 installation'
     ./tools/copy-to-arduino.sh

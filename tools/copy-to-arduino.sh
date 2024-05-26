@@ -14,7 +14,8 @@ if ! [ -d "$ESP32_ARDUINO" ]; then
 	exit 1
 fi
 
-echo "Installing new libraries to $ESP32_ARDUINO"
+echo -e "   Installing new libraries"
+echo -e "   to:$ePF $ESP32_ARDUINO/package/package_esp32_index.template.json $eNO"
 
 rm -rf $ESP32_ARDUINO/package/package_esp32_index.template.json && \
 cp -f $AR_OUT/package_esp32_index.template.json $ESP32_ARDUINO/package/package_esp32_index.template.json
