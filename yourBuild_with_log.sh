@@ -7,7 +7,7 @@ eNO="\x1B[0m"  # Back to    (Black)
 # ---------------------------------------
 # *** Set the Folder for the Log File *** 
 # ---------------------------------------
-logFolder=$(pwd)/libBuildLogs && logFolder=$(eval echo "$logFolder") # Set the Folder for the Log File
+logFolder=$(pwd)/../libBuildLogs && logFolder=$(eval echo "$logFolder") # Set the Folder for the Log File
 
 #---------------------------------------------------------------------------------- 
 # Create a new file with the current timestamp to take the output of an Bash sricpt
