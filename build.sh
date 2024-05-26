@@ -442,4 +442,4 @@ if [ $ARCHIVE_OUT -eq 1 ]; then
     ./tools/archive-build.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
-#echo -e '---------------------------- DONE Create Version Info -----------------------------'
+echo -e '---------------------------- DONE Create Version Info -----------------------------'
