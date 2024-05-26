@@ -76,28 +76,28 @@ while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
             ;;
         c )
             export ESP32_ARDUINO="$OPTARG"
-            echo -e "-c \t Copy the build to arduino-esp32 Folder:$ePF $ESP32_ARDUINO $eNO"
+            echo -e "-c \t Copy the build to arduino-esp32 Folder:$ePF '$ESP32_ARDUINO' $eNO"
             COPY_OUT=1
             ;;
         A )
             export AR_BRANCH="$OPTARG"
-            echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG $AR_BRANCH $eNO"
+            echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG '$AR_BRANCH' $eNO"
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
-            echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG $IDF_BRANCH $eNO"
+            echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
-            echo -e "-i \t Set commit of ESP-IDF for compilation:$eTG $IDF_COMMIT $eNO"
+            echo -e "-i \t Set commit of ESP-IDF for compilation:$eTG '$IDF_COMMIT' $eNO"
             ;;
         D )
             BUILD_DEBUG="$OPTARG"
-            echo -e "-D \t Debug level to be set to ESP-IDF:'$eTG $BUILD_DEBUG $eNO"
+            echo -e "-D \t Debug level to be set to ESP-IDF:$eTG '$BUILD_DEBUG' $eNO"
             ;;
         t )
             IFS=',' read -ra TARGET <<< "$OPTARG"
-            echo -e "-t \t Set the build target(chip):$eTG ${TARGET[@]} $eNO"
+            echo -e "-t \t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
             ;;
         S )
             IDF_InstallSilent=1
