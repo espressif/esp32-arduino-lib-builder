@@ -273,7 +273,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     rm -rf build sdkconfig
     echo -e "   Build with > idf.py -Target:$eTG $target $eNO"
     echo    "     -Config: $idf_libs_configs"
-    echo   "     -Mode:   idf-libs"
+    echo    "     -Mode:   idf-libs"
     if [ $IDF_BuildTargetSilent ]; then
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
     else
@@ -302,19 +302,20 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
     fi
     # Build Bootloaders
+    countBootloaders=0
     for boot_conf in `echo "$target_json" | jq -c '.bootloaders[]'`; do
         bootloader_configs="$main_configs"
         for defconf in `echo "$boot_conf" | jq -c '.[]' | tr -d '"'`; do
             bootloader_configs="$bootloader_configs;configs/defconfig.$defconf";
         done
-
+        countBootloaders=$((countBootloaders+1))
         if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
             rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
-        echo "-- 4) Build BootLoader"
+        echo "-- 4.$countBootloaders) Build BootLoader"
         rm -rf build sdkconfig
         echo -e "   Build with > idf.py -Target:$eTG $target $eNO"
-        echo    "     -Config: $idf_libs_configs"
+        echo    "     -Config: $bootloader_configs"
         echo    "     -Mode:   copy-bootloader"     
         if [ $IDF_BuildTargetSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader > /dev/null
