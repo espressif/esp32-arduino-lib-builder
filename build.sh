@@ -59,7 +59,7 @@ function print_help() {
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
-echo -e "\n------------------------- Given ARGUMENTS Process & Check -------------------------"
+echo -e "\n------------------------ 1)Given ARGUMENTS Process & Check ------------------------"
 while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
     case ${opt} in
         s )
@@ -148,7 +148,7 @@ mkdir -p dist
 # ******     LOAD needed Components      *******
 # **********************************************
 if [ $SKIP_ENV -eq 0 ]; then
-    echo -e '----------------------------- Load the Compontents  -------------------------------'
+    echo -e '---------------------------- 2)Load the Compontents  ------------------------------'
     echo '-- Load arduino_tinyusb component'
     # update components from git
     ./tools/update-components.sh
@@ -178,7 +178,7 @@ fi
 # *****   Build II ALL   ******
 # **********************************************
 if [ "$BUILD_TYPE" != "all" ]; then
-    echo -e '----------------- BUILD Target-List (NOT ALL) -----------------'
+    echo -e '----------------- 3)BUILD Target-List (NOT ALL) -----------------'
     
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
@@ -224,7 +224,7 @@ fi
 # **********************************************
 # ******     BUILD the Components        *******
 # **********************************************
-echo -e '----------------------------- BUILD for Named Targets -----------------------------'
+echo -e '---------------------------- 3)BUILD for Named Targets ----------------------------'
 rm -rf build sdkconfig out
 echo -e "-- Create the Out-folder\n   to$ePF $AR_TOOLS/esp32-arduino-libs$eNO" 
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
@@ -363,7 +363,7 @@ echo -e '-------------------------- DONE: BUILD for Named Targets --------------
 # **********************************************
 # ******  Add components version info    *******
 # **********************************************#
-echo -e '------------------------------- Create Version Info -------------------------------'
+echo -e '------------------------------ 4)Create Version Info ------------------------------'
 
 echo -e '-- Create NEW Version Info-File'
 echo -e "   at: $ePF$AR_TOOLS/esp32-arduino-libs/versions.txt$eNO"
