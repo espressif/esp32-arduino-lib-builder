@@ -21,8 +21,4 @@ extractFileName() {
     echo "$result"
 }
 
-# Original string with semicolon-separated file paths
-#configs="configs/defconfig.common;configs/defconfig.esp32h2;configs/defconfig.debug_error;configs/defconfig.qio;configs/defconfig.64m"
-#result=$(extractFileName $configs)
-#echo $result
 
