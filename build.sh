@@ -203,11 +203,11 @@ if [ "$BUILD_TYPE" != "all" ]; then
         echo "   ...Get his configs"
             configs="$configs;configs/defconfig.$conf"
         done
-        echo "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
+        echo -e "   ...Build with > idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
         rm -rf build sdkconfig
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
         if [ $? -ne 0 ]; then exit 1; fi
-        echo "   Building for Target:$target DONE"
+        echo    "   Building for Target:$target DONE"
     done
     echo -e '----------------- BUILD Target-List   DONE    -----------------\n'
     exit 0
@@ -252,7 +252,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo "-- Skipping Target: $target"
         continue
     fi
-    echo -e "*******************   Building for Target:$eTG $target $eNO *******************"
+    echo -e "*******************   Building for Target:$eTG $target $eNO  *******************"
     echo -e "-- Target Out-folder\n   to$ePF $AR_TOOLS/esp32-arduino-libs/$target $eNO" 
     # Build Main Configs List
     echo "-- 1) Getting his Configs-List"
@@ -271,9 +271,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     fi
     echo "-- 3) Build IDF-Libs for the target"
     rm -rf build sdkconfig
-    echo "   Build with > idf.py -Target:$eTG $target $eNO"
-    echo "     -Config: $idf_libs_configs"
-    echo "     -Mode:   idf-libs"
+    echo -e "   Build with > idf.py -Target:$eTG $target $eNO"
+    echo    "     -Config: $idf_libs_configs"
+    echo   "     -Mode:   idf-libs"
     if [ $IDF_BuildTargetSilent ]; then
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
     else
@@ -283,9 +283,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     # Build SR Models
     if [ "$target" == "esp32s3" ]; then
         echo " -- 3b) Build SR (esp32s3) Models for the target"
-        echo "   Build with > idf.py -Target:$eTG $target $eNO"
-        echo "     -Config: $idf_libs_configs"
-        echo "     -Mode:   srmodels_bin"
+        echo -e "   Build with > idf.py -Target:$eTG $target $eNO"
+        echo    "     -Config: $idf_libs_configs"
+        echo    "     -Mode:   srmodels_bin"
         if [ $IDF_BuildTargetSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin > /dev/null
         else
@@ -313,9 +313,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         echo "-- 4) Build BootLoader"
         rm -rf build sdkconfig
-        echo "   Build with > idf.py -Target:$eTG $target $eNO"
-        echo "     -Config: $idf_libs_configs"
-        echo "     -Mode:   copy-bootloader"     
+        echo -e "   Build with > idf.py -Target:$eTG $target $eNO"
+        echo    "     -Config: $idf_libs_configs"
+        echo    "     -Mode:   copy-bootloader"     
         if [ $IDF_BuildTargetSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader > /dev/null
         else
@@ -336,9 +336,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
         fi
         rm -rf build sdkconfig
-        echo "   Build with > idf.py -Target:$eTG $target $eNO"
-        echo "     -Config: $idf_libs_configs"
-        echo "     -Mode:   mem-variant"
+        echo -e "   Build with > idf.py -Target:$eTG $target $eNO"
+        echo    "     -Config: $idf_libs_configs"
+        echo    "     -Mode:   mem-variant"
         if [ $IDF_BuildTargetSilent ]; then
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant > /dev/null
         else
@@ -393,9 +393,9 @@ done
 if [ "$BUILD_TYPE" = "all" ]; then
     echo -e "-- Wrote 'package_esp32_index.template.json'"
     echo -e "   at:$ePF $AR_COMPS/arduino/package/package_esp32_index.template.json$eNO"
-    echo -e "   at:$ePF $AR_OUT/"
-    echo -e "   at:$ePF $TOOLS_JSON_OUT/"
-    if [ IDF_BuildInfosSilent ]; then
+    echo -e "   at:$ePF $AR_OUT/$eNO"
+    echo -e "   at:$ePF $TOOLS_JSON_OUT/$eNO"
+    if [ $IDF_BuildInfosSilent ]; then
         python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" > /dev/null
         python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" > /dev/null
     else
@@ -411,8 +411,8 @@ if [ "$BUILD_TYPE" = "all" ]; then
     pushd $IDF_PATH
     ibr=$(git describe --all --exact-match 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
-    if [ IDF_BuildInfosSilent ]; then
-        popd
+    if [ $IDF_BuildInfosSilent ]; then
+        popd > /dev/null
         python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" > /dev/null
     else
         popd
