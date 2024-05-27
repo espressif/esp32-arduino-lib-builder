@@ -29,13 +29,13 @@ echo -e   "~~          3) Compile the Targets with the given Configurations"
 echo -e   "~~          4) Create and move created files"
 echo -e   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
+# Set the default values to be overwritten by the arguments
 TARGET="all"
 BUILD_TYPE="all"
 BUILD_DEBUG="default"
 SKIP_ENV=0
 COPY_OUT=0
 ARCHIVE_OUT=0
-
 IDF_InstallSilent=0     # 0 = not silent, 1 = silent
 IDF_BuildTargetSilent=0 # 0 = not silent, 1 = silent
 IDF_BuildInfosSilent=0  # 0 = not silent, 1 = silent
