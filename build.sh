@@ -49,6 +49,7 @@ function print_help() {
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
     echo "       -I     Set which branch of ESP-IDF to be used for compilation"
+    echo "      <OR>    only '-I' <OR> '-i' can be used"
     echo "       -i     Set which commit of ESP-IDF to be used for compilation"
     echo "       -e     Archive the build to dist"
     echo "       -d     Deploy the build to github arduino-esp32"
