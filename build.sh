@@ -286,7 +286,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
     echo -e "     -Config:$eUS "$(extractFileName $idf_libs_configs)"$eNO"
     echo    "     -Mode:   idf-libs"
-    if [ $IDF_BuildTargetSilent -eq1  ]; then
+    if [ $IDF_BuildTargetSilent -eq 1 ]; then
         echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
     else
@@ -299,7 +299,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $idf_libs_configs)"$eNO"
         echo    "     -Mode:   srmodels_bin"
-        if [ $IDF_BuildTargetSilent -eq1 ]; then
+        if [ $IDF_BuildTargetSilent -eq 1 ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin > /dev/null
         else
@@ -331,7 +331,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $bootloader_configs)"$eNO"
         echo    "     -Mode:   copy-bootloader"     
-        if [ $IDF_BuildTargetSilent -eq1 ]; then
+        if [ $IDF_BuildTargetSilent -eq 1 ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader > /dev/null
         else
@@ -355,7 +355,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $mem_configs)"$eNO"
         echo    "     -Mode:   mem-variant"
-        if [ $IDF_BuildTargetSilent -eq1 ]; then
+        if [ $IDF_BuildTargetSilent -eq 1 ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant > /dev/null
         else
@@ -410,7 +410,7 @@ done
 if [ "$BUILD_TYPE" = "all" ]; then
     echo -e "-- Generate $eUS'package_esp32_index.template.json'$eNO"
     echo -e "   to: $ePF $TOOLS_JSON_OUT/arduino/package/package_esp32_index.template.json $eNO"
-    if [ $IDF_BuildInfosSilent -eq1 ]; then
+    if [ $IDF_BuildInfosSilent -eq 1 ]; then
         echo -e "  $eTG Silent Info creation$eNO - don't use this as long as your not sure creation goes without errors!"
         python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" > /dev/null
         python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" > /dev/null
@@ -430,7 +430,7 @@ if [ "$BUILD_TYPE" = "all" ]; then
     popd
     echo -e "   at:  $ePF $TOOLS_JSON_OUT/$eNO"
     echo -e "   with:$eUS ./tools/gen_platformio_manifest.py $eNO"
-    if [ $IDF_BuildInfosSilent -eq1 ]; then
+    if [ $IDF_BuildInfosSilent -eq 1 ]; then
         echo -e "  $eTG Silent Info creation$eNO - don't use this as long as your not sure creation goes without errors!"
         python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" > /dev/null
     else
