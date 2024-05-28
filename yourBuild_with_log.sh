@@ -13,6 +13,7 @@ logFolder=$(pwd)/../libBuildLogs && logFolder=$(eval echo "$logFolder") && logFo
 # Create a new file with the current timestamp to take the output of an Bash sricpt
 #---------------------------------------------------------------------------------- 
 timestamp=$(date +"%Y-%m-%d-%Hh_%Mm_%Ss") # %Y: Year # %m: Month # %d: Day # %H: Hour # %M: Minute # %S: Second
+start_time=$(date +"%s")
 
 logFN="$timestamp-build.log" # Buld your custom FileName
 logFile="$logFolder/$timestamp-build.log" # The File with Path
@@ -39,6 +40,8 @@ echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
 
 # Write Start and End Time to the LogFile
 echo -e "Started:\t$timestamp\nFinihed:\t$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")" | tee $logFile
+runtime=$(($(date +"%s")- start_time)) && hours=$((runtime / 3600)) && minutes=$(( (runtime % 3600) / 60 )) && seconds=$((runtime % 60))
+echo "Runtime:\t${hours}h-${minutes}m-${seconds}s" | tee $logFile
 
 #-t 'esp32h2
 #-I 'release/v5.1'
