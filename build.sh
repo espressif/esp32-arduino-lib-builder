@@ -93,8 +93,8 @@ while getopts ":A:I:F:i:c:t:b:D:sdeSVW" opt; do
             echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
             ;;
         F )
-            export $IDF_PATH="$OPTARG"
-            echo -e "-F \t Set IDF-Folder:$eTG '$$IDF_PATH' $eNO"
+            export IDF_PATH="$OPTARG"
+            echo -e "-F \t Set IDF-Path:$eTG '$$IDF_PATH' $eNO"
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
