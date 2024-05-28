@@ -35,7 +35,10 @@ echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
 #./build.sh -t 'esp32h2,esp32s2,esp32c2,esp32' -A 'idf-release/v5.1' -I 'release/v5.1' -e -D 'error' -c '/Users/thomas/esp/arduino-esp32' -S -V  2>&1 | tee $logFile
 
 # Build for all ESP32 variants with full output
-./build.sh -t "esp32h2" -A "idf-release/v5.1" -I "release/v5.1" -e -D "none" -c "/Users/thomas/esp/to_arduino-esp32_$timestamp"  2>&1 | tee $logFile
+./build.sh -t "esp32h2" -A "idf-release/v5.1" -I "release/v5.1" -e -D "error" -c "/Users/thomas/esp/to_arduino-esp32_$timestamp" -S -V 2>&1 | tee $logFile
+
+# Write Start and End Time to the LogFile
+echo -e "Started:\t$timestamp\nFinihed:\t$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")" | tee $logFile
 
 #-t 'esp32h2
 #-I 'release/v5.1'
