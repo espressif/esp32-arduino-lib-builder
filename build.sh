@@ -65,7 +65,7 @@ function print_help() {
     exit 1
 }
 echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
-while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
+while getopts ":A:I:F:i:c:t:b:D:sdeSVW" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
