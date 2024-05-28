@@ -49,6 +49,7 @@ function print_help() {
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
     echo "       -I     Set which branch of ESP-IDF to be used for compilation"
+    echo "       -F     Set IDF-Path/Folder so need to clone the ESP-IDF repetitively for each build"
     echo "      <OR>    only '-I' <OR> '-i' can be used"
     echo "       -i     Set which commit of ESP-IDF to be used for compilation"
     echo "       -e     Archive the build to dist"
@@ -90,6 +91,10 @@ while getopts ":A:I:i:c:t:b:D:sdeSVW" opt; do
         I )
             export IDF_BRANCH="$OPTARG"
             echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
+            ;;
+        F )
+            export $IDF_PATH="$OPTARG"
+            echo -e "-F \t Set IDF-Folder:$eTG '$$IDF_PATH' $eNO"
             ;;
         i )
             export IDF_COMMIT="$OPTARG"

@@ -36,7 +36,13 @@ echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
 #./build.sh -t 'esp32h2,esp32s2,esp32c2,esp32' -A 'idf-release/v5.1' -I 'release/v5.1' -e -D 'error' -c '/Users/thomas/esp/arduino-esp32' -S -V  2>&1 | tee $logFile
 
 # Build for all ESP32 variants with full output
-./build.sh -t "esp32h2" -A "idf-release/v5.1" -I "release/v5.1" -e -D "error" -c "/Users/thomas/esp/to_arduino-esp32_$timestamp" -S -V 2>&1 | tee $logFile
+./build.sh -t "esp32h2" && \
+            -A "idf-release/v5.1" && \
+            -I "release/v5.1" && \
+            -F "/Users/thomas/esp/esp-idf" && \
+            -e -D "error" && \
+            -c "/Users/thomas/esp/to_arduino-esp32_$timestamp" && \
+            -S -V 2>&1 | tee $logFile
 
 # Write Start and End Time to the LogFile
 echo -e "Started:\t$timestamp\nFinihed:\t$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")" | tee $logFile
@@ -60,6 +66,7 @@ echo "Runtime:\t${hours}h-${minutes}m-${seconds}s" | tee $logFile
 #        -s     Skip installing/updating of ESP-IDF and all components
 #        -A     Set which branch of arduino-esp32 to be used for compilation - https://github.com/espressif/arduino-esp32
 #        -I     Set which branch of ESP-IDF to be used for compilation       - https://github.com/espressif/esp-idf
+#        -F     Set IDF-Path/Folder so need to clone the ESP-IDF repetitively for each build
 #        -i     Set which commit of ESP-IDF to be used for compilation
 #        -e     Archive the build to dist
 #        -d     Deploy the build to github arduino-esp32
