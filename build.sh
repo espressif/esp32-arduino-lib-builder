@@ -18,6 +18,10 @@ export eTG="\x1B[31m" # echo Color (Red) for Targets
 export eUS="\x1B[34m" # echo Color (blue) for Files that are executed or used 
 export eNO="\x1B[0m"  # Back to    (Black)
 
+# Get the current path of the script
+export SH_ROOT=$(pwd)
+
+# Show intro of the build.sh 
 echo -e "\n~~~~~~~~~~~~~~~~ $eTG Starting of the build.sh $eNO to get the Arduino-Libs ~~~~~~~~~~~~~~~~"
 echo -e   "~~ Purpose: Get the Arduino-Libs for manifold  ESP32-Variants > Targets"
 echo -e   "~~          It will generate 'Static Libraries'-Files (*.a)"
@@ -27,6 +31,7 @@ echo -e   "~~          1) Check & Process Parameter with calling build.sh"
 echo -e   "~~          2) Load or Update Components/Tools to do compile"
 echo -e   "~~          3) Compile the Targets with the given Configurations"
 echo -e   "~~          4) Create and move created files"
+echo -e   "~~  build.sh started at:$ePF$SH_ROOT$eNO (=SH_ROOT)" 
 echo -e   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 # Set the default values to be overwritten by the arguments
@@ -160,22 +165,22 @@ if [ $SKIP_ENV -eq 0 ]; then
     echo -e '---------------------------- 2) Load the Compontents ------------------------------'
     echo '-- Load arduino_tinyusb component'
     # update components from git
-    ./tools/update-components.sh
+    $SH_ROOT/tools/update-components.sh
     if [ $? -ne 0 ]; then exit 1; fi    
     echo '-- Load arduino-esp32 component'
     # install arduino component
-    ./tools/install-arduino.sh
+    $SH_ROOT/tools/install-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
     # install esp-idf
     echo '-- Load esp-idf component'
-    source ./tools/install-esp-idf.sh
+    source $SH_ROOT/tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '----------------------------- Components load DONE  -------------------------------\n'
 else
     echo -e '\n--- NO load of Components: Just get the Pathes ----'
     # $IDF_PATH/install.sh
     # source $IDF_PATH/export.sh
-    source ./tools/config.sh
+    source $SH_ROOT/tools/config.sh
     echo -e   '--- NO load of Components: DONE--------------------\n'
 fi
 # Hash of managed components
