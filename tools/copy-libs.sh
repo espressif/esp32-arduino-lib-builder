@@ -71,6 +71,13 @@ PIO_LD_FLAGS=""
 PIO_LD_FUNCS=""
 PIO_LD_SCRIPTS=""
 
+TOOLCHAIN_PREFIX=""
+if [ "$IS_XTENSA" = "y" ]; then
+	TOOLCHAIN="xtensa-$IDF_TARGET-elf"
+else
+	TOOLCHAIN="riscv32-esp-elf"
+fi
+
 #collect includes, defines and c-flags
 str=`cat build/compile_commands.json | grep arduino-lib-builder-gcc.c | grep command | cut -d':' -f2 | cut -d',' -f1`
 str="${str:2:${#str}-1}" #remove leading space and quotes
@@ -521,6 +528,13 @@ for item; do
 	for lib in `find "$item" -name '*.a'`; do
 		copy_precompiled_lib "$lib"
 	done
+done
+
+for lib in "openthread" "espressif__esp-tflite-micro" "bt"; do
+	if [ -f "$AR_SDK/lib/lib$lib.a" ]; then
+		echo "Stripping $AR_SDK/lib/lib$lib.a"
+		"$TOOLCHAIN-strip" -g "$AR_SDK/lib/lib$lib.a"
+	fi
 done
 
 # Handle Mem Variants
