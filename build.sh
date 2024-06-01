@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source extractConfigFNs.sh # For pretty output of compiler configs
-
 if ! [ -x "$(command -v python3)" ]; then
     echo "ERROR: python is not installed! Please install python first."
     exit 1
@@ -21,6 +19,9 @@ export eNO="\x1B[0m"  # Back to    (Black)
 # Get the current path of the script
 export SH_ROOT=$(pwd)
 
+# Load the functions extractFileName() > For pretty output of compiler configs
+source "$SH_ROOT/extractConfigFNs.sh" 
+
 # Show intro of the build.sh 
 echo -e "\n~~~~~~~~~~~~~~~~ $eTG Starting of the build.sh $eNO to get the Arduino-Libs ~~~~~~~~~~~~~~~~"
 echo -e   "~~ Purpose: Get the Arduino-Libs for manifold  ESP32-Variants > Targets"
@@ -31,7 +32,7 @@ echo -e   "~~          1) Check & Process Parameter with calling build.sh"
 echo -e   "~~          2) Load or Update Components/Tools to do compile"
 echo -e   "~~          3) Compile the Targets with the given Configurations"
 echo -e   "~~          4) Create and move created files"
-echo -e   "~~  build.sh started at:$ePF$SH_ROOT$eNO (=SH_ROOT)" 
+echo -e   "~~  build.sh started at (SH_ROOT=)$ePF$SH_ROOT$eNO" 
 echo -e   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 # Set the default values to be overwritten by the arguments
@@ -53,8 +54,9 @@ function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
+    echo "       -a     Set local Arduino-Component Folder <arduino-esp32>/<arduino>"
     echo "       -I     Set which branch of ESP-IDF to be used for compilation"
-    echo "       -F     Set IDF-Path so need to clone the ESP-IDF repetitively for each build"
+    echo "       -f     Set local IDF Folder <esp-idf>" 
     echo "      <OR>    only '-I' <OR> '-i' can be used"
     echo "       -i     Set which commit of ESP-IDF to be used for compilation"
     echo "       -e     Archive the build to dist"
@@ -69,93 +71,101 @@ function print_help() {
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
-echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
-while getopts ":A:I:F:i:c:t:b:D:sdeSVW" opt; do
-    case ${opt} in
-        s )
-            SKIP_ENV=1
-            echo -e '-s \t Skip installing/updating of components'
-            ;;
-        d )
-            DEPLOY_OUT=1
-            echo -e '-d \t Deploy the build to github arduino-esp32'
-            ;;
-        e )
-            ARCHIVE_OUT=1
-            echo -e '-e \t Archive the build to dist-Folder'
-            ;;
-        c )
-            export ESP32_ARDUINO="$OPTARG"
-            echo -e "-c \t Copy the build to arduino-esp32 Folder:$ePF '$ESP32_ARDUINO' $eNO"
-            COPY_OUT=1
-            ;;
-        A )
-            export AR_BRANCH="$OPTARG"
-            echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG '$AR_BRANCH' $eNO"
-            ;;
-        I )
-            export IDF_BRANCH="$OPTARG"
-            echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
-            ;;
-        F )
-            export IDF_PATH="$OPTARG"
-            echo -e "-F \t Set IDF-Path:$eTG '$IDF_PATH' $eNO"
-            ;;
-        i )
-            export IDF_COMMIT="$OPTARG"
-            echo -e "-i \t Set commit of ESP-IDF for compilation:$eTG '$IDF_COMMIT' $eNO"
-            ;;
-        D )
-            BUILD_DEBUG="$OPTARG"
-            echo -e "-D \t Debug level to be set to ESP-IDF:$eTG '$BUILD_DEBUG' $eNO"
-            ;;
-        t )
-            IFS=',' read -ra TARGET <<< "$OPTARG"
-            echo -e "-t \t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
-            ;;
-        S )
-            IDF_InstallSilent=1
-            echo -e '-S \t Silent mode for installing ESP-IDF and components'
-            ;;
-        V )
-            IDF_BuildTargetSilent=1
-            echo -e '-V \t Silent mode for building Targets with idf.py'
-            ;;
-        W )
-            IDF_BuildInfosSilent=1
-            echo -e '-W \t Silent mode for building of Infos.'
-            ;;
-        b )
-            b=$OPTARG
-            if [ "$b" != "build" ] && 
-               [ "$b" != "menuconfig" ] && 
-               [ "$b" != "reconfigure" ] && 
-               [ "$b" != "idf-libs" ] && 
-               [ "$b" != "copy-bootloader" ] && 
-               [ "$b" != "mem-variant" ]; then
+
+# Check if any arguments were passed
+if [ $# -eq 0 ]; then
+  # No arguments were passed then set MY defaults
+  source $SH_ROOT/setMyDefault.sh 
+else # Process Arguments were passed
+    echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
+    while getopts ":A:I:f:i:c:t:b:D:sdeSVW" opt; do
+        case ${opt} in
+            s )
+                SKIP_ENV=1
+                echo -e '-s \t Skip installing/updating of components'
+                ;;
+            d )
+                DEPLOY_OUT=1
+                echo -e '-d \t Deploy the build to github arduino-esp32'
+                ;;
+            e )
+                ARCHIVE_OUT=1
+                echo -e '-e \t Archive the build to dist-Folder'
+                ;;
+            c )
+                export ESP32_ARDUINO="$OPTARG"
+                echo -e "-c \t Copy the build to arduino-esp32 Folder:"
+                echo -e "+\t$ePF '$ESP32_ARDUINO' $eNO"
+                COPY_OUT=1
+                ;;
+            A )
+                export AR_BRANCH="$OPTARG"
+                echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG '$AR_BRANCH' $eNO"
+                ;;
+            a )
+                export AR_PATH="$OPTARG"
+                echo -e "-a \t Set local Arduino-Component Folder :$eTG '$AR_PATH' $eNO"
+                ;;
+            I )
+                export IDF_BRANCH="$OPTARG"
+                echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
+                ;;
+            f )
+                export IDF_PATH="$OPTARG"
+                echo -e "-f \t Set local IDF-Folder:$eTG '$IDF_PATH' $eNO"
+                ;;
+            i )
+                export IDF_COMMIT="$OPTARG"
+                echo -e "-i \t Set commit of ESP-IDF for compilation:$eTG '$IDF_COMMIT' $eNO"
+                ;;
+            D )
+                BUILD_DEBUG="$OPTARG"
+                echo -e "-D \t Debug level to be set to ESP-IDF:$eTG '$BUILD_DEBUG' $eNO"
+                ;;
+            t )
+                IFS=',' read -ra TARGET <<< "$OPTARG"
+                echo -e "-t \t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
+                ;;
+            S )
+                IDF_InstallSilent=1
+                echo -e '-S \t Silent mode for installing ESP-IDF and components'
+                ;;
+            V )
+                IDF_BuildTargetSilent=1
+                echo -e '-V \t Silent mode for building Targets with idf.py'
+                ;;
+            W )
+                IDF_BuildInfosSilent=1
+                echo -e '-W \t Silent mode for building of Infos.'
+                ;;
+            b )
+                b=$OPTARG
+                if [ "$b" != "build" ] && 
+                [ "$b" != "menuconfig" ] && 
+                [ "$b" != "reconfigure" ] && 
+                [ "$b" != "idf-libs" ] && 
+                [ "$b" != "copy-bootloader" ] && 
+                [ "$b" != "mem-variant" ]; then
+                    print_help
+                fi
+                BUILD_TYPE="$b"
+                echo -e '-b \t Set the build type:' $BUILD_TYPE
+                ;;
+            \? )
+                echo "Invalid option: -$OPTARG" 1>&2
                 print_help
-            fi
-            BUILD_TYPE="$b"
-            echo -e '-b \t Set the build type:' $BUILD_TYPE
-            ;;
-        \? )
-            echo "Invalid option: -$OPTARG" 1>&2
-            print_help
-            ;;
-        : )
-            echo "Invalid option: -$OPTARG requires an argument" 1>&2
-            print_help
-            ;;
-    esac
-done
-echo -e   "-------------------------   DONE:  processing ARGUMENTS   -------------------------\n"
+                ;;
+            : )
+                echo "Invalid option: -$OPTARG requires an argument" 1>&2
+                print_help
+                ;;
+        esac
+    done
+    echo -e   "-------------------------   DONE:  processing ARGUMENTS   -------------------------\n"
+fi
 
 shift $((OPTIND -1))
 CONFIGS=$@
-
-# Output the TARGET array
-#echo "TARGET(s): ${TARGET[@]}"
-
 mkdir -p dist
 
 # **********************************************
@@ -163,16 +173,16 @@ mkdir -p dist
 # **********************************************
 if [ $SKIP_ENV -eq 0 ]; then
     echo -e '---------------------------- 2) Load the Compontents ------------------------------'
-    echo '-- Load arduino_tinyusb component'
+    echo -e '-- Load arduino_tinyusb component'
     # update components from git
-    $SH_ROOT/tools/update-components.sh
+    source $SH_ROOT/tools/update-components.sh
     if [ $? -ne 0 ]; then exit 1; fi    
-    echo '-- Load arduino-esp32 component'
+    echo -e '\n-- Load arduino-esp32 component'
     # install arduino component
-    $SH_ROOT/tools/install-arduino.sh
+    source $SH_ROOT/tools/install-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
     # install esp-idf
-    echo '-- Load esp-idf component'
+    echo -e '\n-- Load esp-idf component'
     source $SH_ROOT/tools/install-esp-idf.sh
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '----------------------------- Components load DONE  -------------------------------\n'
@@ -243,14 +253,16 @@ rm -rf build sdkconfig out
 echo -e "-- Create the Out-folder\n   to:$ePF $AR_TOOLS/esp32-arduino-libs $eNO" 
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
 
-targets_count=0
-for dummy in `jq -c '.targets[]' configs/builds.json`
-do
-    targets_count=$((targets_count+1))
-done 
-echo -e "...Number of POSSIBLE Targets= $targets_count\n"
+# Count the number of POSSIBLE targets to build
+# Therefore create a array from from JSON File: 'configs/builds.json'
+# Extract the Possible Target-Names 
+possibleTargetsArray=($(jq -r '.targets[].target' configs/builds.json)) # -r option to get raw output, leads to an array 
+# And count the number of elements in the array   
+targetsCount=${#possibleTargetsArray[@]}
+echo -e "...Number of POSSIBLE Targets=$eTG $targetsCount$eNO" 
+echo -e "   List:$eUS ${possibleTargetsArray[@]}$eNO"
 
-echo -e "###################      Loop over given Target      ###################\n"
+echo -e "###################      Loop over given Target      ###################"
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
     target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
     target_skip=$(echo "$target_json" | jq -c '.skip // 0')

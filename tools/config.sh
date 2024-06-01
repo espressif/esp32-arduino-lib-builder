@@ -1,5 +1,8 @@
 #!/bin/bash
 
+############################################
+# SET DEFAULT VALUES when not set before 
+############################################
 # If the IDF_PATH is not set, set it to the current directory
 if [ -z $IDF_PATH ]; then
     # Set the default path to the ESP-IDF
@@ -9,11 +12,11 @@ fi
 if [ -z $IDF_BRANCH ]; then
     IDF_BRANCH="release/v5.1"
 fi
-# If the AR_PATH is not set, set it to the current directory
+# If the Arduino-Branch (AR_PR_TARGET_BRANCH) of gtt 'arduino-esp32' was not set, set it to 'master'
 if [ -z $AR_PR_TARGET_BRANCH ]; then
     AR_PR_TARGET_BRANCH="master"
 fi
-# If the AR_PATH is not set, set it to the current directory
+# If the IFD-Target (IDF_TARGET) is not set 'esp32'
 if [ -z $IDF_TARGET ]; then
     if [ -f sdkconfig ]; then
         IDF_TARGET=`cat sdkconfig | grep CONFIG_IDF_TARGET= | cut -d'"' -f2`
@@ -24,40 +27,62 @@ if [ -z $IDF_TARGET ]; then
         IDF_TARGET="esp32"
     fi
 fi
-
-# Owner of the target ESP32 Arduino repository
+#-------------------------------------
+# Set Owner of following repositories
+#-------------------------------------
 AR_USER="espressif"
-
-# The full name of the repository
+#--------------------------
+# Set the Repository Names
+#--------------------------
 AR_REPO="$AR_USER/arduino-esp32"
 IDF_REPO="$AR_USER/esp-idf"
 AR_LIBS_REPO="$AR_USER/esp32-arduino-libs"
-
-AR_REPO_URL="https://github.com/$AR_REPO.git"
-IDF_REPO_URL="https://github.com/$IDF_REPO.git"
-AR_LIBS_REPO_URL="https://github.com/$AR_LIBS_REPO.git"
+# ---------------------------------
+# Expand to GitHub Repository-URLs
+# ---------------------------------
+AR_REPO_URL="https://github.com/$AR_REPO.git"           # espressif / arduino-esp32
+IDF_REPO_URL="https://github.com/$IDF_REPO.git"         # espressif / esp-idf
+AR_LIBS_REPO_URL="https://github.com/$AR_LIBS_REPO.git" # espressif / esp32-arduino-libs
+# ---------------------------------------------
+# Get GitHub Token of espressif / arduino-esp32
+# ---------------------------------------------
 if [ -n $GITHUB_TOKEN ]; then
     AR_REPO_URL="https://$GITHUB_TOKEN@github.com/$AR_REPO.git"
     AR_LIBS_REPO_URL="https://$GITHUB_TOKEN@github.com/$AR_LIBS_REPO.git"
 fi
-
+# ---------------------------------------------
+# Set the Values for the Arduino-ESP32-Tools
+# ---------------------------------------------
+# Set Path Variables
 AR_ROOT="$PWD"
+# Set relative to AR_ROOT
 AR_COMPS="$AR_ROOT/components"
 AR_MANAGED_COMPS="$AR_ROOT/managed_components"
 AR_OUT="$AR_ROOT/out"
 AR_TOOLS="$AR_OUT/tools"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
+# --------------------------------------
+# Set the Values for esp32-arduino-libs
+# --------------------------------------
 AR_SDK="$AR_TOOLS/esp32-arduino-libs/$IDF_TARGET"
-PIO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
 TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
-IDF_LIBS_DIR="$AR_ROOT/../esp32-arduino-libs"
+IDF_LIBS_DIR=$(realpath $AR_ROOT/../esp32-arduino-libs) 
 
+# --------------------------------------
+# Set Path to PIO-SDK = PlatformIO SDK
+# --------------------------------------
+PIO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
+
+# If Folder of the ESP-IDF already exist, grab the commit and branch of the ESP-IDF 
 if [ -d "$IDF_PATH" ]; then
     export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
     export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)
 fi
 
+# *********************************************
+# Several common Funtions partly OS dependent
+# *********************************************
 function get_os(){
     OSBITS=`uname -m`
     if [[ "$OSTYPE" == "linux"* ]]; then
@@ -132,8 +157,6 @@ function github_pr_exists(){ # github_pr_exists <repo-path> <branch-name>
     local pr_num=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/pulls?head=$AR_USER:$branch_name&state=open" | jq -r '.[].number'`
     if [ ! "$pr_num" == "" ] && [ ! "$pr_num" == "null" ]; then echo 1; else echo 0; fi
 }
-
-
 
 function git_branch_exists(){ # git_branch_exists <repo-path> <branch-name>
     local repo_path="$1"

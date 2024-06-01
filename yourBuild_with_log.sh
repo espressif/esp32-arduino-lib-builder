@@ -7,6 +7,7 @@ eNO="\x1B[0m"  # Back to    (Black)
 # ---------------------------------------
 # *** Set the Folder for the Log File *** 
 # ---------------------------------------
+[ ! -d "./../libBuildLogs" ] | mkdir -p "$(pwd)/../libBuildLogs" # If folder not exist: create it!
 logFolder=$(pwd)/../libBuildLogs && logFolder=$(eval echo "$logFolder") && logFolder=$(realpath $logFolder)
 
 #---------------------------------------------------------------------------------- 
@@ -24,8 +25,8 @@ touch $logFile # Cretat the new log
 #                RUN
 # ---------------------------------------
 # Output-Folder handed to build script with option '-c'  
-rm -rf /Users/thomas/esp/arduino-esp32
-mkdir /Users/thomas/esp/arduino-esp32
+rm -rf $(pwd)/arduino-esp32
+mkdir $(pwd)/arduino-esp32
 # RUN your build script with LogFile '2>&1 | tee $logFile'  # Echo a text to the LogFile and Terminal
 echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
 
@@ -36,18 +37,19 @@ echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
 #./build.sh -t 'esp32h2,esp32s2,esp32c2,esp32' -A 'idf-release/v5.1' -I 'release/v5.1' -e -D 'error' -c '/Users/thomas/esp/arduino-esp32' -S -V  2>&1 | tee $logFile
 
 # Build for all ESP32 variants with full output
-./build.sh -t "esp32h2" \
+./build.sh \
+            -t "esp32h2" \
             -A "idf-release/v5.1" \
             -I "release/v5.1" \
-            -F "/Users/thomas/esp/esp-idf" \
+            -F $(realpath $(pwd)/../esp-idf) \
             -e -D "error" \
-            -c "/Users/thomas/esp/to_arduino-esp32_$timestamp" \
+            -c $(realpath $(pwd)/../to_arduino-esp32_$timestamp) \
             -S -V 2>&1 | tee $logFile
 
 # Write Start and End Time to the LogFile
 echo -e "Started:\t$timestamp\nFinihed:\t$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")" | tee $logFile
 runtime=$(($(date +"%s")- start_time)) && hours=$((runtime / 3600)) && minutes=$(( (runtime % 3600) / 60 )) && seconds=$((runtime % 60))
-echo "Runtime:\t${hours}h-${minutes}m-${seconds}s" | tee $logFile
+echo -e "Runtime:\t${hours}h-${minutes}m-${seconds}s" | tee $logFile
 
 #-t 'esp32h2
 #-I 'release/v5.1'

@@ -21,4 +21,4 @@ extractFileName() {
     echo "$result"
 }
 
-
+echo "Function 'extractFileName()' loaded successfully."
