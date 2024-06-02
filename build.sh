@@ -80,7 +80,7 @@ function print_help() {
 if [ $# -eq 0 ]; then
   # No arguments were passed then set MY defaults
   # Dialog to decide it to use the default values or not
-  echo "No Parameters were passed"
+  echo "No Parameters were passed:"
   while true; do
       read -p "Do you want to use your default Parameters? (y/n): " choice
       case "$choice" in
@@ -431,7 +431,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         rm -rf build sdkconfig
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $mem_configs)"$eNO"
-        echo -e "     -Mode:   mem-variant to $ePF.../$eTG$target$ePF/dio_qspi$eNO (*.a)"
+        echo -e "     -Mode:   mem-variant to $ePF.../$eTG$target$ePF/dio_qspi$eNO and/or$ePF qio_qspi$eNO (*.a)"
         if [ $IDF_BuildTargetSilent -eq 1 ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant > /dev/null 2>&1

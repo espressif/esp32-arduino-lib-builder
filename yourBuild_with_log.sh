@@ -25,6 +25,16 @@ echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
 # ---------------------------------------
 # Build for all ESP32 variants with full output
 source myParasFake.sh                    # Set the parameters
+set -- \
+"-t" "esp32h2,esp32s3,esp32" \
+"-A" "idf-release/v5.1" \
+"-a" "$oneUpDir/arduino-esp32" \
+"-I" "release/v5.1" \
+"-f" $"$oneUpDir/esp-idf" \
+"-D" "error" \
+"-c" "$oneUpDir/to_arduino-esp32_$timeStampAR" \
+"-o" "$oneUpDir/out" \
+"-e" "-S" "-V" "-W"
 ./build.sh | tee $logFile      # Run the build and write the output to the log file
 # ------------------------------------------------
 # Write Start-, End- and Run-Time to the LogFile
