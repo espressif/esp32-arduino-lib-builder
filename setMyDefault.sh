@@ -49,11 +49,11 @@ echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG '$AR_BRANCH' $eN
 echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
 echo -e "-a \t Set local Arduino-Component Folder :$eTG '$AR_PATH' $eNO"
 echo -e "-f \t Set Set local IDF-Folder:$eTG '$IDF_PATH' $eNO"
-[ $ARCHIVE_OUT -eq 0 ]           && echo -e '-e \t Archive the build to dist-Folder'
+[ $ARCHIVE_OUT -eq 1 ]           && echo -e '-e \t Archive the build to dist-Folder'
 echo -e "-D \t Debug level to be set to ESP-IDF:$eTG '$BUILD_DEBUG' $eNO"
-[ $IDF_InstallSilent -eq 0 ]     && echo -e '-S \t Silent mode for installing ESP-IDF and components'
-[ $IDF_BuildTargetSilent -eq 0 ] && echo -e '-V \t Silent mode for building Targets with idf.py'
-[ $IDF_BuildInfosSilent -eq 0 ]  && echo -e '-W \t Silent mode for building of Infos.'
-[ $COPY_OUT -eq 0 ]              && echo -e "-c \t Copy the build to arduino-esp32 Folder:"
-[ $COPY_OUT -eq 0 ]              && echo -e "+\t$ePF '$ESP32_ARDUINO' $eNO"
+[ $IDF_InstallSilent -eq 1 ]     && echo -e '-S \t Silent mode for installing ESP-IDF and components'
+[ $IDF_BuildTargetSilent -eq 1 ] && echo -e '-V \t Silent mode for building Targets with idf.py'
+[ $IDF_BuildInfosSilent -eq 1 ]  && echo -e '-W \t Silent mode for building of Infos.'
+[ $COPY_OUT -eq 1 ]              && echo -e "-c \t Copy the build to arduino-esp32 Folder:"
+[ $COPY_OUT -eq 1 ]              && echo -e "+\t$ePF '$ESP32_ARDUINO' $eNO"
 echo -e   "-------------------------        DONE:  My defaults        -------------------------\n"
