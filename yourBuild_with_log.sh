@@ -1,61 +1,49 @@
 #!/bin/bash
-
-# Define the colors for the echo output 
+# ---------------------------------------
+# Define the colors for the echo output
+# ---------------------------------------
 ePF="\x1B[35m" # echo Color (Purple) for Path and File outputs
 eNO="\x1B[0m"  # Back to    (Black)
-
 # ---------------------------------------
 # *** Set the Folder for the Log File *** 
 # ---------------------------------------
-[ ! -d "./../libBuildLogs" ] | mkdir -p "$(pwd)/../libBuildLogs" # If folder not exist: create it!
-logFolder=$(pwd)/../libBuildLogs && logFolder=$(eval echo "$logFolder") && logFolder=$(realpath $logFolder)
-
-#---------------------------------------------------------------------------------- 
-# Create a new file with the current timestamp to take the output of an Bash sricpt
-#---------------------------------------------------------------------------------- 
-timestamp=$(date +"%Y-%m-%d-%Hh_%Mm_%Ss") # %Y: Year # %m: Month # %d: Day # %H: Hour # %M: Minute # %S: Second
-start_time=$(date +"%s")
-
-logFN="$timestamp-build.log" # Buld your custom FileName
-logFile="$logFolder/$timestamp-build.log" # The File with Path
-mkdir -p $logFolder # If folder not exist: create it!
-touch $logFile # Cretat the new log
-
+oneUpDir=$(realpath $(pwd)/../)         # DIR above the current directory
+logFolder=$oneUpDir/libBuildLogs        # Log-Folder
+mkdir -p $logFolder                     # If folder not exist: create it
+#-------------------------------------------------------------------------------------- 
+# Create a new Log-File with the current timestamp to take the output of an Bash sricpt
+#--------------------------------------------------------------------------------------
+timestamp=$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")   # %Y: Year # %m: Month # %d: Day # %H: Hour # %M: Minute # %S: Second
+timeStampAR=$(date +"%Y%m%d_%Hh%Mm")        # Shorter Timestamp for the arduino-esp32 build
+startTime=$(date +"%s")                     # Fix the Start Time of builing
+logFN="$timestamp-build.log"                # Log File Name
+logFile="$logFolder/$timestamp-build.log"   # The File with Path
+touch $logFile                              # Cretat the new log
+echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
 # ---------------------------------------
 #                RUN
 # ---------------------------------------
-# Output-Folder handed to build script with option '-c'  
-rm -rf $(pwd)/arduino-esp32
-mkdir $(pwd)/arduino-esp32
-# RUN your build script with LogFile '2>&1 | tee $logFile'  # Echo a text to the LogFile and Terminal
-echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
-
-# Only build for esp32h2 in silent mode
-#./build.sh -t 'esp32h2' -A 'idf-release/v5.1' -I 'release/v5.1' -e -D 'error' -c '/Users/thomas/esp/arduino-esp32' -S -V  2>&1 | tee $logFile
-
-# Build for all my ESP32 variants in silent mode
-#./build.sh -t 'esp32h2,esp32s2,esp32c2,esp32' -A 'idf-release/v5.1' -I 'release/v5.1' -e -D 'error' -c '/Users/thomas/esp/arduino-esp32' -S -V  2>&1 | tee $logFile
-
 # Build for all ESP32 variants with full output
 ./build.sh \
-            -t "esp32h2" \
-            -A "idf-release/v5.1" \
-            -I "release/v5.1" \
-            -F $(realpath $(pwd)/../esp-idf) \
-            -e -D "error" \
-            -c $(realpath $(pwd)/../to_arduino-esp32_$timestamp) \
-            -S -V 2>&1 | tee $logFile
-
-# Write Start and End Time to the LogFile
-echo -e "Started:\t$timestamp\nFinihed:\t$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")" | tee $logFile
-runtime=$(($(date +"%s")- start_time)) && hours=$((runtime / 3600)) && minutes=$(( (runtime % 3600) / 60 )) && seconds=$((runtime % 60))
+    -t "esp32h2" \
+    -A "idf-release/v5.1" \
+    -a "$oneUpDir/arduino-esp32" \
+    -I "release/v5.1" \
+    -f $"$oneUpDir/esp-idf" \
+    -D "error" \
+    -c "$oneUpDir/to_arduino-esp32_$timeStampAR" \
+    -o "$oneUpDir/out" \
+    -e -S -V -W 2>&1 | tee $logFile
+# ------------------------------------------------
+# Write Start-, End- and Run-Time to the LogFile
+# ------------------------------------------------
+# Calculate the runtime
+runtime=$(($(date +"%s")- startTime))
+hours=$((runtime / 3600)) &&  minutes=$(( (runtime % 3600) / 60 )) && seconds=$((runtime % 60))
+# Write times
+echo -e "Started:\t$timestamp" &&
+echo -e "Finihed:\t$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")" | tee $logFile
 echo -e "Runtime:\t${hours}h-${minutes}m-${seconds}s" | tee $logFile
-
-#-t 'esp32h2
-#-I 'release/v5.1'
-# -D "error"
-#-i "d7b0a45"
-
 
 # ---------------------------------------
 #           REPLAY a LOG FILE

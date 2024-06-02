@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# TESTING
+# call with 'esp32h2'
+# SH_ROOT="/Users/thomas/build-libs/esp32-arduino-lib-builder"
+# oneUpDir=$(realpath $SH_ROOT/../)
+# IDF_PATH=$"$oneUpDir/esp-id"
+# AR_OWN_OUT=$"$oneUpDir/out"
+
 #---------------------------------------------------------
 # Get the Infos IDF Infos used for bulid: Commit, Branch 
 # to create IDF-Version-String
@@ -10,15 +17,31 @@ idf_version_string=${IDF_BRANCH//\//_}"-$IDF_COMMIT"
 # ----------------------
 # Set the archive path
 # ----------------------
-archive_path="dist/arduino-esp32-libs-$1-$idf_version_string.tar.gz"
-echo -e "   to:$ePF   $archive_path$eNO"
+         archiveFN="arduino-esp32-libs-$1-$idf_version_string.tar.gz"
+#archive_path="dist/arduino-esp32-libs-$1-$idf_version_string.tar.gz"
+#-----------------------------------
+# Set the DIRERCTORY for the archive
+#-----------------------------------
+targetFolder=$(realpath $SH_ROOT/../)/dist
+if [ ! -z $AR_OWN_OUT ]; then # When own out-Path 
+	sourceFolder=$AR_OWN_OUT
+else # Normal
+	sourceFolder=$SH_ROOT/out
+fi
 # ---------------------------------------------
 # Make DIR and remove Target-File if it exists
 # ---------------------------------------------
-mkdir -p dist && rm -rf "$archive_path"
+mkdir -p $targetFolder 
+rm -rf "$targetFolder/$archiveFN"
 # ---------------------------------------------
 # Create the Archive with tar
 # ---------------------------------------------
-if [ -d "out" ]; then
-	cd out && tar zcf "../$archive_path" * && cd ..
+if [ -d $sourceFolder ]; then
+	echo -e "   to Folder:$ePF $targetFolder $eNO"
+	echo -e "   Filename:$ePF  $archiveFN $eNO"
+	currentDir=$(pwd)
+	cd $sourceFolder # Change to the out-Folder
+	tar -zcf "$targetFolder/$archiveFN" * # Create the Archive
+	cd $currentDir
+	# cd out && tar zcf "../$archive_path" * && cd ..
 fi

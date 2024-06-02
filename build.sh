@@ -66,6 +66,7 @@ function print_help() {
     echo "       -d     Deploy the build to github arduino-esp32"
     echo "       -D     Debug level to be set to ESP-IDF. One of default,none,error,warning,info,debug or verbose"
     echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
+    echo "       -o     Set a own Out-Folder. It will take the building output and works with simlink, placed in normal out-folder"
     echo "       -t     Set the build target(chip) ex. 'esp32s3' or select multiple targets(chips) by separating them with comma ex. 'esp32,esp32s3,esp32c3'"
     echo "       -S     Silent mode for Installation - Components. Don't use this unless you are sure the installs goes without errors"
     echo "       -V     Silent mode for Building - Targets with idf.py. Don't use this unless you are sure the buildings goes without errors"
@@ -81,7 +82,7 @@ if [ $# -eq 0 ]; then
   source $SH_ROOT/setMyDefault.sh 
 else # Process Arguments were passed
     echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
-    while getopts ":A:I:f:i:c:t:b:D:sdeSVW" opt; do
+    while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
         case ${opt} in
             s )
                 SKIP_ENV=1
@@ -98,8 +99,13 @@ else # Process Arguments were passed
             c )
                 export ESP32_ARDUINO="$OPTARG"
                 echo -e "-c \t Copy the build to arduino-esp32 Folder:"
-                echo -e "+\t$ePF '$ESP32_ARDUINO' $eNO"
+                echo -e "+\t$ePF >> '$ESP32_ARDUINO' $eNO"
                 COPY_OUT=1
+                ;;
+            o )
+                export AR_OWN_OUT="$OPTARG"
+                echo -e "-o \t Use a own out-Folder:"
+                echo -e "+\t$ePF >> '$AR_OWN_OUT' $eNO"
                 ;;
             A )
                 export AR_BRANCH="$OPTARG"
@@ -266,7 +272,6 @@ if [ ! -z $AR_OWN_OUT ]; then
 		# from  <Source>  to  <target> new Folder that's symlink
 		ln -s   $AR_OWN_OUT   $AR_OUT > /dev/null
 	fi
-    echo -e "-- Create the Out-folder\n   to:$ePF $AR_OWN_OUT $eNO"
     OUT_FOLDER=$AR_OWN_OUT 
 fi
 echo -e "-- Create the Out-folder\n   to:$ePF $OUT_FOLDER $eNO"
@@ -307,8 +312,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         continue
     fi
     echo -e "*******************   Building for Target:$eTG $target $eNO  *******************"
-    echo -e "-- Target Out-folder\n"
-    echo -e "   to$ePF $OUT_FOLDER/esp32-arduino-libs/$eTG$target $eNO" 
+    echo -e "-- Target Out-folder"
+    echo -e "   to:$ePF $OUT_FOLDER/esp32-arduino-libs/$eTG$target $eNO" 
     #-------------------------
     # Build Main Configs List
     #-------------------------
@@ -478,13 +483,22 @@ done
 #    - tools.json
 # #########################################
 if [ "$BUILD_TYPE" = "all" ]; then
-    if [ $IDF_BuildInfosSilent -eq 1 ]; then reDirect=" > /dev/null"; else reDirect=""; fi
-    echo -e "-- Generate $eUS'package_esp32_index.template.json'$eNO (one file, not Target-specific!)"
+    # - package_esp32_index.template.json
+    echo -e "-- Generate $eUS'package_esp32_index.template.json'$eNO (One file, not Target-specific!)"
     echo -e "   to: $ePF $OUT_FOLDER/package_esp32_index.template.json $eNO"
-    python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" $reDirect
-#    echo -e "-- Generate $eUS'package_esp32_index.template.json'$eNO (one file, not Target-specific!)"
-#    echo -e "   to: $ePF $OUT_FOLDER/tools/package_esp32_index.template.json $eNO"
-    python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" $reDirect
+    if [ $IDF_BuildInfosSilent -eq 1 ]; then 
+        python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" > /dev/null 2>&1
+    else 
+        python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" 
+    fi
+    echo -e "-- Generate $eUS'tools.json'$eNO (One file, not Target-specific!)"
+    echo -e "   to: $ePF $OUT_FOLDER/tools/esp32-arduino-libs/tools.json $eNO"
+    if [ $IDF_BuildInfosSilent -eq 1 ]; then 
+        python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" > /dev/null 2>&1
+    else 
+        python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" 
+    fi
+    # - tools.json
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 # ###################################
@@ -496,11 +510,11 @@ if [ "$BUILD_TYPE" = "all" ]; then
     ibr=$(git describe --all --exact-match 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
     popd
-    echo -e "   at:  $ePF $TOOLS_JSON_OUT/$eNO"
+    echo -e "   at:  $ePF $OUT_FOLDER/$eNO"
     echo -e "   with:$eUS $SH_ROOT/tools/gen_platformio_manifest.py $eNO"
     if [ $IDF_BuildInfosSilent -eq 1 ]; then
         echo -e "  $eTG Silent Info creation$eNO - don't use this as long as your not sure creation goes without errors!"
-        python3 $SH_ROOT/tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" > /dev/null
+        python3 $SH_ROOT/tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" > /dev/null 2>&1
     else
         python3 $SH_ROOT/tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
     fi    
@@ -509,11 +523,12 @@ fi
 # ##############################################
 # Copy everything to arduino-esp32 installation
 # ##############################################
-if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
+if [ $COPY_OUT -eq 1 ]; then
+    mkdir -p $ESP32_ARDUINO # Create the Folder if it does not exist
     echo -e '-- Copy all to arduino-esp32 installation path'
     echo -e "   at:  $ePF $ESP32_ARDUINO $eNO"
     echo -e "   with:$eUS $SH_ROOT/tools/copy-to-arduino.sh $eNO"
-    $SH_ROOT/tools/copy-to-arduino.sh
+    source $SH_ROOT/tools/copy-to-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 # ##############################################

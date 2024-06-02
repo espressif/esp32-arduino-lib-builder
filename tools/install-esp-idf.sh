@@ -20,7 +20,7 @@ if [ ! -d "$IDF_PATH" ]; then
 	git clone $IDF_REPO_URL -b $IDF_BRANCH $IDF_PATH --quiet
 	idf_was_installed="1"
 else
-	echo -e "   updating(already thiere)$eGI$IDF_REPO_URL$eNO\n   to:$ePF $IDF_PATH $eNO"
+	echo -e "   updating(already there)$eGI $IDF_REPO_URL$eNO\n   to:$ePF $IDF_PATH $eNO"
 	git -C "$IDF_PATH" fetch --quiet && \
 	git -C "$IDF_PATH" pull --ff-only --quiet
 	echo -e "   Checkout Branch:$eTG '$IDF_BRANCH' $eNO"

@@ -1,5 +1,6 @@
 #!/bin/bash
-source ./tools/config.sh
+
+source $SH_ROOT/tools/config.sh
 
 if [ -z $ESP32_ARDUINO ]; then
     if [[ "$AR_OS" == "macos" ]]; then
@@ -7,6 +8,8 @@ if [ -z $ESP32_ARDUINO ]; then
     else
     	ESP32_ARDUINO="$HOME/Arduino/hardware/espressif/esp32"
     fi
+else
+	mkdir -p $ESP32_ARDUINO
 fi
 
 if ! [ -d "$ESP32_ARDUINO" ]; then

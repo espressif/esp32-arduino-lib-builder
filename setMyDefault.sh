@@ -31,19 +31,19 @@ IFS=',' read -ra TARGET <<< "$optInput" # 'IFS' ONLY works within bash script
 #       Reads input into an array named TARGET.
 #       -r option tells read to treat backslashes literally (i.e., do not interpret them as escape characters).
 #       -a option tells read to split the input into an array based on the IFS.
-export TARGET
-export AR_BRANCH='idf-release/v5.1'                             # -A
+export TARGET                                                   # -t    
+export AR_BRANCH="idf-release/v5.1"                             # -A
 export AR_PATH="$oneUpDir/arduino-esp32"                        # -a
-export IDF_BRANCH='release/v5.1'                                # -I
-export IDF_PATH=$"$oneUpDir/esp-id"                             # -f
-export ARCHIVE_OUT=1                                            # -e   
+export IDF_BRANCH="release/v5.1"                                # -I
+export IDF_PATH="$oneUpDir/esp-idf"                             # -f
 export BUILD_DEBUG="error"                                      # -D
+export ESP32_ARDUINO="$oneUpDir/to_arduino-esp32_$timestamp"    # -c
+export AR_OWN_OUT="$oneUpDir/out"                               # -o
 export IDF_InstallSilent=1                                      # -S
 export IDF_BuildTargetSilent=1                                  # -V
-#export IDF_BuildInfosSilent=1                                  # -W
+export IDF_BuildInfosSilent=1                                   # -W
 export COPY_OUT=1                                               # -c
-export ESP32_ARDUINO=$"$oneUpDir/to_arduino-esp32_$timestamp"   # -c
-export AR_OWN_OUT=$"$oneUpDir/out"
+export ARCHIVE_OUT=1                                            # -e   
 
 echo -e "\n-----------------------        1) My default was set        ------------------------"
 echo -e "-t \t Set TARGET to build for target(chips):$eTG '${TARGET[@]}' $eNO"
