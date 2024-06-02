@@ -29,7 +29,7 @@ IFS=',' read -ra TARGET <<< "$optInput" # 'IFS' ONLY works within bash script
 #       -a option tells read to split the input into an array based on the IFS.
 export TARGET
 export AR_BRANCH='idf-release/v5.1'                             # -A
-#export AR_PATH=$(realpath $(pwd)/../arduino-esp32)              # -a
+export AR_PATH=$(realpath $(pwd)/../arduino-esp32)              # -a
 export IDF_BRANCH='release/v5.1'                                # -I
 export IDF_PATH=$(realpath $(pwd)/../esp-idf)                   # -f
 export ARCHIVE_OUT=1                                            # -e   
