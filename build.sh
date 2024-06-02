@@ -79,99 +79,116 @@ function print_help() {
 # Check if any arguments were passed
 if [ $# -eq 0 ]; then
   # No arguments were passed then set MY defaults
-  source $SH_ROOT/setMyDefault.sh 
-else # Process Arguments were passed
-    echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
-    while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
-        case ${opt} in
-            s )
-                SKIP_ENV=1
-                echo -e '-s \t Skip installing/updating of components'
-                ;;
-            d )
-                DEPLOY_OUT=1
-                echo -e '-d \t Deploy the build to github arduino-esp32'
-                ;;
-            e )
-                ARCHIVE_OUT=1
-                echo -e '-e \t Archive the build to dist-Folder'
-                ;;
-            c )
-                export ESP32_ARDUINO="$OPTARG"
-                echo -e "-c \t Copy the build to arduino-esp32 Folder:"
-                echo -e "+\t$ePF >> '$ESP32_ARDUINO' $eNO"
-                COPY_OUT=1
-                ;;
-            o )
-                export AR_OWN_OUT="$OPTARG"
-                echo -e "-o \t Use a own out-Folder:"
-                echo -e "+\t$ePF >> '$AR_OWN_OUT' $eNO"
-                ;;
-            A )
-                export AR_BRANCH="$OPTARG"
-                echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG '$AR_BRANCH' $eNO"
-                ;;
-            a )
-                export AR_PATH="$OPTARG"
-                echo -e "-a \t Set local Arduino-Component Folder :$eTG '$AR_PATH' $eNO"
-                ;;
-            I )
-                export IDF_BRANCH="$OPTARG"
-                echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
-                ;;
-            f )
-                export IDF_PATH="$OPTARG"
-                echo -e "-f \t Set local IDF-Folder:$eTG '$IDF_PATH' $eNO"
-                ;;
-            i )
-                export IDF_COMMIT="$OPTARG"
-                echo -e "-i \t Set commit of ESP-IDF for compilation:$eTG '$IDF_COMMIT' $eNO"
-                ;;
-            D )
-                BUILD_DEBUG="$OPTARG"
-                echo -e "-D \t Debug level to be set to ESP-IDF:$eTG '$BUILD_DEBUG' $eNO"
-                ;;
-            t )
-                IFS=',' read -ra TARGET <<< "$OPTARG"
-                echo -e "-t \t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
-                ;;
-            S )
-                IDF_InstallSilent=1
-                echo -e '-S \t Silent mode for installing ESP-IDF and components'
-                ;;
-            V )
-                IDF_BuildTargetSilent=1
-                echo -e '-V \t Silent mode for building Targets with idf.py'
-                ;;
-            W )
-                IDF_BuildInfosSilent=1
-                echo -e '-W \t Silent mode for building of Infos.'
-                ;;
-            b )
-                b=$OPTARG
-                if [ "$b" != "build" ] && 
-                [ "$b" != "menuconfig" ] && 
-                [ "$b" != "reconfigure" ] && 
-                [ "$b" != "idf-libs" ] && 
-                [ "$b" != "copy-bootloader" ] && 
-                [ "$b" != "mem-variant" ]; then
-                    print_help
-                fi
-                BUILD_TYPE="$b"
-                echo -e '-b \t Set the build type:' $BUILD_TYPE
-                ;;
-            \? )
-                echo "Invalid option: -$OPTARG" 1>&2
-                print_help
-                ;;
-            : )
-                echo "Invalid option: -$OPTARG requires an argument" 1>&2
-                print_help
-                ;;
-        esac
-    done
-    echo -e   "-------------------------   DONE:  processing ARGUMENTS   -------------------------\n"
+  # Dialog to decide it to use the default values or not
+  echo "No Parameters were passed"
+  while true; do
+      read -p "Do you want to use your default Parameters? (y/n): " choice
+      case "$choice" in
+          y|yes ) 
+              source $SH_ROOT/myParasFake.sh
+              break
+              ;;
+          n|No ) 
+              echo "Proceed without Parameters..."
+              break
+              ;;
+          * ) 
+              echo "Please answer y or n."
+              ;;
+      esac
+  done
 fi
+# Process Arguments were passed
+echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
+while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
+    case ${opt} in
+        s )
+            SKIP_ENV=1
+            echo -e '-s \t Skip installing/updating of components'
+            ;;
+        d )
+            DEPLOY_OUT=1
+            echo -e '-d \t Deploy the build to github arduino-esp32'
+            ;;
+        e )
+            ARCHIVE_OUT=1
+            echo -e '-e \t Archive the build to dist-Folder'
+            ;;
+        c )
+            export ESP32_ARDUINO="$OPTARG"
+            echo -e "-c \t Copy the build to arduino-esp32 Folder:"
+            echo -e "+\t$ePF >> '$ESP32_ARDUINO' $eNO"
+            COPY_OUT=1
+            ;;
+        o )
+            export AR_OWN_OUT="$OPTARG"
+            echo -e "-o \t Use a own out-Folder:"
+            echo -e "+\t$ePF >> '$AR_OWN_OUT' $eNO"
+            ;;
+        A )
+            export AR_BRANCH="$OPTARG"
+            echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG '$AR_BRANCH' $eNO"
+            ;;
+        a )
+            export AR_PATH="$OPTARG"
+            echo -e "-a \t Set local Arduino-Component Folder :$eTG '$AR_PATH' $eNO"
+            ;;
+        I )
+            export IDF_BRANCH="$OPTARG"
+            echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
+            ;;
+        f )
+            export IDF_PATH="$OPTARG"
+            echo -e "-f \t Set local IDF-Folder:$eTG '$IDF_PATH' $eNO"
+            ;;
+        i )
+            export IDF_COMMIT="$OPTARG"
+            echo -e "-i \t Set commit of ESP-IDF for compilation:$eTG '$IDF_COMMIT' $eNO"
+            ;;
+        D )
+            BUILD_DEBUG="$OPTARG"
+            echo -e "-D \t Debug level to be set to ESP-IDF:$eTG '$BUILD_DEBUG' $eNO"
+            ;;
+        t )
+            IFS=',' read -ra TARGET <<< "$OPTARG"
+            echo -e "-t \t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
+            ;;
+        S )
+            IDF_InstallSilent=1
+            echo -e '-S \t Silent mode for installing ESP-IDF and components'
+            ;;
+        V )
+            IDF_BuildTargetSilent=1
+            echo -e '-V \t Silent mode for building Targets with idf.py'
+            ;;
+        W )
+            IDF_BuildInfosSilent=1
+            echo -e '-W \t Silent mode for building of Infos.'
+            ;;
+        b )
+            b=$OPTARG
+            if [ "$b" != "build" ] && 
+            [ "$b" != "menuconfig" ] && 
+            [ "$b" != "reconfigure" ] && 
+            [ "$b" != "idf-libs" ] && 
+            [ "$b" != "copy-bootloader" ] && 
+            [ "$b" != "mem-variant" ]; then
+                print_help
+            fi
+            BUILD_TYPE="$b"
+            echo -e '-b \t Set the build type:' $BUILD_TYPE
+            ;;
+        \? )
+            echo "Invalid option: -$OPTARG" 1>&2
+            print_help
+            ;;
+        : )
+            echo "Invalid option: -$OPTARG requires an argument" 1>&2
+            print_help
+            ;;
+    esac
+done
+echo -e   "-------------------------   DONE:  processing ARGUMENTS   -------------------------\n"
 # --------------------
 # Misc
 shift $((OPTIND -1))
