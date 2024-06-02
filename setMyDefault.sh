@@ -19,6 +19,9 @@ export eNO="\x1B[0m"  # Back to    (Black)
 #echo "       -c     Copy the build to arduino-esp32 Folder'
 #echo "       -W     Silent mode for Creating - Infos. Don't use this unless you are sure the creations goes without errors"
 
+oneUpDir=$(realpath $(pwd)/../)     # Dir above the current directory
+timestamp=$(date +"%Y%m%d_%Hh%Mm")  # Timestamp for the build
+
 optInput="esp32h2"                                             # -t 
 IFS=',' read -ra TARGET <<< "$optInput" # 'IFS' ONLY works within bash script
 # IFS is a special shell variable - "The Internal Field Separator (IFS)", that determines how Bash recognizes word boundaries.
@@ -30,18 +33,17 @@ IFS=',' read -ra TARGET <<< "$optInput" # 'IFS' ONLY works within bash script
 #       -a option tells read to split the input into an array based on the IFS.
 export TARGET
 export AR_BRANCH='idf-release/v5.1'                             # -A
-export AR_PATH=$(realpath $(pwd)/../arduino-esp32)              # -a
+export AR_PATH="$oneUpDir/arduino-esp32"                        # -a
 export IDF_BRANCH='release/v5.1'                                # -I
-export IDF_PATH=$(realpath $(pwd)/../esp-idf)                   # -f
-#export ARCHIVE_OUT=1                                            # -e   
+export IDF_PATH=$"$oneUpDir/esp-id"                             # -f
+export ARCHIVE_OUT=1                                            # -e   
 export BUILD_DEBUG="error"                                      # -D
-#export IDF_InstallSilent=1                                      # -S
+export IDF_InstallSilent=1                                      # -S
 export IDF_BuildTargetSilent=1                                  # -V
-#export IDF_BuildInfosSilent=1                                   # -W
+#export IDF_BuildInfosSilent=1                                  # -W
 export COPY_OUT=1                                               # -c
-timestamp=$(date +"%Y%m%d_%Hh%Mm")                              # -c
-export ESP32_ARDUINO=$(realpath $(pwd)/../to_arduino-esp32_$timestamp) # -c
-export AR_OWN_OUT=$(realpath $(pwd)/../out)
+export ESP32_ARDUINO=$"$oneUpDir/to_arduino-esp32_$timestamp"   # -c
+export AR_OWN_OUT=$"$oneUpDir/out"
 
 echo -e "\n-----------------------        1) My default was set        ------------------------"
 echo -e "-t \t Set TARGET to build for target(chips):$eTG '${TARGET[@]}' $eNO"
