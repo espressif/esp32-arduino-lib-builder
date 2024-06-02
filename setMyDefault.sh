@@ -17,6 +17,7 @@ export eNO="\x1B[0m"  # Back to    (Black)
 #echo "       -S     Silent mode for installing ESP-IDF and components'
 #echo "       -V     Silent mode for building Targets with idf.py'
 #echo "       -c     Copy the build to arduino-esp32 Folder'
+#echo "       -W     Silent mode for Creating - Infos. Don't use this unless you are sure the creations goes without errors"
 
 optInput="esp32h2"                                             # -t 
 IFS=',' read -ra TARGET <<< "$optInput" # 'IFS' ONLY works within bash script
@@ -36,6 +37,7 @@ export ARCHIVE_OUT=1                                            # -e
 export BUILD_DEBUG="error"                                      # -D
 export IDF_InstallSilent=1                                      # -S
 export IDF_BuildTargetSilent=1                                  # -V
+export IDF_BuildInfosSilent=1                                   # -W
 export COPY_OUT=1                                               # -c
 timestamp=$(date +"%Y%m%d_%Hh%Mm")                              # -c
 export ESP32_ARDUINO=$(realpath $(pwd)/../to_arduino-esp32_$timestamp) # -c
@@ -47,10 +49,11 @@ echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG '$AR_BRANCH' $eN
 echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
 echo -e "-a \t Set local Arduino-Component Folder :$eTG '$AR_PATH' $eNO"
 echo -e "-f \t Set Set local IDF-Folder:$eTG '$IDF_PATH' $eNO"
-echo -e '-e \t Archive the build to dist-Folder'
+[ $ARCHIVE_OUT -eq 0 ]           && echo -e '-e \t Archive the build to dist-Folder'
 echo -e "-D \t Debug level to be set to ESP-IDF:$eTG '$BUILD_DEBUG' $eNO"
-echo -e '-S \t Silent mode for installing ESP-IDF and components'
-echo -e '-V \t Silent mode for building Targets with idf.py'
-echo -e "-c \t Copy the build to arduino-esp32 Folder:"
-echo -e "+\t$ePF '$ESP32_ARDUINO' $eNO"
+[ $IDF_InstallSilent -eq 0 ]     && echo -e '-S \t Silent mode for installing ESP-IDF and components'
+[ $IDF_BuildTargetSilent -eq 0 ] && echo -e '-V \t Silent mode for building Targets with idf.py'
+[ $IDF_BuildInfosSilent -eq 0 ]  && echo -e '-W \t Silent mode for building of Infos.'
+[ $COPY_OUT -eq 0 ]              && echo -e "-c \t Copy the build to arduino-esp32 Folder:"
+[ $COPY_OUT -eq 0 ]              && echo -e "+\t$ePF '$ESP32_ARDUINO' $eNO"
 echo -e   "-------------------------        DONE:  My defaults        -------------------------\n"
