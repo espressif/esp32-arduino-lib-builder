@@ -6,7 +6,7 @@
 oneUpDir=$(realpath $(pwd)/../)      # DIR above the current directory
 timeStampAR=$(date +"%Y%m%d_%Hh%Mm") # Shorter Timestamp for the arduino-esp32 build
 set -- \
-"-t" "esp32h2,esp32s3,esp32" \
+"-t" "esp32h2,esp32s3" \
 "-A" "idf-release/v5.1" \
 "-a" "$oneUpDir/arduino-esp32" \
 "-I" "release/v5.1" \
