@@ -29,16 +29,17 @@ IFS=',' read -ra TARGET <<< "$optInput" # 'IFS' ONLY works within bash script
 #       -a option tells read to split the input into an array based on the IFS.
 export TARGET
 export AR_BRANCH='idf-release/v5.1'                             # -A
-export AR_PATH=$(realpath $(pwd)/../arduino-esp32)              # -a
+#export AR_PATH=$(realpath $(pwd)/../arduino-esp32)              # -a
 export IDF_BRANCH='release/v5.1'                                # -I
 export IDF_PATH=$(realpath $(pwd)/../esp-idf)                   # -f
 export ARCHIVE_OUT=1                                            # -e   
 export BUILD_DEBUG="error"                                      # -D
-#export IDF_InstallSilent=1                                      # -S
-#export IDF_BuildTargetSilent=1                                  # -V
+export IDF_InstallSilent=1                                      # -S
+export IDF_BuildTargetSilent=1                                  # -V
 export COPY_OUT=1                                               # -c
 timestamp=$(date +"%Y%m%d_%Hh%Mm")                              # -c
 export ESP32_ARDUINO=$(realpath $(pwd)/../to_arduino-esp32_$timestamp) # -c
+export AR_OWN_OUT=$(realpath $(pwd)/../out)
 
 echo -e "\n-----------------------        1) My default was set        ------------------------"
 echo -e "-t \t Set TARGET to build for target(chips):$eTG '${TARGET[@]}' $eNO"

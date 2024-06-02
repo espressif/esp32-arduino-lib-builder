@@ -1,6 +1,6 @@
 #/bin/bash
 
-source ./tools/config.sh
+source $SH_ROOT/tools/config.sh
 
 echo     "...Component ESP32 Arduino installing/updating local copy...."
 # --------------------------------
@@ -11,9 +11,10 @@ if [ ! -z $AR_PATH ]; then
 	# ********  Other Arduiono-Component-Path ********
 	mkdir -p $AR_PATH # Create the Folder if it does not exist
 	# Create a symlink
-	# from  <Source>  to  <target> new Folder that's symlink 
-	ln -s   $AR_PATH      $AR_ROOT/components/arduino
-
+	if [ ! -e $AR_ROOT/components/arduino ]; then
+		# from  <Source>  to  <target> new Folder that's symlink
+		ln -s   $AR_PATH      $AR_ROOT/components/arduino > /dev/null
+	fi
 	# Get Component by cloning, if NOT already there
 	if [ ! -d "$AR_COMPS/arduino/package" ]; then
 		echo -e "   cloning $eGI$AR_REPO_URL$eNO\n   to:$ePF $AR_PATH $eNO"

@@ -68,18 +68,10 @@ AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/esp32-arduino-libs/$IDF_TARGET"
 TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
 IDF_LIBS_DIR=$(realpath $AR_ROOT/../esp32-arduino-libs) 
-
 # --------------------------------------
 # Set Path to PIO-SDK = PlatformIO SDK
 # --------------------------------------
 PIO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
-
-# If Folder of the ESP-IDF already exist, grab the commit and branch of the ESP-IDF 
-if [ -d "$IDF_PATH" ]; then
-    export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
-    export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)
-fi
-
 # *********************************************
 # Several common Funtions partly OS dependent
 # *********************************************

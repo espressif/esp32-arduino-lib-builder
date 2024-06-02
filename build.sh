@@ -1,27 +1,30 @@
 #!/bin/bash
-
+#--------------------------
+# Check for Comands needed 
+#--------------------------
 if ! [ -x "$(command -v python3)" ]; then
     echo "ERROR: python is not installed! Please install python first."
     exit 1
 fi
-
 if ! [ -x "$(command -v git)" ]; then
     echo "ERROR: git is not installed! Please install git first."
     exit 1
 fi
-# Define the colors for the echo output 
+#---------------------------------------
+# Define the colors for the echo output
+#---------------------------------------
 export ePF="\x1B[35m" # echo Color (Purple) for Path and File outputs
 export eGI="\x1B[32m" # echo Color (Green) for Git-Urls
 export eTG="\x1B[31m" # echo Color (Red) for Targets
 export eUS="\x1B[34m" # echo Color (blue) for Files that are executed or used 
 export eNO="\x1B[0m"  # Back to    (Black)
-
-# Get the current path of the script
+#------------------------------------
+# Set the current path of the script
 export SH_ROOT=$(pwd)
-
+#-----------------------------------------------------------------------------
 # Load the functions extractFileName() > For pretty output of compiler configs
 source "$SH_ROOT/extractConfigFNs.sh" 
-
+#---------------------------
 # Show intro of the build.sh 
 echo -e "\n~~~~~~~~~~~~~~~~ $eTG Starting of the build.sh $eNO to get the Arduino-Libs ~~~~~~~~~~~~~~~~"
 echo -e   "~~ Purpose: Get the Arduino-Libs for manifold  ESP32-Variants > Targets"
@@ -34,7 +37,7 @@ echo -e   "~~          3) Compile the Targets with the given Configurations"
 echo -e   "~~          4) Create and move created files"
 echo -e   "~~  build.sh started at (SH_ROOT=)$ePF$SH_ROOT$eNO" 
 echo -e   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-
+#-----------------------------------------------------------
 # Set the default values to be overwritten by the arguments
 TARGET="all"
 BUILD_TYPE="all"
@@ -45,11 +48,11 @@ ARCHIVE_OUT=0
 IDF_InstallSilent=0     # 0 = not silent, 1 = silent
 IDF_BuildTargetSilent=0 # 0 = not silent, 1 = silent
 IDF_BuildInfosSilent=0  # 0 = not silent, 1 = silent
-
 if [ -z $DEPLOY_OUT ]; then
     DEPLOY_OUT=0
 fi
-
+#-------------------------------------
+#  Function to print the help message
 function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
@@ -71,7 +74,7 @@ function print_help() {
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
-
+#-------------------------------------
 # Check if any arguments were passed
 if [ $# -eq 0 ]; then
   # No arguments were passed then set MY defaults
@@ -163,11 +166,11 @@ else # Process Arguments were passed
     done
     echo -e   "-------------------------   DONE:  processing ARGUMENTS   -------------------------\n"
 fi
-
+# --------------------
+# Misc
 shift $((OPTIND -1))
 CONFIGS=$@
 mkdir -p dist
-
 # **********************************************
 # ******     LOAD needed Components      *******
 # **********************************************
@@ -197,7 +200,6 @@ fi
 if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
     rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
 fi
-
 # **********************************************
 # *****   Build II ALL   ******
 # **********************************************
@@ -249,11 +251,29 @@ fi
 # ******     BUILD the Components        *******
 # **********************************************
 echo -e '--------------------------- 3) BUILD for Named Targets ----------------------------'
+# Clean the build- and out- folders
 rm -rf build sdkconfig out
-echo -e "-- Create the Out-folder\n   to:$ePF $AR_TOOLS/esp32-arduino-libs $eNO" 
-mkdir -p "$AR_TOOLS/esp32-arduino-libs"
-
+# -----------------------------------------------------
+# Processing own AR_OUT Path with AR_OWN_OUT is given
+# -----------------------------------------------------
+OUT_FOLDER=$AR_OUT
+if [ ! -z $AR_OWN_OUT ]; then
+	# ********  Other out Foder locations ********
+    # Remove all content from AR_OWN_OUT foler
+    rm -rf $AR_OWN_OUT/*
+	mkdir -p $AR_OWN_OUT # Create the Folder if it does not exist
+	# Create a symlink
+	if [ ! -e $AR_OUT ]; then
+		# from  <Source>  to  <target> new Folder that's symlink
+		ln -s   $AR_OWN_OUT   $AR_OUT > /dev/null
+	fi
+    echo -e "-- Create the Out-folder\n   to:$ePF $AR_OWN_OUT $eNO"
+    OUT_FOLDER=$AR_OWN_OUT 
+fi
+echo -e "-- Create the Out-folder\n   to:$ePF $OUT_FOLDER $eNO"
+# ----------------------------------------------
 # Count the number of POSSIBLE targets to build
+# ----------------------------------------------
 # Therefore create a array from from JSON File: 'configs/builds.json'
 # Extract the Possible Target-Names 
 possibleTargetsArray=($(jq -r '.targets[].target' configs/builds.json)) # -r option to get raw output, leads to an array 
@@ -288,14 +308,19 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         continue
     fi
     echo -e "*******************   Building for Target:$eTG $target $eNO  *******************"
-    echo -e "-- Target Out-folder\n   to$ePF $AR_TOOLS/esp32-arduino-libs/$target $eNO" 
+    echo -e "-- Target Out-folder\n"
+    echo -e "   to$ePF $OUT_FOLDER/esp32-arduino-libs/$eTG$target $eNO" 
+    #-------------------------
     # Build Main Configs List
+    #-------------------------
     echo "-- 1) Getting his Configs-List"
     main_configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
     for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
         main_configs="$main_configs;configs/defconfig.$defconf"
     done
-    # Build IDF Libs
+    #---------------------
+    # Build IDF Libs List
+    #---------------------
     echo "-- 2) Getting his Lib-List"
     idf_libs_configs="$main_configs"
     for defconf in `echo "$target_json" | jq -c '.idf_libs[]' | tr -d '"'`; do
@@ -304,11 +329,14 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
         rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
     fi
+    #----------------
+    # Build IDF Libs
+    #----------------
     echo "-- 3) Build IDF-Libs for the target"
     rm -rf build sdkconfig
     echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
     echo -e "     -Config:$eUS "$(extractFileName $idf_libs_configs)"$eNO"
-    echo    "     -Mode:   idf-libs"
+    echo -e "     -Mode:   idf-libs to $ePF.../$eTG$target/$ePF/lib$eNO (*.a)"
     if [ $IDF_BuildTargetSilent -eq 1 ]; then
         echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs > /dev/null
@@ -316,12 +344,14 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs;
     fi
     if [ $? -ne 0 ]; then exit 1; fi
+    #----------------
     # Build SR Models
+    #-----------------
     if [ "$target" == "esp32s3" ]; then
         echo " -- 3b) Build SR (esp32s3) Models for the target"
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $idf_libs_configs)"$eNO"
-        echo    "     -Mode:   srmodels_bin"
+        echo -e "     -Mode:   srmodels_bin"
         if [ $IDF_BuildTargetSilent -eq 1 ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin > /dev/null
@@ -338,7 +368,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             cp -f "partitions.csv" "$AR_SDK/esp_sr/"
         fi
     fi
+    #-------------------
     # Build Bootloaders
+    #-------------------
     countBootloaders=0
     for boot_conf in `echo "$target_json" | jq -c '.bootloaders[]'`; do
         bootloader_configs="$main_configs"
@@ -353,7 +385,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         rm -rf build sdkconfig
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $bootloader_configs)"$eNO"
-        echo    "     -Mode:   copy-bootloader"     
+        echo -e "     -Mode:   copy-bootloader to $ePF.../$eTG$target/$ePF/bin$eNO (*.elf)"     
         if [ $IDF_BuildTargetSilent -eq 1 ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader > /dev/null
@@ -362,8 +394,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         if [ $? -ne 0 ]; then exit 1; fi
     done
-
+    #-----------------------
     # Build Memory Variants
+    #-----------------------
     echo "-- 5) Build Memory Variants for the target"
     for mem_conf in `echo "$target_json" | jq -c '.mem_variants[]'`; do
         mem_configs="$main_configs"
@@ -377,7 +410,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         rm -rf build sdkconfig
         echo -e "   Build with >$eUS idf.py$eNO -Target:$eTG $target $eNO"
         echo -e "     -Config:$eUS "$(extractFileName $mem_configs)"$eNO"
-        echo    "     -Mode:   mem-variant"
+        echo -e "     -Mode:   mem-variant to $ePF.../$eTG$target/$ePF/dio_qspi$eNO (*.a)"
         if [ $IDF_BuildTargetSilent -eq 1 ]; then
             echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!"
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant > /dev/null
@@ -388,36 +421,51 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     done
     echo -e "****************  FINISHED Building for Target:$eTG $target $eNO  ***************\n"
 done
-echo -e '-------------------------- DONE: BUILD for Named Targets --------------------------\n'
-
+# Clean the build-folder and sdkconfig
+rm -rf build sdkconfig
+echo -e '-------------------------- DONE: BUILD for Named Targets --------------------------'
 # **********************************************
 # ******  Add components version info    *******
-# **********************************************#
+# **********************************************
 echo -e '----------------------------- 4) Create Version Info ------------------------------'
-
+################################
+# Create NEW Version Info-File
+################################
 echo -e '-- Create NEW Version Info-File'
 echo -e "   at: $ePF$AR_TOOLS/esp32-arduino-libs/versions.txt$eNO"
 rm -rf "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-
-# The lib-builder version
+# -------------------------
+# Write lib-builder version
+# -------------------------
 echo -e '   ...1) Write Lib-Builder Version'
+#echo -e "         Exp1-Result: $(git -C "$AR_ROOT" symbolic-ref --short HEAD)"
+#echo -e "         Exp2-Result: $(git -C "$AR_ROOT" tag --points-at HEAD)"
+#echo -e "         Exp3-Result: $(git -C "$AR_ROOT" rev-parse --short HEAD)"
 component_version="lib-builder: "$(git -C "$AR_ROOT" symbolic-ref --short HEAD || git -C "$AR_ROOT" tag --points-at HEAD)" "$(git -C "$AR_ROOT" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-# ESP-IDF version
+# -------------------------
+# Write ESP-IDF version
+# -------------------------
 component_version="esp-idf: "$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)" "$(git -C "$IDF_PATH" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-# components version
+# -------------------------
+# Write components version
+# -------------------------
 for component in `ls "$AR_COMPS"`; do
     if [ -d "$AR_COMPS/$component/.git" ]; then
         component_version="$component: "$(git -C "$AR_COMPS/$component" symbolic-ref --short HEAD || git -C "$AR_COMPS/$component" tag --points-at HEAD)" "$(git -C "$AR_COMPS/$component" rev-parse --short HEAD)
         echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
     fi
 done
-# TinyUSB version
+# -------------------------
+# Write TinyUSB version
+# -------------------------
 echo -e '   ...2) Write TinyUSB Version'
 component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-# managed components version
+# -------------------------
+# Write managed components version
+# -------------------------
 echo -e '   ...3) Write Managed components version'
 for component in `ls "$AR_MANAGED_COMPS"`; do
     if [ -d "$AR_MANAGED_COMPS/$component/.git" ]; then
@@ -428,23 +476,25 @@ for component in `ls "$AR_MANAGED_COMPS"`; do
         echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
     fi
 done
-
+# #########################################
 # Update package_esp32_index.template.json
+# #########################################
 if [ "$BUILD_TYPE" = "all" ]; then
     echo -e "-- Generate $eUS'package_esp32_index.template.json'$eNO"
     echo -e "   to: $ePF $TOOLS_JSON_OUT/arduino/package/package_esp32_index.template.json $eNO"
     if [ $IDF_BuildInfosSilent -eq 1 ]; then
         echo -e "  $eTG Silent Info creation$eNO - don't use this as long as your not sure creation goes without errors!"
-        python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" > /dev/null
-        python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" > /dev/null
+        python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" > /dev/null
+        python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" > /dev/null
     else
-        python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
-        python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/"
+        python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
+        python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/"
     fi
     if [ $? -ne 0 ]; then exit 1; fi
 fi
-
+# ###################################
 # Generate PlatformIO manifest file
+# ###################################
 if [ "$BUILD_TYPE" = "all" ]; then
     echo -e "-- Generate$eTG PlatformIO$eNO manifest file $eUS'package.json'$eNO"
     pushd $IDF_PATH
@@ -452,38 +502,41 @@ if [ "$BUILD_TYPE" = "all" ]; then
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
     popd
     echo -e "   at:  $ePF $TOOLS_JSON_OUT/$eNO"
-    echo -e "   with:$eUS ./tools/gen_platformio_manifest.py $eNO"
+    echo -e "   with:$eUS $SH_ROOT/tools/gen_platformio_manifest.py $eNO"
     if [ $IDF_BuildInfosSilent -eq 1 ]; then
         echo -e "  $eTG Silent Info creation$eNO - don't use this as long as your not sure creation goes without errors!"
-        python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" > /dev/null
+        python3 $SH_ROOT/tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" > /dev/null
     else
-        python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
+        python3 $SH_ROOT/tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
     fi    
     if [ $? -ne 0 ]; then exit 1; fi
 fi
-
+# ##############################################
 # Copy everything to arduino-esp32 installation
+# ##############################################
 if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
     echo -e '-- Copy all to arduino-esp32 installation path'
     echo -e "   at:  $ePF $ESP32_ARDUINO $eNO"
-    echo -e "   with:$eUS ./tools/copy-to-arduino.sh $eNO"
-    ./tools/copy-to-arduino.sh
+    echo -e "   with:$eUS $SH_ROOT/tools/copy-to-arduino.sh $eNO"
+    $SH_ROOT/tools/copy-to-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 fi
-
+# ##############################################
 # push changes to esp32-arduino-libs and create pull request into arduino-esp32
+# ##############################################
 if [ $DEPLOY_OUT -eq 1 ]; then
     echo -e '-- Push changes to esp32-arduino-libs'
-    echo -e "   with:$eUS ./tools/push-to-arduino.sh $eNO"
-    ./tools/push-to-arduino.sh
+    echo -e "   with:$eUS $SH_ROOT/tools/push-to-arduino.sh $eNO"
+    $SH_ROOT/tools/push-to-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 fi
-
-# archive the build
+# ##############################################
+# Write archive with the build stuff
+# ##############################################
 if [ $ARCHIVE_OUT -eq 1 ]; then
     echo -e "-- Move the build to dist-folder"
-    echo -e "   with:$eUS ./tools/archive-build.sh$TG $TARGET $eNO"
-    ./tools/archive-build.sh "$TARGET"
+    echo -e "   with:$eUS $SH_ROOT/tools/archive-build.sh$TG $TARGET $eNO"
+    $SH_ROOT/tools/archive-build.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 echo -e '---------------------------- DONE Create Version Info -----------------------------'

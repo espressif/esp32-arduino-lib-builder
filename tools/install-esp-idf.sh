@@ -1,12 +1,14 @@
 #/bin/bash
 
-source ./tools/config.sh
+source $SH_ROOT/tools/config.sh
 
+#---------------
+# Check for SED
+#---------------
 if ! [ -x "$(command -v $SED)" ]; then
   	echo "ERROR: $SED is not installed! Please install $SED first."
   	exit 1
 fi
-
 #--------------------------------
 # Get esp-if 
 #--------------------------------
@@ -38,10 +40,10 @@ fi
 #----------------------------------
 # UPDATE ESP-IDF TOOLS AND MODULES
 #----------------------------------
+echo "...Updating IDF-Tools and Modules"
+echo "   to same path like above"
+git -C $IDF_PATH submodule update --init --recursive --quiet
 if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
-	echo "...Updating IDF-Tools and Modules"
-	echo "   to same path like above"
-	git -C $IDF_PATH submodule update --init --recursive --quiet
 	echo -e "...Installing ESP-IDF Tools"
 	echo -e "   with:$eUS $IDF_PATH/install.sh$eNO"	
 	if [ $IDF_InstallSilent -eq 1 ] ; then
