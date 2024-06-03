@@ -84,7 +84,7 @@ if [ $# -eq 0 ]; then
     # Check if the script is running with bashdb (debug mode)
     if [[ -n "$$_Dbg_file" ]]; then
         echo "Running in debug mode"
-        source $SH_ROOT/myParasFake.sh
+        source $SH_ROOT/setMyParameters.sh
     else
         # No arguments were passed then set MY defaults
         # Dialog to decide it to use the default values or not
@@ -93,7 +93,7 @@ if [ $# -eq 0 ]; then
             read -p "Do you want to use your default Parameters? (y/n): " choice
             case "$choice" in
                 y|yes ) 
-                    source $SH_ROOT/myParasFake.sh
+                    source $SH_ROOT/setMyParameters.sh
                     break
                     ;;
                 n|No ) 

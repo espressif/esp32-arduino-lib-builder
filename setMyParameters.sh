@@ -1,8 +1,13 @@
 #!/bin/bash
 
-# -----------------
-# Fake parameters
-# -----------------
+# ----------------------------------
+# Set Parameters for the build.sh
+# ---------------------------------
+# Call his upfront, if you call
+#    ./build.sh 
+# from a other scrpt,
+# see: yourBuild_with_log.sh
+# --------------------------------
 oneUpDir=$(realpath $(pwd)/../)      # DIR above the current directory
 timeStampAR=$(date +"%Y%m%d_%Hh%Mm") # Shorter Timestamp for the arduino-esp32 build
 set -- \
