@@ -8,9 +8,9 @@ timeStampAR=$(date +"%Y%m%d_%Hh%Mm") # Shorter Timestamp for the arduino-esp32 b
 set -- \
 "-t" "esp32h2,esp32s3" \
 "-A" "idf-release/v5.1" \
-"-a" "$oneUpDir/arduino-esp32" \
+"-a" "$oneUpDir/GitHub-Sources/arduino-esp32" \
 "-I" "release/v5.1" \
-"-f" $"$oneUpDir/esp-idf" \
+"-f" $"$oneUpDir/GitHub-Sources/esp-idf" \
 "-D" "error" \
 "-c" "$oneUpDir/to_arduino-esp32_$timeStampAR" \
 "-o" "$oneUpDir/out" \
