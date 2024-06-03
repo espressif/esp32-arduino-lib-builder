@@ -29,8 +29,7 @@ It contains modifications in the manner to ...
 
 ```bash
 sudo pip install --upgrade pip
-git clone https://github.com/twischi/esp32-arduino-lib-builder
-cd esp32-arduino-lib-builder
+git clone https://github.com/twischi/esp32-arduino-lib-builder && cd esp32-arduino-lib-builder
 ./build.sh
 ```
 
