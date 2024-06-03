@@ -81,25 +81,31 @@ function print_help() {
 #-------------------------------------
 # Check if any arguments were passed
 if [ $# -eq 0 ]; then
-  # No arguments were passed then set MY defaults
-  # Dialog to decide it to use the default values or not
-  echo "No Parameters were passed:"
-  while true; do
-      read -p "Do you want to use your default Parameters? (y/n): " choice
-      case "$choice" in
-          y|yes ) 
-              source $SH_ROOT/myParasFake.sh
-              break
-              ;;
-          n|No ) 
-              echo "Proceed without Parameters..."
-              break
-              ;;
-          * ) 
-              echo "Please answer y or n."
-              ;;
-      esac
-  done
+    # Check if the script is running with bashdb (debug mode)
+    if [[ -n "$$_Dbg_file" ]]; then
+        echo "Running in debug mode"
+        source $SH_ROOT/myParasFake.sh
+    else
+        # No arguments were passed then set MY defaults
+        # Dialog to decide it to use the default values or not
+        echo "No Parameters were passed:"
+        while true; do
+            read -p "Do you want to use your default Parameters? (y/n): " choice
+            case "$choice" in
+                y|yes ) 
+                    source $SH_ROOT/myParasFake.sh
+                    break
+                    ;;
+                n|No ) 
+                    echo "Proceed without Parameters..."
+                    break
+                    ;;
+                * ) 
+                    echo "Please answer y or n."
+                    ;;
+            esac
+        done
+    fi
 fi
 # Process Arguments were passed
 echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"

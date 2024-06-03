@@ -67,7 +67,14 @@ AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 # --------------------------------------
 AR_SDK="$AR_TOOLS/esp32-arduino-libs/$IDF_TARGET"
 TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
-IDF_LIBS_DIR=$(realpath $AR_ROOT/../)esp32-arduino-libs 
+# -- IDF_LIBS_DIR  Processing for new OPTION -a > AR_PATH is given
+if [ ! -z $AR_PATH ]; then
+    # ********  Other Arduiono-Component-Path ******** 
+    IDF_LIBS_DIR="$(realpath $AR_PATH/../)/esp32-arduino-libs"
+else
+	# ********  NORMAL PROCESSING ******** 
+    IDF_LIBS_DIR="$(realpath $AR_ROOT/../)/esp32-arduino-libs"
+fi
 # --------------------------------------
 # Set Path to PIO-SDK = PlatformIO SDK
 # --------------------------------------

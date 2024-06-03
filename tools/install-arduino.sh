@@ -16,7 +16,7 @@ if [ ! -z $AR_PATH ]; then
 		ln -s   $AR_PATH      $AR_ROOT/components/arduino > /dev/null
 	fi
 	# Get Component by cloning, if NOT already there
-	if [ ! -d "$AR_COMPS/arduino/package" ]; then
+	if [ ! -d "$AR_PATH/package" ]; then
 		echo -e "   cloning $eGI$AR_REPO_URL$eNO\n   to:$ePF $AR_PATH $eNO"
 		git clone $AR_REPO_URL $AR_PATH --quiet
 	else
