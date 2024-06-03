@@ -60,7 +60,7 @@ function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
-    echo "       -a     Set local Arduino-Component Folder <arduino-esp32>/<arduino>"
+    echo "       -a     Set local Arduino-Component Folder <arduino-esp32>/<arduino> to (AR_PATH)"
     echo "       -I     Set which branch of ESP-IDF to be used for compilation"
     echo "       -f     Set local IDF Folder <esp-idf>" 
     echo "      <OR>    only '-I' <OR> '-i' can be used"
@@ -140,6 +140,7 @@ while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
             ;;
         a )
             export AR_PATH="$OPTARG"
+            mkdir -p $AR_PATH # Create the Folder if it does not exist otherwise downloads will fail
             echo -e "-a \t Set local Arduino-Component Folder :$eTG '$AR_PATH' $eNO"
             ;;
         I )
