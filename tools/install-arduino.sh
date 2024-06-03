@@ -70,9 +70,9 @@ fi
 # If a desirted branch IS SET, checkout, fetch & pull it 
 if [ "$AR_BRANCH" ]; then
 	echo -e "...Checkout, fetch & pull BRANCH:$eTG '$AR_BRANCH'$eNO"
-	git -C "$AR_COMPS/arduino" checkout "$AR_BRANCH" --quiet && \
-	git -C "$AR_COMPS/arduino" fetch --quiet && \
-	git -C "$AR_COMPS/arduino" pull --quiet --ff-only
+	git -C "$ArduionoCOMPS" checkout "$AR_BRANCH" --quiet && \
+	git -C "$ArduionoCOMPS" fetch --quiet && \
+	git -C "$ArduionoCOMPS" pull --quiet --ff-only
 fi
 # $?: Status of the last executed command => 0:OK, 1:Error 
 if [ $? -ne 0 ]; then exit 1; fi
