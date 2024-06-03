@@ -327,14 +327,14 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         done
         # If $target is not in the $TARGET array, skip processing
         if [ "$target_in_array" = false ]; then
-            echo "-- Skipping Target: $target"
+            echo -e "-- Skipping Target:$eTG $target$eNO"
             continue
         fi
     fi
     # Skip chips that should not be a part of the final libs
     # WARNING!!! this logic needs to be updated when cron builds are split into jobs
     if [ "$TARGET" = "all" ] && [ $target_skip -eq 1 ]; then
-        echo "-- Skipping Target: $target"
+        echo -e "-- Skipping Target:$eTG $target$eNO"
         continue
     fi
     echo -e "*******************   Building for Target:$eTG $target $eNO  *******************"
