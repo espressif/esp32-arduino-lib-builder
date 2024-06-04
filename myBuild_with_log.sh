@@ -34,6 +34,6 @@ clear
 runtime=$(($(date +"%s")- startTime))
 hours=$((runtime / 3600)) &&  minutes=$(( (runtime % 3600) / 60 )) && seconds=$((runtime % 60))
 # Write times
-echo -e "Started:\t$timestamp" &&
-echo -e "Finihed:\t$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")" | tee $logFile
-echo -e "Runtime:\t${hours}h-${minutes}m-${seconds}s" | tee $logFile
+echo -e "Started:\t$timestamp" | tee -a $logFile
+echo -e "Finihed:\t$(date +"%Y-%m-%d-%Hh_%Mm_%Ss")" | tee -a $logFile
+echo -e "Runtime:\t${hours}h-${minutes}m-${seconds}s" | tee -a $logFile
