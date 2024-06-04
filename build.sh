@@ -1,4 +1,20 @@
 #!/bin/bash
+
+#------------------------------------------
+# Ensure that a alternative bash potentially 
+# installed on an the system will be used
+#------------------------------------------
+# Determine the path to the bash executable
+BASH_PATH=$(which bash)
+# Ensure the bash executable is found
+if [ -z "$BASH_PATH" ]; then
+  echo "bash not found in PATH"
+  exit 1
+fi
+# If the script is not running with the correct bash, re-execute it with the found bash
+if [ "$BASH" != "$BASH_PATH" ]; then
+  exec "$BASH_PATH" "$0" "$@"
+fi
 #--------------------------
 # Check for Comands needed 
 #--------------------------
@@ -35,7 +51,8 @@ echo -e   "~~          1) Check & Process Parameter with calling build.sh"
 echo -e   "~~          2) Load or Update Components/Tools to do compile"
 echo -e   "~~          3) Compile the Targets with the given Configurations"
 echo -e   "~~          4) Create and move created files"
-echo -e   "~~  build.sh started at (SH_ROOT=)$ePF$SH_ROOT$eNO" 
+echo -e   "~~ build.sh started at (SH_ROOT=)$ePF$SH_ROOT $eNO"
+echo -e   "~~          > Bash version:$eGI $BASH_VERSION $eNO"
 echo -e   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 #-----------------------------------------------------------
 # Set the default values to be overwritten by the arguments
@@ -136,28 +153,28 @@ while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
             ;;
         A )
             export AR_BRANCH="$OPTARG"
-            echo -e "-A \t Set branch of arduino-esp32 for compilation:$eTG '$AR_BRANCH' $eNO"
+            echo -e "-A \t Set branch of arduino-esp32 for compilation AR_BRANCH=$eTG '$AR_BRANCH' $eNO"
             ;;
         a )
             export AR_PATH="$OPTARG"
             mkdir -p $AR_PATH # Create the Folder if it does not exist otherwise downloads will fail
-            echo -e "-a \t Set local Arduino-Component Folder :$eTG '$AR_PATH' $eNO"
+            echo -e "-a \t Set local Arduino-Component Folder AR_PATH=$eTG '$AR_PATH' $eNO"
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
-            echo -e "-I \t Set branch of ESP-IDF for compilation:$eTG '$IDF_BRANCH' $eNO"
+            echo -e "-I \t Set branch of ESP-IDF for compilation IDF_BRANCH=$eTG '$IDF_BRANCH' $eNO"
             ;;
         f )
             export IDF_PATH="$OPTARG"
-            echo -e "-f \t Set local IDF-Folder:$eTG '$IDF_PATH' $eNO"
+            echo -e "-f \t Set local IDF-Folder IDF_PATH=$eTG '$IDF_PATH' $eNO"
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
-            echo -e "-i \t Set commit of ESP-IDF for compilation:$eTG '$IDF_COMMIT' $eNO"
+            echo -e "-i \t Set commit of ESP-IDF for compilation IDF_COMMIT=$eTG '$IDF_COMMIT' $eNO"
             ;;
         D )
             BUILD_DEBUG="$OPTARG"
-            echo -e "-D \t Debug level to be set to ESP-IDF:$eTG '$BUILD_DEBUG' $eNO"
+            echo -e "-D \t Debug level to be set to ESP-IDFBUILD_DEBUG=$eTG '$BUILD_DEBUG' $eNO"
             ;;
         t )
             IFS=',' read -ra TARGET <<< "$OPTARG"
@@ -186,14 +203,14 @@ while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
                 print_help
             fi
             BUILD_TYPE="$b"
-            echo -e '-b \t Set the build type:' $BUILD_TYPE
+            echo -e '-b \t Set the build type BUILD_TYPE='$BUILD_TYPE
             ;;
         \? )
-            echo "Invalid option: -$OPTARG" 1>&2
+            echo -e $eTG "Invalid option: -$OPTARG $eNO" 1>&2
             print_help
             ;;
         : )
-            echo "Invalid option: -$OPTARG requires an argument" 1>&2
+            echo -e $eTG "Invalid option: -$OPTARG requires an argument$eNO" 1>&2
             print_help
             ;;
     esac
