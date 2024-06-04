@@ -32,7 +32,7 @@ fi
 export ePF="\x1B[35m"   # echo Color (Purple) for Path and File outputs
 export eGI="\x1B[32m"   # echo Color (Green) for Git-Urls
 export eTG="\x1B[31m"   # echo Color (Red) for Targets
-export eSR="\x1B[9;31m" # Strikeout (Strikethrough) in Red
+export eSR="\x1B[9;31m" # echo Color (Strikethrough in Red) for Skipped Targets
 export eUS="\x1B[34m"   # echo Color (blue) for Files that are executed or used 
 export eNO="\x1B[0m"    # Back to    (Black)
 #------------------------------------
@@ -349,14 +349,14 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         done
         # If $target is not in the $TARGET array, skip processing
         if [ "$target_in_array" = false ]; then
-            echo -e "-- Skipping Target:$eSR $target$eNO"
+            echo -e "-- Skipping Target: $eSR$target$eNO"
             continue
         fi
     fi
     # Skip chips that should not be a part of the final libs
     # WARNING!!! this logic needs to be updated when cron builds are split into jobs
     if [ "$TARGET" = "all" ] && [ $target_skip -eq 1 ]; then
-        echo -e "-- Skipping Target:$eSR $target$eNO"
+        echo -e "-- Skipping Target: $eSR$target$eNO"
         continue
     fi
     echo -e "*******************   Building for Target:$eTG $target $eNO  *******************"
