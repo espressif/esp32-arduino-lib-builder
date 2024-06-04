@@ -9,9 +9,9 @@ echo     "...Component ESP32 Arduino installing/updating local copy...."
 # Processing for new OPTION -a > AR_PATH is given
 if [ ! -z $AR_PATH ]; then
 	# ********  Other Arduiono-Component-Path ********
-	mkdir -p $AR_PATH # Create the Folder if it does not exist
-	# Create a symlink
-	if [ ! -e $AR_ROOT/components/arduino ]; then
+	# Check if symbolic link at $AR_ROOT/components/arduino already exists
+	if [ ! -L $mda $AR_ROOT/components/arduino ]; then
+		# NOT there >> Create a symlink 
 		# from  <Source>  to  <target> new Folder that's symlink
 		ln -s   $AR_PATH      $AR_ROOT/components/arduino > /dev/null
 	fi

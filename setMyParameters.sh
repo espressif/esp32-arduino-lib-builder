@@ -18,6 +18,6 @@ set -- \
 "-f" $"$oneUpDir/GitHub-Sources/esp-idf" \
 "-D" "error" \
 "-c" "$oneUpDir/to_arduino-esp32_$timeStampAR" \
-"-o" "$oneUpDir/Out_from_last_build" #\
+"-o" "$oneUpDir/Out_from_build" #\
 #"-e" "-S" "-V" "-W"
 echo "Parameters set successfully."

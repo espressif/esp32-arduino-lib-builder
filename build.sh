@@ -50,9 +50,10 @@ echo -e   "~~ Steps of Sricpt:"
 echo -e   "~~          1) Check & Process Parameter with calling build.sh"
 echo -e   "~~          2) Load or Update Components/Tools to do compile"
 echo -e   "~~          3) Compile the Targets with the given Configurations"
-echo -e   "~~          4) Create and move created files"
-echo -e   "~~ build.sh started at (SH_ROOT=)$ePF$SH_ROOT $eNO"
-echo -e   "~~          > Bash version:$eGI $BASH_VERSION $eNO"
+echo -e   "~~          4) Create outputs and move this files"
+echo -e   "~~ build.sh started at Folder (SH_ROOT):"
+echo -e   "~~          >>$ePF $SH_ROOT $eNO"
+echo -e   "~~          >> Bash version:$eGI $BASH_VERSION $eNO"
 echo -e   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 #-----------------------------------------------------------
 # Set the default values to be overwritten by the arguments
@@ -148,7 +149,7 @@ while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
             ;;
         o )
             export AR_OWN_OUT="$OPTARG"
-            echo -e "-o \t Use a own out-Folder:"
+            echo -e "-o \t Use a own out-Folder (AR_OWN_OUT):"
             echo -e "+\t$ePF >> '$AR_OWN_OUT' $eNO"
             ;;
         A )
@@ -158,7 +159,8 @@ while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
         a )
             export AR_PATH="$OPTARG"
             mkdir -p $AR_PATH # Create the Folder if it does not exist otherwise downloads will fail
-            echo -e "-a \t Set local Arduino-Component Folder AR_PATH=$eTG '$AR_PATH' $eNO"
+            echo -e "-a \t Set local Arduino-Component Folder (AR_PATH):"
+            echo -e "+\t$ePF >> '$AR_PATH' $eNO"
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
@@ -166,7 +168,8 @@ while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
             ;;
         f )
             export IDF_PATH="$OPTARG"
-            echo -e "-f \t Set local IDF-Folder IDF_PATH=$eTG '$IDF_PATH' $eNO"
+            echo -e "-f \t Set local IDF-Folder (IDF_PATH):"
+            echo -e "+\t$ePF >> '$IDF_PATH' $eNO"
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
