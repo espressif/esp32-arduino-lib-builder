@@ -22,3 +22,5 @@ version.txt
 dependencies.lock
 managed_components/
 target/
+out
+components/arduino
