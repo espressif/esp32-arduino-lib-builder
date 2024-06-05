@@ -75,6 +75,7 @@ if [ -z $DEPLOY_OUT ]; then
 fi
 #-------------------------------------
 #  Function to print the help message
+#-------------------------------------
 function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
@@ -99,6 +100,7 @@ function print_help() {
 }
 #-------------------------------------
 # Check if any arguments were passed
+#-------------------------------------
 if [ $# -eq 0 ]; then
     # Check if the script is running with bashdb (debug mode)
     if [[ -n "$$_Dbg_file" ]]; then
@@ -126,7 +128,9 @@ if [ $# -eq 0 ]; then
         done
     fi
 fi
+#-------------------------------
 # Process Arguments were passed
+#-------------------------------
 echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
 while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
     case ${opt} in
@@ -219,11 +223,12 @@ while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
             ;;
     esac
 done
-echo -e   "-------------------------   DONE:  processing ARGUMENTS   -------------------------\n"
-# --------------------
-# Misc
+# ------------------------------
+# Get the additional configs args
+# ------------------------------
 shift $((OPTIND -1))
 CONFIGS=$@
+echo -e   "-------------------------   DONE:  processing ARGUMENTS   -------------------------\n"
 # **********************************************
 # ******     LOAD needed Components      *******
 # **********************************************
@@ -253,6 +258,17 @@ fi
 if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
     rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
 fi
+# ####################
+# Write Relase-Infos
+# ####################
+rm -rf release-info.txt # Remove the file if it exists
+IDF_Commit_short=$(git -C "$IDF_PATH" rev-parse --short HEAD || echo "")        # Get <esp-idf> short commit hash
+AR_Commit_short=$(git -C "$AR_COMPS/arduino" rev-parse --short HEAD || echo "") # Get <arduino-esp32> short commit hash
+relaseTxt="Framework built from\n" 
+relaseTxt+="- $IDF_REPO branch [$IDF_BRANCH](https://github.com/$IDF_REPO/tree/$IDF_BRANCH) commit [$IDF_Commit_short](https://github.com/$IDF_REPO/commits/$IDF_BRANCH/#:~:text=$IDF_Commit_short)\n"
+relaseTxt+="- $AR_REPO branch [$AR_BRANCH](https://github.com/$AR_REPO/tree/$AR_BRANCH) commit [$AR_Commit_short](https://github.com/$AR_REPO/commits/$AR_BRANCH/#:~:text=$AR_Commit_short)\n"
+relaseTxt+="- Arduino lib builder branch: $GIT_BRANCH" >> release-info.txt
+
 # **********************************************
 # *****   Build II ALL   ******
 # **********************************************
@@ -312,11 +328,9 @@ rm -rf build sdkconfig out
 OUT_FOLDER=$AR_OUT
 if [ ! -z $AR_OWN_OUT ]; then
 	# ********  Other out Foder locations ********
-    # Remove all content from AR_OWN_OUT foler
-    rm -rf $AR_OWN_OUT/*
+    rm -rf $AR_OWN_OUT/* # Remove all content from AR_OWN_OUT foler
 	mkdir -p $AR_OWN_OUT # Create the Folder if it does not exist
-	# Create a symlink
-	if [ ! -e $AR_OUT ]; then
+	if [ ! -e $AR_OUT ]; then # Create a symlink
 		# from  <Source>  to  <target> new Folder that's symlink
 		ln -s   $AR_OWN_OUT   $AR_OUT > /dev/null
 	fi
@@ -333,7 +347,9 @@ possibleTargetsArray=($(jq -r '.targets[].target' configs/builds.json)) # -r opt
 targetsCount=${#possibleTargetsArray[@]}
 echo -e "...Number of POSSIBLE Targets=$eTG $targetsCount$eNO" 
 echo -e "   List:$eUS ${possibleTargetsArray[@]}$eNO"
-
+#-------------------------
+# Loop over given Targets
+#-------------------------
 echo -e "###################      Loop over given Target      ###################"
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
     target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
@@ -525,6 +541,7 @@ for component in `ls "$AR_MANAGED_COMPS"`; do
         echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
     fi
 done
+
 # #########################################
 # Generate JSONs
 #    - package_esp32_index.template.json
