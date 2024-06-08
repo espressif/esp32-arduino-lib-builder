@@ -39,10 +39,10 @@ fi
 #    -by cloning or updating, if already there
 # --------------------------------------------
 if [ ! -d "$ArduionoCOMPS/package" ]; then
-	echo -e "   cloning $eGI$AR_REPO_URL$eNO\n   to:$ePF $ArduionoCOMPS$eNO"
+	echo -e "   cloning $eGI$AR_REPO_URL$eNO\n   to: $(shortFP $ArduionoCOMPS)"
 	git clone $AR_REPO_URL "$ArduionoCOMPS" --quiet
 else
-	echo -e "   updating (already there)$eGI $AR_REPO_URL$eNO\n   to:$ePF $ArduionoCOMPS$eNO"
+	echo -e "   updating (already there)$eGI $AR_REPO_URL$eNO\n   to: $(shortFP $ArduionoCOMPS)" 
 	git -C "$ArduionoCOMPS" fetch --quiet           # Fetch  changes without write it local
 	git -C "$ArduionoCOMPS" pull --ff-only --quiet  # Pull > Update local Folder with remote changes
 fi
@@ -97,11 +97,11 @@ if [ $? -ne 0 ]; then exit 1; fi
 #--------------------------------------------------------
 if [ ! -d "$IDF_LIBS_DIR" ]; then
 	echo -e "...Cloning esp32-arduino-libs...$eGI$AR_LIBS_REPO_URL$eNO"
-	echo -e "   to:$ePF $IDF_LIBS_DIR $eNO"
+	echo -e "   to: $(shortFP $IDF_LIBS_DIR)"   
 	git clone "$AR_LIBS_REPO_URL" "$IDF_LIBS_DIR" --quiet
 else
 	echo -e "...Updating existing esp32-arduino-libs...$eGI$AR_LIBS_REPO_URL$eNO"
-	echo -e "   in:$ePF $(realpath $IDF_LIBS_DIR) $eNO"
+	echo -e "   in: $(shortFP $(realpath $IDF_LIBS_DIR))"
 	git -C "$IDF_LIBS_DIR" fetch --quiet && \
 	git -C "$IDF_LIBS_DIR" pull --quiet --ff-only
 fi
