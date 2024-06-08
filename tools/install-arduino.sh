@@ -68,7 +68,7 @@ if [ -z $AR_BRANCH ]; then
 	else
 		current_branch="$GITHUB_HEAD_REF"
 	fi
-	echo -e "...Current Branch:$eTG $current_branch $eNO"
+	echo -e "   Current Branch:$eTG $current_branch $eNO"
 	if [[ "$current_branch" != "master" && `git_branch_exists "$AR_COMPS/arduino" "$current_branch"` == "1" ]]; then
 		export AR_BRANCH="$current_branch"
 	else
