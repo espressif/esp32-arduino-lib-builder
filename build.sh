@@ -627,3 +627,4 @@ if [ $ARCHIVE_OUT -eq 1 ]; then
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 echo -e '---------------------------- DONE Create Version Info -----------------------------'
+osascript -e 'beep 6' # Beep 6 times
