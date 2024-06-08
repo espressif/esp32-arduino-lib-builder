@@ -1,43 +1,66 @@
 #/bin/bash
 
 source $SH_ROOT/tools/config.sh
-
 echo     "...Component ESP32 Arduino installing/updating local copy...."
-# --------------------------------
-# arduino-esp32 COMPONENT
-# -------------------------------
+# ------------------------------------------------
+# Checks for set Variables AR_COMMIT & AR_BRANCH
+# -----------------------------------------------
+# Check if COMMIT is set >> ALLWAYS WINs!
+if [ ! -z $AR_COMMIT ]; then
+	# YES >> AR_COMMIT is SET 
+	# Check if BRANCH ist set in addition
+	if [ ! -z $AR_BRANCH ]; then
+		# YES >> AR_BRANCH is SET
+		# Error Message & Exit 
+		echo -e "  $eTG ERROR in Arguments for <arduino-esp32>:"
+		echo -e "   >> BOTH 'AR_COMMIT' & 'AR_BRANCH' are set. Only ONE of it is allowed!$eNO"
+		exit 1
+	fi 
+fi
+# ------------------------------------------------
 # Processing for new OPTION -a > AR_PATH is given
+# ------------------------------------------------
 if [ ! -z $AR_PATH ]; then
 	# ********  Other Arduiono-Component-Path ********
 	# Check if symbolic link at $AR_ROOT/components/arduino already exists
-	if [ ! -L $mda $AR_ROOT/components/arduino ]; then
-		# NOT there >> Create a symlink 
+	if [ ! -L $AR_ROOT/components/arduino ]; then
+		# NOT there, than >> Create a symlink 
 		# from  <Source>  to  <target> new Folder that's symlink
 		ln -s   $AR_PATH      $AR_ROOT/components/arduino > /dev/null
 	fi
-	# Get Component by cloning, if NOT already there
-	if [ ! -d "$AR_PATH/package" ]; then
-		echo -e "   cloning $eGI$AR_REPO_URL$eNO\n   to:$ePF $AR_PATH $eNO"
-		git clone $AR_REPO_URL $AR_PATH --quiet
-	else
-		echo -e "   updating (already there)$eGI $AR_REPO_URL$eNO\n   to:$ePF $AR_PATH $eNO"
-		git -C "$AR_PATH" fetch --quiet && \
-		git -C "$AR_PATH"  pull --ff-only --quiet
-	fi    
+	# Use the given new location (Symlink)
+	ArduionoCOMPS=$AR_PATH
 else
-	# ********  NORMAL PROCESSING ******** 
-	# Get it by cloning, if NOT already there
-	if [ ! -d "$AR_COMPS/arduino" ]; then
-		echo -e "   cloning $eGI$AR_REPO_URL$eNO\n   to:$ePF $AR_COMPS/arduino$eNO"
-		git clone $AR_REPO_URL "$AR_COMPS/arduino" --quiet
-	else
-		echo -e "   updating (already there)$eGI $AR_REPO_URL$eNO\n   to:$ePF $AR_COMPS/arduino$eNO"
-		git -C "$AR_COMPS/arduino" fetch --quiet && \
-		git -C "$AR_COMPS/arduino" pull --ff-only --quiet
-	fi
+	# Use the default location (No Symlink)
+	ArduionoCOMPS="$AR_COMPS/arduino" 
 fi
-
-# If a desirted branch is NOT set, checkout, fetch & pull it 
+# --------------------------------------------
+# Get <arduino-esp32> 
+#    -by cloning or updating, if already there
+# --------------------------------------------
+if [ ! -d "$ArduionoCOMPS/package" ]; then
+	echo -e "   cloning $eGI$AR_REPO_URL$eNO\n   to:$ePF $ArduionoCOMPS$eNO"
+	git clone $AR_REPO_URL "$ArduionoCOMPS" --quiet
+else
+	echo -e "   updating (already there)$eGI $AR_REPO_URL$eNO\n   to:$ePF $ArduionoCOMPS$eNO"
+	git -C "$ArduionoCOMPS" fetch --quiet           # Fetch  changes without write it local
+	git -C "$ArduionoCOMPS" pull --ff-only --quiet  # Pull > Update local Folder with remote changes
+fi
+#--------------------------------------------------------
+# BRANCH given: checkout 
+#--------------------------------------------------------
+if [ "$AR_COMMIT" ]; then
+	echo -e "...Checkout, fetch & pull COMMIT:$eTG '$AR_COMMIT'$eNO"
+#	echo -e "   Branch-relation?:$ePF $(git -C $ArduionoCOMPS branch --contains 2ba3ed3) $eNO"
+	git -C "$ArduionoCOMPS" checkout "$AR_COMMIT" --quiet
+fi
+if [ "$AR_BRANCH" ]; then
+	echo -e "...Checkout, fetch & pull BRANCH:$eTG '$AR_BRANCH'$eNO"
+	git -C "$ArduionoCOMPS" checkout "$AR_BRANCH" --quiet
+fi
+#--------------------------------------------------------
+# Get additional infos
+#--------------------------------------------------------
 if [ -z $AR_BRANCH ]; then
 	# Set HEAD_REF if not already set 
 	if [ -z $GITHUB_HEAD_REF ]; then
@@ -45,7 +68,7 @@ if [ -z $AR_BRANCH ]; then
 	else
 		current_branch="$GITHUB_HEAD_REF"
 	fi
-	echo "...Current Branch: $current_branch"
+	echo -e "...Current Branch:$eTG $current_branch $eNO"
 	if [[ "$current_branch" != "master" && `git_branch_exists "$AR_COMPS/arduino" "$current_branch"` == "1" ]]; then
 		export AR_BRANCH="$current_branch"
 	else
@@ -67,19 +90,11 @@ if [ -z $AR_BRANCH ]; then
 		fi
 	fi
 fi
-# If a desirted branch IS SET, checkout, fetch & pull it 
-if [ "$AR_BRANCH" ]; then
-	echo -e "...Checkout, fetch & pull BRANCH:$eTG '$AR_BRANCH'$eNO"
-	git -C "$ArduionoCOMPS" checkout "$AR_BRANCH" --quiet && \
-	git -C "$ArduionoCOMPS" fetch --quiet && \
-	git -C "$ArduionoCOMPS" pull --quiet --ff-only
-fi
 # $?: Status of the last executed command => 0:OK, 1:Error 
 if [ $? -ne 0 ]; then exit 1; fi
-
-# --------------------------------
+#--------------------------------------------------------
 # Get esp32-arduino-libs COMPONENT
-# -------------------------------
+#--------------------------------------------------------
 if [ ! -d "$IDF_LIBS_DIR" ]; then
 	echo -e "...Cloning esp32-arduino-libs...$eGI$AR_LIBS_REPO_URL$eNO"
 	echo -e "   to:$ePF $IDF_LIBS_DIR $eNo"
