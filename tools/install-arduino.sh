@@ -50,12 +50,12 @@ fi
 # BRANCH given: checkout 
 #--------------------------------------------------------
 if [ "$AR_COMMIT" ]; then
-	echo -e "...Checkout, fetch & pull COMMIT:$eTG '$AR_COMMIT'$eNO"
+	echo -e "...Checkout COMMIT:$eTG '$AR_COMMIT'$eNO"
 #	echo -e "   Branch-relation?:$ePF $(git -C $ArduionoCOMPS branch --contains 2ba3ed3) $eNO"
 	git -C "$ArduionoCOMPS" checkout "$AR_COMMIT" --quiet
 fi
 if [ "$AR_BRANCH" ]; then
-	echo -e "...Checkout, fetch & pull BRANCH:$eTG '$AR_BRANCH'$eNO"
+	echo -e "...Checkout BRANCH:$eTG '$AR_BRANCH'$eNO"
 	git -C "$ArduionoCOMPS" checkout "$AR_BRANCH" --quiet
 fi
 #--------------------------------------------------------
@@ -97,7 +97,7 @@ if [ $? -ne 0 ]; then exit 1; fi
 #--------------------------------------------------------
 if [ ! -d "$IDF_LIBS_DIR" ]; then
 	echo -e "...Cloning esp32-arduino-libs...$eGI$AR_LIBS_REPO_URL$eNO"
-	echo -e "   to:$ePF $IDF_LIBS_DIR $eNo"
+	echo -e "   to:$ePF $IDF_LIBS_DIR $eNO"
 	git clone "$AR_LIBS_REPO_URL" "$IDF_LIBS_DIR" --quiet
 else
 	echo -e "...Updating existing esp32-arduino-libs...$eGI$AR_LIBS_REPO_URL$eNO"
