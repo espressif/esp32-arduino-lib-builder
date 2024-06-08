@@ -248,10 +248,12 @@ if [ $SKIP_ENV -eq 0 ]; then
     echo -e '\n-- Load arduino-esp32 component'
     # install arduino component
     source $SH_ROOT/tools/install-arduino.sh
+    echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" # Beep
     if [ $? -ne 0 ]; then exit 1; fi
     # install esp-idf
     echo -e '\n-- Load esp-idf component'
     source $SH_ROOT/tools/install-esp-idf.sh
+    echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" # Beep
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '----------------------------- Components load DONE  -------------------------------\n'
 else
@@ -411,6 +413,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     else 
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     fi
+    echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" # Beep
     if [ $? -ne 0 ]; then exit 1; fi
     #----------------
     # Build SR Models
@@ -426,6 +429,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         else
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
         fi
+        echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" # Beep
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -462,6 +466,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         if [ $? -ne 0 ]; then exit 1; fi
     done
+    echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" # Beep
     #-----------------------
     # Build Memory Variants
     #-----------------------
@@ -486,6 +491,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
         fi
         if [ $? -ne 0 ]; then exit 1; fi
+        echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" && sleep 0.2 && echo -e "\aBeep" # Beep
     done
     echo -e "****************  FINISHED Building for Target:$eTG $target $eNO  ***************"
 done
