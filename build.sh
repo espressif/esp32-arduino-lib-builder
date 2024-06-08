@@ -253,7 +253,7 @@ if [ $SKIP_ENV -eq 0 ]; then
     # install esp-idf
     echo -e '\n-- Load esp-idf component'
     source $SH_ROOT/tools/install-esp-idf.sh
-    eosascript -e 'beep 3' # Beep 3 times
+    osascript -e 'beep 3' # Beep 3 times
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '----------------------------- Components load DONE  -------------------------------\n'
 else
