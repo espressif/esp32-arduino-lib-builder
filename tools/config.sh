@@ -85,7 +85,7 @@ else
 	export ArduionoCOMPS="$AR_COMPS/arduino"
 fi
 # --------------------------------------
-# Set Path to PIO-SDK = PlatformIO SDK
+# Set for PIO-SDK = PlatformIO SDK
 # --------------------------------------
 PIO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
 # *********************************************
