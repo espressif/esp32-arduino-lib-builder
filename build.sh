@@ -497,7 +497,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 done
 # Clean the build-folder and sdkconfig
 rm -rf build sdkconfig
-echo -e '-------------------------- DONE: BUILD for Named Targets --------------------------'
+echo -e '-------------------------- DONE: BUILD for Named Targets --------------------------\n'
 # TESTING DEBUGING ONLY - TESTING DEBUGING ONLY - TESTING DEBUGING ONLY
 fi
 #------------------------------------------------------------------------# **********************************************
