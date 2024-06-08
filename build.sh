@@ -41,7 +41,7 @@ export eNO="\x1B[0m"    # Back to    (Black)
 export SH_ROOT=$(pwd)
 #-----------------------------------------------------------------------------
 # Load the functions extractFileName() > For pretty output of compiler configs
-source $SH_ROOT/extractConfigFNs.sh
+source $SH_ROOT/prettiyfiHelpers.sh
 #---------------------------
 # Show intro of the build.sh 
 echo -e "\n~~~~~~~~~~~~~~~~~ $eTG Starting of the build.sh $eNO to get the Arduino-Libs ~~~~~~~~~~~~~~~~~"
