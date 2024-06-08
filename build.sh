@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SKIP_BUILD=1 # Un-comment for: TESTING DEBUGING ONLY 
+SKIP_BUILD=1 # Un-comment for: TESTING DEBUGING ONLY 
 #------------------------------------------
 # Ensure that a alternative bash potentially 
 # installed on an the system will be used
@@ -658,7 +658,7 @@ fi
 ##########################################################
 if [ $ARCHIVE_OUT -eq 1 ]; then
     echo -e '### PIO create File-structure & archive *.tar.gz'
-    source $SH_ROOT/PIO-create-archive.sh "$TARGET"
+    source $SH_ROOT/tools/PIO-create-archive.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 echo -e '---------------------------- DONE Create Version Info -----------------------------'
