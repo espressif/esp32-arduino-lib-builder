@@ -6,16 +6,16 @@
 # installed on an the system will be used
 #------------------------------------------
 # Determine the path to the bash executable
-BASH_PATH=$(which bash)
-# Ensure the bash executable is found
-if [ -z "$BASH_PATH" ]; then
-  echo "bash not found in PATH"
-  exit 1
-fi
-# If the script is not running with the correct bash, re-execute it with the found bash
-if [ "$BASH" != "$BASH_PATH" ]; then
-  exec "$BASH_PATH" "$0" "$@"
-fi
+# BASH_PATH=$(which bash)
+# # Ensure the bash executable is found
+# if [ -z "$BASH_PATH" ]; then
+#   echo "bash not found in PATH"
+#   exit 1
+# fi
+# # If the script is not running with the correct bash, re-execute it with the found bash
+# if [ "$BASH" != "$BASH_PATH" ]; then
+#   exec "$BASH_PATH" "$0" "$@"
+# fi
 #--------------------------
 # Check for Comands needed 
 #--------------------------
@@ -248,12 +248,12 @@ if [ $SKIP_ENV -eq 0 ]; then
     echo -e '\n-- Load arduino-esp32 component'
     # install arduino component
     source $SH_ROOT/tools/install-arduino.sh
-    echo -e "\a\a\a" > /dev/null # Beep 3 times
+    osascript -e 'beep 3' # Beep 3 times
     if [ $? -ne 0 ]; then exit 1; fi
     # install esp-idf
     echo -e '\n-- Load esp-idf component'
     source $SH_ROOT/tools/install-esp-idf.sh
-    echo -e "\a\a\a" > /dev/null # Beep 3 times
+    eosascript -e 'beep 3' # Beep 3 times
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '----------------------------- Components load DONE  -------------------------------\n'
 else
@@ -413,7 +413,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     else 
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     fi
-    echo -e "\a\a\a" > /dev/null # Beep 3 times
+    osascript -e 'beep 3' # Beep 3 times
     if [ $? -ne 0 ]; then exit 1; fi
     #----------------
     # Build SR Models
@@ -429,7 +429,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         else
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
         fi
-        echo -e "\a\a\a" > /dev/null # Beep 3 times
+        osascript -e 'beep 3' # Beep 3 times
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -466,7 +466,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         fi
         if [ $? -ne 0 ]; then exit 1; fi
     done
-    echo -e "\a\a\a" > /dev/null # Beep 3 times
+    osascript -e 'beep 3' # Beep 3 times
     #-----------------------
     # Build Memory Variants
     #-----------------------
@@ -491,7 +491,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
         fi
         if [ $? -ne 0 ]; then exit 1; fi
-        echo -e "\a\a\a" > /dev/null # Beep 3 times
+        osascript -e 'beep 3' # Beep 3 times
     done
     echo -e "****************  FINISHED Building for Target:$eTG $target $eNO  ***************"
 done

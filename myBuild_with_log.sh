@@ -1,4 +1,5 @@
 #!/bin/bash
+SH_ROOT=$(pwd)
 # ---------------------------------------
 # Define the colors for the echo output
 # ---------------------------------------
@@ -24,9 +25,9 @@ echo -e "-- Logging to\n   Folder:$ePF $logFolder $eNO"
 #                RUN
 # ---------------------------------------
 # Build for all ESP32 variants with full output
-source setMyParameters.sh                   # Set the parameters
 clear
-./build.sh  2>&1 | tee $logFile             # Run the build and write the output to the log file
+source $SH_ROOT/setMyParameters.sh                   # Set the parameters
+source $SH_ROOT/build.sh  2>&1 | tee $logFile        # Run the build and write the output to the log file
 # ------------------------------------------------
 # Write Start-, End- and Run-Time to the LogFile
 # ------------------------------------------------
