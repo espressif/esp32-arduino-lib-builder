@@ -37,7 +37,7 @@ rm -rf "$targetFolder/$archiveFN"
 # Create the Archive with tar
 # ---------------------------------------------
 if [ -d $sourceFolder ]; then
-	echo -e "   to Folder:$ePF $targetFolder $eNO"
+	echo -e "   to Folder: $(shortFP $targetFolder)"
 	echo -e "   Filename:$ePF  $archiveFN $eNO"
 	currentDir=$(pwd)
 	cd $sourceFolder # Change to the out-Folder
