@@ -44,7 +44,8 @@ sS+=" -D error"
 sS+=" -o $oneUpDir/Out-from_build"
 # Arduino  ~~ post-build ~~  (ESP32_ARDUINO) for use with Arduino.
 sS+=" -c $oneUpDir/to-arduino-esp32-$timeStampAR"
-#-e                          Archive the build to dist
+# PIO & Ard.~~ post-build ~~ (ARCHIVE_OUT) Set flag to create archives
+sS+=" -e"
 #-d                          Deploy the build to github arduino-esp32"
 # ----------------
 # Silent Settings
