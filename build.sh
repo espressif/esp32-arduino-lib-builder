@@ -1,20 +1,21 @@
 #!/bin/bash
 
+#SKIP_BUILD=1 # Un-comment for: TESTING DEBUGING ONLY 
 #------------------------------------------
 # Ensure that a alternative bash potentially 
 # installed on an the system will be used
 #------------------------------------------
 # Determine the path to the bash executable
-BASH_PATH=$(which bash)
-# Ensure the bash executable is found
-if [ -z "$BASH_PATH" ]; then
-  echo "bash not found in PATH"
-  exit 1
-fi
-# If the script is not running with the correct bash, re-execute it with the found bash
-if [ "$BASH" != "$BASH_PATH" ]; then
-  exec "$BASH_PATH" "$0" "$@"
-fi
+# BASH_PATH=$(which bash)
+# # Ensure the bash executable is found
+# if [ -z "$BASH_PATH" ]; then
+#   echo "bash not found in PATH"
+#   exit 1
+# fi
+# # If the script is not running with the correct bash, re-execute it with the found bash
+# if [ "$BASH" != "$BASH_PATH" ]; then
+#   exec "$BASH_PATH" "$0" "$@"
+# fi
 #--------------------------
 # Check for Comands needed 
 #--------------------------
@@ -58,6 +59,7 @@ echo -e   "~~          >> Bash version:$eGI $BASH_VERSION $eNO"
 echo -e   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 #-----------------------------------------------------------
 # Set the default values to be overwritten by the arguments
+#-----------------------------------------------------------
 TARGET="all"
 BUILD_TYPE="all"
 BUILD_DEBUG="default"
@@ -75,30 +77,39 @@ if [ -z $DEPLOY_OUT ]; then
 fi
 #-------------------------------------
 #  Function to print the help message
+#-------------------------------------
 function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
-    echo "       -s     Skip installing/updating of ESP-IDF and all components"
-    echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
-    echo "       -a     Set local Arduino-Component Folder <arduino-esp32>/<arduino> to (AR_PATH)"
-    echo "       -I     Set which branch of ESP-IDF to be used for compilation"
-    echo "       -f     Set local IDF Folder <esp-idf>" 
+
+    echo "       -p     <arduino-esp32> Set local FOLDER to Arduino-Component instead of components/arduino (AR_PATH)"
+    echo "       -A     <arduino-esp32> Set BRANCH to be used for compilation (AR_BRANCH)"
+    echo "       -a     <arduino-esp32> Set COMMIT to be used for compilation (AR_COMMIT)"
+
+    echo "       -f     <esp-idf>       Set local FOLDER to ESP-IDF-Component instead of components/esp-idf (IDF_PATH)" 
+    echo "       -s     <esp-idf>       Skip installing/updating of ESP-IDF and all components"
+    echo "       -I     <esp-idf>       Set BRANCH to be used for compilation (IDF_BRANCH)"
+    echo "       -i     <esp-idf>       Set COMMIT to be used for compilation (IDF_COMMIT)"
     echo "      <OR>    only '-I' <OR> '-i' can be used"
-    echo "       -i     Set which commit of ESP-IDF to be used for compilation"
+    echo "       -D     <esp-idf>       Set DEBUG level compilation. One of default,none,error,warning,info,debug or verbose"
+
     echo "       -e     Archive the build to dist"
     echo "       -d     Deploy the build to github arduino-esp32"
-    echo "       -D     Debug level to be set to ESP-IDF. One of default,none,error,warning,info,debug or verbose"
+
     echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
     echo "       -o     Set a own Out-Folder. It will take the building output and works with simlink, placed in normal out-folder"
     echo "       -t     Set the build target(chip) ex. 'esp32s3' or select multiple targets(chips) by separating them with comma ex. 'esp32,esp32s3,esp32c3'"
+
     echo "       -S     Silent mode for Installation - Components. Don't use this unless you are sure the installs goes without errors"
     echo "       -V     Silent mode for Building - Targets with idf.py. Don't use this unless you are sure the buildings goes without errors"
     echo "       -W     Silent mode for Creating - Infos. Don't use this unless you are sure the creations goes without errors"
+
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
 #-------------------------------------
 # Check if any arguments were passed
+#-------------------------------------
 if [ $# -eq 0 ]; then
     # Check if the script is running with bashdb (debug mode)
     if [[ -n "$_Dbg_file" ]]; then
@@ -126,75 +137,81 @@ if [ $# -eq 0 ]; then
         done
     fi
 fi
+#-------------------------------
 # Process Arguments were passed
+#-------------------------------
 echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
-while getopts ":A:a:I:f:i:c:o:t:b:D:sdeSVW" opt; do
+while getopts ":A:a:p:I:f:i:c:o:t:b:D:sdeSVW" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
-            echo -e '-s \t Skip installing/updating of components'
+            echo -e '-s \t..\t Skip installing/updating of ESP-IDF and all components'
             ;;
         d )
             DEPLOY_OUT=1
-            echo -e '-d \t Deploy the build to github arduino-esp32'
+            echo -e '-d \t..\t Deploy the build to github arduino-esp32'
             ;;
         e )
             ARCHIVE_OUT=1
-            echo -e '-e \t Archive the build to dist-Folder'
+            echo -e '-e \t..\t Archive the build to dist-Folder'
             ;;
         c )
             export ESP32_ARDUINO="$OPTARG"
-            echo -e "-c \t Copy the build to arduino-esp32 Folder:"
-            echo -e "+\t >>  $(shortFP $ESP32_ARDUINO)" 
+            echo -e "-c \t..\t Copy the build to arduino-esp32 Folder:"
+            echo -e "+\t\t$ePF >> '$ESP32_ARDUINO' $eNO"
             COPY_OUT=1
             ;;
         o )
             export AR_OWN_OUT="$OPTARG"
-            echo -e "-o \t Use a own out-Folder (AR_OWN_OUT):"
-            echo -e "+\t >>  $(shortFP $AR_OWN_OUT)" 
+            echo -e "-o \t..\t Use a own out-Folder (AR_OWN_OUT):"
+            echo -e "+\t\t$ePF >> '$AR_OWN_OUT' $eNO"
             ;;
         A )
             export AR_BRANCH="$OPTARG"
-            echo -e "-A \t Set branch of arduino-esp32 for compilation AR_BRANCH=$eTG '$AR_BRANCH' $eNO"
+            echo -e "-A  <ar.-esp32>\t Set BRANCH to be used for compilation (AR_BRANCH)=$eTG'$AR_BRANCH'$eNO"
             ;;
         a )
+            export AR_COMMIT="$OPTARG"
+            echo -e "-a  <ar.-esp32>\t Set COMMIT to be used for compilation (AR_COMMIT):$eTG '$AR_COMMIT' $eNO"
+            ;;
+        p )
             export AR_PATH="$OPTARG"
             mkdir -p $AR_PATH # Create the Folder if it does not exist otherwise downloads will fail
-            echo -e "-a \t Set local Arduino-Component Folder (AR_PATH):"
-            echo -e "+\t >>  $(shortFP $AR_PATH)" 
+            echo -e "-p  <ar.-esp32>\t Set local Arduino-Component Folder (AR_PATH):"
+            echo -e "+\t\t$ePF >> '$AR_PATH' $eNO"
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
-            echo -e "-I \t Set branch of ESP-IDF for compilation IDF_BRANCH=$eTG '$IDF_BRANCH' $eNO"
+            echo -e "-I  <esp-idf>\t Set BRANCH to be used for compilation (IDF_BRANCH):$eTG '$IDF_BRANCH' $eNO"
             ;;
         f )
             export IDF_PATH="$OPTARG"
-            echo -e "-f \t Set local IDF-Folder (IDF_PATH):"
-            echo -e "+\t >>  $(shortFP $IDF_PATH)" 
+            echo -e "-f  <esp-idf>\t Set local IDF-Folder (IDF_PATH):"
+            echo -e "+\t\t$ePF >> '$IDF_PATH' $eNO"
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
-            echo -e "-i \t Set commit of ESP-IDF for compilation IDF_COMMIT=$eTG '$IDF_COMMIT' $eNO"
+            echo -e "-i  <esp-idf>\t Set COMMIT to be used for compilation (IDF_COMMIT):$eTG '$IDF_COMMIT' $eNO"
             ;;
         D )
             BUILD_DEBUG="$OPTARG"
-            echo -e "-D \t Debug level to be set to ESP-IDFBUILD_DEBUG=$eTG '$BUILD_DEBUG' $eNO"
+            echo -e "-D  <esp-idf>\t Set DEBUG level compilation (BUILD_DEBUG):$eTG '$BUILD_DEBUG' $eNO"
             ;;
         t )
             IFS=',' read -ra TARGET <<< "$OPTARG"
-            echo -e "-t \t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
+            echo -e "-t \t..\t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
             ;;
         S )
             IDF_InstallSilent=1
-            echo -e '-S \t Silent mode for installing ESP-IDF and components'
+            echo -e '-S \t..\t Silent mode for installing ESP-IDF and components'
             ;;
         V )
             IDF_BuildTargetSilent=1
-            echo -e '-V \t Silent mode for building Targets with idf.py'
+            echo -e '-V \t..\t Silent mode for building Targets with idf.py'
             ;;
         W )
             IDF_BuildInfosSilent=1
-            echo -e '-W \t Silent mode for building of Infos.'
+            echo -e '-W \t..\t Silent mode for building of Infos.'
             ;;
         b )
             b=$OPTARG
@@ -236,10 +253,12 @@ if [ $SKIP_ENV -eq 0 ]; then
     echo -e '\n-- Load arduino-esp32 component'
     # install arduino component
     source $SH_ROOT/tools/install-arduino.sh
+    osascript -e 'beep 3' # Beep 3 times
     if [ $? -ne 0 ]; then exit 1; fi
     # install esp-idf
     echo -e '\n-- Load esp-idf component'
     source $SH_ROOT/tools/install-esp-idf.sh
+    osascript -e 'beep 3' # Beep 3 times
     if [ $? -ne 0 ]; then exit 1; fi
     echo -e   '----------------------------- Components load DONE  -------------------------------\n'
 else
@@ -253,7 +272,10 @@ fi
 if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
     rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
 fi
-rm -rf dependencies.lock
+
+#------------------------------------------------------------------------
+# TESTING DEBUGING ONLY - TESTING DEBUGING ONLY - TESTING DEBUGING ONLY
+if [ -z $SKIP_BUILD ]; then  # SKIP BUILD for testing purpose ONLY
 # **********************************************
 # *****   Build II ALL   ******
 # **********************************************
@@ -362,7 +384,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     fi
     echo -e "*******************   Building for Target:$eTG $target $eNO  *******************"
     echo -e "-- Target Out-folder"
-    echo -e "   to: $(shortFP $OUT_FOLDER/esp32-arduino-libs/)$eTG$target $eNO"  
+    echo -e "   to: $(shortFP $OUT_FOLDER/esp32-arduino-libs/)$eTG$target $eNO"
     #-------------------------
     # Build Main Configs List
     #-------------------------
@@ -481,6 +503,8 @@ done
 # Clean the build-folder and sdkconfig
 rm -rf build sdkconfig
 echo -e '-------------------------- DONE: BUILD for Named Targets --------------------------'
+# TESTING DEBUGING ONLY - TESTING DEBUGING ONLY - TESTING DEBUGING ONLY
+fi
 # **********************************************
 # ******  Add components version info    *******
 # **********************************************
@@ -488,39 +512,43 @@ echo -e '----------------------------- 4) Create Version Info ------------------
 ################################
 # Create NEW Version Info-File
 ################################
-echo -e '-- Create NEW Version Info-File'
-echo -e "   at: $(shortFP $OUT_FOLDER/tools/esp32-arduino-libs/versions.txt)"
+echo -e '-- Create NEW Version Info-File (one file, not Target-specific!)'
+echo -e "   at: $ePF$OUT_FOLDER/tools/esp32-arduino-libs/versions.txt$eNO"
 rm -rf "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 # -------------------------
 # Write lib-builder version
 # -------------------------
-echo -e '   ...1) Write Lib-Builder Version (one file, not Target-specific!)'
+echo -e '   ...a) Write Lib-Builder Version'
 component_version="lib-builder: "$(git -C "$AR_ROOT" symbolic-ref --short HEAD || git -C "$AR_ROOT" tag --points-at HEAD)" "$(git -C "$AR_ROOT" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 # -------------------------
 # Write ESP-IDF version
 # -------------------------
+echo -e '   ...b) Write esp-idf Version'
 component_version="esp-idf: "$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)" "$(git -C "$IDF_PATH" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 # -------------------------
 # Write components version
 # -------------------------
+echo -e '   ...c) Components Versions'
 for component in `ls "$AR_COMPS"`; do
-    if [ -d "$AR_COMPS/$component/.git" ]; then
-        component_version="$component: "$(git -C "$AR_COMPS/$component" symbolic-ref --short HEAD || git -C "$AR_COMPS/$component" tag --points-at HEAD)" "$(git -C "$AR_COMPS/$component" rev-parse --short HEAD)
+    compPath=$(realpath "$AR_COMPS/$component")
+    gitFile="$compPath/.git"
+    if [ -d "$gitFile" ]; then
+        component_version="$component: "$(git -C "$compPath" symbolic-ref --short HEAD || git -C "$compPath" tag --points-at HEAD)" "$(git -C "$compPath" rev-parse --short HEAD)
         echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
     fi
 done
 # -------------------------
 # Write TinyUSB version
 # -------------------------
-echo -e '   ...2) Write TinyUSB Version'
+echo -e '   ...d) Write TinyUSB Version'
 component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-# ---------------------------------
+# -------------------------
 # Write managed components version
-# ----------------------------------
-echo -e '   ...3) Write Managed components version'
+# -------------------------
+echo -e '   ...e) Write Managed components version'
 for component in `ls "$AR_MANAGED_COMPS"`; do
     if [ -d "$AR_MANAGED_COMPS/$component/.git" ]; then
         component_version="$component: "$(git -C "$AR_MANAGED_COMPS/$component" symbolic-ref --short HEAD || git -C "$AR_MANAGED_COMPS/$component" tag --points-at HEAD)" "$(git -C "$AR_MANAGED_COMPS/$component" rev-parse --short HEAD)
