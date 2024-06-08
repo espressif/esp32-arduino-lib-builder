@@ -15,12 +15,12 @@ fi
 echo "...ESP-IDF installing local copy..."
 # Get it by cloning set BRANCH!!!, if not already there
 if [ ! -d "$IDF_PATH" ]; then
-	echo -e "   cloning $eGI$IDF_REPO_URL$eNO\n   to:$ePF $IDF_PATH $eNO"
+	echo -e "   cloning $eGI$IDF_REPO_URL$eNO\n   to: $(shortFP $IDF_PATH)"
 	echo -e "   Checkout Branch:$eTG '$IDF_BRANCH' $eNO"
 	git clone $IDF_REPO_URL -b $IDF_BRANCH $IDF_PATH --quiet
 	idf_was_installed="1"
 else
-	echo -e "   updating(already there)$eGI $IDF_REPO_URL$eNO\n   to:$ePF $IDF_PATH $eNO"
+	echo -e "   updating(already there)$eGI $IDF_REPO_URL$eNO\n   to: $(shortFP $IDF_PATH)"
 	git -C "$IDF_PATH" fetch --quiet && \
 	git -C "$IDF_PATH" pull --ff-only --quiet
 	echo -e "   Checkout Branch:$eTG '$IDF_BRANCH' $eNO"
@@ -28,12 +28,12 @@ else
 fi
 # Case when the TAG is set
 if [ "$IDF_TAG" ]; then
-	echo -e "   checkout tags/$IDF_TAG of: $ePF$IDF_PATH$eNO"
+	echo -e "   checkout tags/$IDF_TAG of: $(shortFP $IDF_PATH)"
     git -C "$IDF_PATH" checkout "tags/$IDF_TAG" --quiet
     idf_was_installed="1"
 # Case when the TAG is set
 elif [ "$IDF_COMMIT" ]; then
-	echo "   checkout $IDF_COMMIT of: $IDF_PATH"
+	echo -e "   checkout $IDF_COMMIT of: $(shortFP $IDF_PATH)"
     git -C "$IDF_PATH" checkout "$IDF_COMMIT" --quiet
     commit_predefined="1"
 fi
