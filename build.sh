@@ -465,8 +465,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
         fi
         if [ $? -ne 0 ]; then exit 1; fi
+        osascript -e 'beep 3' # Beep 3 times
     done
-    osascript -e 'beep 3' # Beep 3 times
     #-----------------------
     # Build Memory Variants
     #-----------------------
