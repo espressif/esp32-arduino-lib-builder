@@ -158,13 +158,13 @@ while getopts ":A:a:p:I:f:i:c:o:t:b:D:sdeSVW" opt; do
         c )
             export ESP32_ARDUINO="$OPTARG"
             echo -e "-c \t..\t Copy the build to arduino-esp32 Folder:"
-            echo -e "+\t\t$ePF >> '$ESP32_ARDUINO' $eNO"
+            echo -e "+\t\t >> '$(shortFP $ESP32_ARDUINO)'"
             COPY_OUT=1
             ;;
         o )
             export AR_OWN_OUT="$OPTARG"
             echo -e "-o \t..\t Use a own out-Folder (AR_OWN_OUT):"
-            echo -e "+\t\t$ePF >> '$AR_OWN_OUT' $eNO"
+            echo -e "+\t\t >> '$(shortFP $AR_OWN_OUT)'"
             ;;
         A )
             export AR_BRANCH="$OPTARG"
@@ -178,7 +178,7 @@ while getopts ":A:a:p:I:f:i:c:o:t:b:D:sdeSVW" opt; do
             export AR_PATH="$OPTARG"
             mkdir -p $AR_PATH # Create the Folder if it does not exist otherwise downloads will fail
             echo -e "-p  <ar.-esp32>\t Set local Arduino-Component Folder (AR_PATH):"
-            echo -e "+\t\t$ePF >> '$AR_PATH' $eNO"
+               echo -e "+\t\t >> '$(shortFP $AR_PATH)'"
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
@@ -187,7 +187,7 @@ while getopts ":A:a:p:I:f:i:c:o:t:b:D:sdeSVW" opt; do
         f )
             export IDF_PATH="$OPTARG"
             echo -e "-f  <esp-idf>\t Set local IDF-Folder (IDF_PATH):"
-            echo -e "+\t\t$ePF >> '$IDF_PATH' $eNO"
+            echo -e "+\t\t >> '$(shortFP $IDF_PATH)'"
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
@@ -249,6 +249,7 @@ if [ $SKIP_ENV -eq 0 ]; then
     echo -e '-- Load arduino_tinyusb component'
     # update components from git
     source $SH_ROOT/tools/update-components.sh
+    osascript -e 'beep 3' # Beep 3 times
     if [ $? -ne 0 ]; then exit 1; fi    
     echo -e '\n-- Load arduino-esp32 component'
     # install arduino component
@@ -280,8 +281,7 @@ if [ -z $SKIP_BUILD ]; then  # SKIP BUILD for testing purpose ONLY
 # *****   Build II ALL   ******
 # **********************************************
 if [ "$BUILD_TYPE" != "all" ]; then
-    echo -e '----------------- 3)BUILD Target-List (NOT ALL) -----------------'
-    
+    echo -e '----------------- 3)BUILD Target-List (NOT ALL) -----------------'  
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
         print_help
@@ -291,7 +291,6 @@ if [ "$BUILD_TYPE" != "all" ]; then
     for target_json in `jq -c '.targets[]' configs/builds.json`; do
         # Get the target name from the json
         target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
-
         # Check if $target is in the $TARGET array
         target_in_array=false
         for item in "${TARGET[@]}"; do
@@ -419,6 +418,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     else 
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     fi
+    osascript -e 'beep 3' # Beep 3 times
     if [ $? -ne 0 ]; then exit 1; fi
     #----------------
     # Build SR Models
@@ -430,11 +430,12 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo -e "     -Mode:   srmodels_bin"
         if [ $IDF_BuildTargetSilent -eq 1 ]; then
             [ $BTS_Shown -eq 0 ] && echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!" && BTS_Shown=1
-# echo
+#ipf.py
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin > /dev/null 2>&1
         else
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
         fi
+        osascript -e 'beep 3' # Beep 3 times
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -465,12 +466,13 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo -e "     -Mode:   copy-bootloader to $ePF.../$eTG$target/$ePF/bin$eNO (*.elf)"     
         if [ $IDF_BuildTargetSilent -eq 1 ]; then
             [ $BTS_Shown -eq 0 ] && echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!" && BTS_Shown=1
-#echo
+#ipf.py
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader > /dev/null 2>&1
         else
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
         fi
         if [ $? -ne 0 ]; then exit 1; fi
+        osascript -e 'beep 3' # Beep 3 times
     done
     #-----------------------
     # Build Memory Variants
@@ -491,12 +493,13 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         echo -e "     -Mode:   mem-variant to $ePF.../$eTG$target$ePF/dio_qspi$eNO and/or$ePF qio_qspi$eNO (*.a)"
         if [ $IDF_BuildTargetSilent -eq 1 ]; then
             [ $BTS_Shown -eq 0 ] && echo -e "  $eTG Silent Build$eNO - don't use this as long as your not sure build goes without errors!" && BTS_Shown=1
-#echo
+#ipf.py
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant > /dev/null 2>&1
         else
             idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
         fi
         if [ $? -ne 0 ]; then exit 1; fi
+        osascript -e 'beep 3' # Beep 3 times
     done
     echo -e "****************  FINISHED Building for Target:$eTG $target $eNO  ***************"
 done
@@ -505,6 +508,7 @@ rm -rf build sdkconfig
 echo -e '-------------------------- DONE: BUILD for Named Targets --------------------------'
 # TESTING DEBUGING ONLY - TESTING DEBUGING ONLY - TESTING DEBUGING ONLY
 fi
+#------------------------------------------------------------------------
 # **********************************************
 # ******  Add components version info    *******
 # **********************************************
@@ -513,7 +517,7 @@ echo -e '----------------------------- 4) Create Version Info ------------------
 # Create NEW Version Info-File
 ################################
 echo -e '-- Create NEW Version Info-File (one file, not Target-specific!)'
-echo -e "   at: $ePF$OUT_FOLDER/tools/esp32-arduino-libs/versions.txt$eNO"
+echo -e "   at: $(shortFP $OUT_FOLDER/tools/esp32-arduino-libs/versions.txt)"
 rm -rf "$AR_TOOLS/esp32-arduino-libs/versions.txt"
 # -------------------------
 # Write lib-builder version
@@ -545,9 +549,9 @@ done
 echo -e '   ...d) Write TinyUSB Version'
 component_version="tinyusb: "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" symbolic-ref --short HEAD || git -C "$AR_COMPS/arduino_tinyusb/tinyusb" tag --points-at HEAD)" "$(git -C "$AR_COMPS/arduino_tinyusb/tinyusb" rev-parse --short HEAD)
 echo $component_version >> "$AR_TOOLS/esp32-arduino-libs/versions.txt"
-# -------------------------
+# ----------------------------------
 # Write managed components version
-# -------------------------
+# ---------------------------------
 echo -e '   ...e) Write Managed components version'
 for component in `ls "$AR_MANAGED_COMPS"`; do
     if [ -d "$AR_MANAGED_COMPS/$component/.git" ]; then
@@ -566,7 +570,7 @@ done
 if [ "$BUILD_TYPE" = "all" ]; then
     # - package_esp32_index.template.json
     echo -e "-- Generate $eUS'package_esp32_index.template.json'$eNO (One file, not Target-specific!)"
-    echo -e "   to: $(shortFP $OUT_FOLDER/package_esp32_index.template.json)"  
+    echo -e "   to: $(shortFP $OUT_FOLDER/package_esp32_index.template.json)"
     if [ $IDF_BuildInfosSilent -eq 1 ]; then
         [ $BTI_Shown -eq 0 ] && echo -e "  $eTG Silent Info creation$eNO - don't use this as long as your not sure creation goes without errors!" && BTI_Shown=1
         python3 $SH_ROOT/tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" > /dev/null 2>&1
@@ -592,7 +596,7 @@ if [ "$BUILD_TYPE" = "all" ]; then
     ibr=$(git describe --all --exact-match 2>/dev/null)
     export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
     popd  > /dev/null
-    echo -e "   at:  $(shortFP $OUT_FOLDER)"  
+    echo -e "   at:  $(shortFP $OUT_FOLDER)"
     echo -e "   with:$eUS $SH_ROOT/tools/gen_platformio_manifest.py $eNO"
     if [ $IDF_BuildInfosSilent -eq 1 ]; then
         [ $BTI_Shown -eq 0 ] && echo -e "  $eTG Silent Info creation$eNO - don't use this as long as your not sure creation goes without errors!" && BTI_Shown=1
@@ -658,3 +662,4 @@ if [ $ARCHIVE_OUT -eq 1 ]; then
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 echo -e '---------------------------- DONE Create Version Info -----------------------------'
+osascript -e 'beep 6' # Beep 6 times
