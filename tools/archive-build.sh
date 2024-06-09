@@ -1,12 +1,5 @@
 #!/bin/bash
 
-# TESTING
-# call with 'esp32h2'
-# SH_ROOT="/Users/thomas/build-libs/esp32-arduino-lib-builder"
-# oneUpDir=$(realpath $SH_ROOT/../)
-# IDF_PATH=$"$oneUpDir/esp-id"
-# AR_OWN_OUT=$"$oneUpDir/out"
-
 #---------------------------------------------------------
 # Get the Infos IDF Infos used for bulid: Commit, Branch 
 # to create IDF-Version-String
