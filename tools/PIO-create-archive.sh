@@ -3,7 +3,7 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~ DEUG DEBUG DEBUG DEBUG DEUG DEBUG DEBUG DEBUG  DEBUG DEBUG DEBUG
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-if [ -z $SH_ROOT]; then
+if [ -z $SH_ROOT ]; then
     source ./tools/config.sh
     source ./prettiyfiHelpers.sh
     # Import all environment variables from file
@@ -22,9 +22,9 @@ mkdir -p dist $OUT_PIO # Make sure Folder exists
 #-----------------------------------------
 # Messag: Start Creating content
 #-----------------------------------------
-echo -e "-- Create PlatformIO 'framework-arduinoespressif32' form build (copying...)"
-echo -e "   with:$eUS $SH_ROOT/tools/archive-build-JA.sh $TG $TARGET $eNO"
-echo -e "   in: $(shortFP $OUT_PIO)"
+echo -e "-- Create$eTG PlatformIO$eNO 'framework-arduinoespressif32' form build (copying...)"
+echo -e "   with:$eUS$SH_ROOT/tools/PIO-create-archive.sh$eTG $TARGET $eNO"
+echo -e "   in:  $(shortFP $OUT_PIO)"
 #################################################
 # Create PIO - framework-arduinoespressif32  
 ##################################################
@@ -65,7 +65,7 @@ IDF_Commit_short=$(git -C "$IDF_PATH" rev-parse --short HEAD || echo "")     # S
 # Create/write the core_version.h file
 #--------------------------------------
 echo -e "-- Adding core_version.h (creating...)"
-echo -e "   to $(shortFP $OUT_PIO/cores/esp32/core_version.h)"
+echo -e "   to: $(shortFP $OUT_PIO/cores/esp32/core_version.h)"
 cat <<EOL > $OUT_PIO/cores/esp32/core_version.h
 #define ARDUINO_ESP32_GIT_VER 0x$AR_Commit_short
 #define ARDUINO_ESP32_GIT_DESC $AR_VERSION
@@ -76,7 +76,7 @@ EOL
 # Generate PIO framework manifest file            # package.json      from 'arduino-esp32' & 'esp-idf'  -IDF Components (GitSource)
 #-------------------------------------------- 
 echo -e "-- Adding PIO framework manifest (creating...)"
-echo -e "   to $(shortFP $OUT_PIO/package.json)"
+echo -e "   to: $(shortFP $OUT_PIO/package.json)"
 if [ "$BUILD_TYPE" = "all" ]; then
     python3 $SH_ROOT/tools/PIO-gen_frmwk_manifest.py -o "$OUT_PIO/" -s "v$AR_VERSION" -c "$IDF_COMMIT"
     if [ $? -ne 0 ]; then exit 1; fi
@@ -86,7 +86,7 @@ fi
 # ------------------------------------------------
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD) # Get current branch of used esp32-arduiono-lib-builder
 echo -e "-- Creating release-info.txt used for publishing (creating...)"
-echo -e "   to $(shortFP $OUT_PIO/release-info.txt)"
+echo -e "   to: $(shortFP $OUT_PIO/release-info.txt)"
 cat <<EOL > $OUT_PIO/release-info.txt
 Framework built from resources:
 
@@ -117,7 +117,7 @@ echo -e "-- Creating Archive-File (compessing...)"
 #---------------------------------------------------------
 idfVersStr=${IDF_BRANCH//\//_}"-$IDF_COMMIT"                   # Create IDF version string
 pioArchFN="framework-arduinoespressif32-$idfVersStr.tar.gz"    # Name of the archive
-echo -e "   in: $(shortFP $OUT_PIO_Dist)"
+echo -e "   in:            $(shortFP $OUT_PIO_Dist)"
 echo -e "   with Filename:$ePF $pioArchFN $eNO"
 pioArchFP="$OUT_PIO_Dist/$pioArchFN"                           # Full path of the archive
 # ---------------------------------------------
