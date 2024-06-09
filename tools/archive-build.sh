@@ -15,7 +15,7 @@ idf_version_string=${IDF_BRANCH//\//_}"-$IDF_COMMIT"
 #-----------------------------------
 # Set the DIRERCTORY for the archive
 #-----------------------------------
-targetFolder=$(realpath $SH_ROOT/../)/dist
+targetFolder=$(realpath $SH_ROOT/../)/Arduino
 if [ ! -z $AR_OWN_OUT ]; then # When own out-Path 
 	sourceFolder=$AR_OWN_OUT
 else # Normal
