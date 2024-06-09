@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SKIP_BUILD=1 # Un-comment for: TESTING DEBUGING ONLY 
+#SKIP_BUILD=1 # Un-comment for: TESTING DEBUGING ONLY 
 #------------------------------------------
 # Ensure that a alternative bash potentially 
 # installed on an the system will be used
@@ -80,31 +80,33 @@ fi
 #-------------------------------------
 function print_help() {
     echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
-
+    echo 
     echo "       -p     <arduino-esp32> Set local FOLDER to Arduino-Component instead of components/arduino (AR_PATH)"
     echo "       -A     <arduino-esp32> Set BRANCH to be used for compilation (AR_BRANCH)"
     echo "       -a     <arduino-esp32> Set COMMIT to be used for compilation (AR_COMMIT)"
-
+    echo 
     echo "       -f     <esp-idf>       Set local FOLDER to ESP-IDF-Component instead of components/esp-idf (IDF_PATH)" 
-    echo "       -s     <esp-idf>       Skip installing/updating of ESP-IDF and all components"
+    echo "       -s     <esp-idf>       SKIP installing/updating of ESP-IDF and all components (SKIP_ENV)=1"
     echo "       -I     <esp-idf>       Set BRANCH to be used for compilation (IDF_BRANCH)"
     echo "       -i     <esp-idf>       Set COMMIT to be used for compilation (IDF_COMMIT)"
-    echo "      <OR>    only '-I' <OR> '-i' can be used"
-    echo "       -D     <esp-idf>       Set DEBUG level compilation. One of default,none,error,warning,info,debug or verbose"
-
-    echo "       -e     Archive the build to dist"
-    echo "       -d     Deploy the build to github arduino-esp32"
-
-    echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
-    echo "       -o     Set a own Out-Folder. It will take the building output and works with simlink, placed in normal out-folder"
-    echo "       -t     Set the build target(chip) ex. 'esp32s3' or select multiple targets(chips) by separating them with comma ex. 'esp32,esp32s3,esp32c3'"
-
-    echo "       -S     Silent mode for Installation - Components. Don't use this unless you are sure the installs goes without errors"
-    echo "       -V     Silent mode for Building - Targets with idf.py. Don't use this unless you are sure the buildings goes without errors"
+    echo "      ++++    ---------       only '-I' BRANCH <OR> COMMIT '-i' can be used"
+    echo "       -D     <esp-idf>       Set DEBUG level compilation. Allowed: default,none,error,warning,info,debug or verbose (BUILD_DEBUG)"
+    echo 
+    echo "       -t     building        Set target(chip) eg. 'esp32s3' or multiple by separating with comma ex. 'esp32,esp32s3,esp32c3'"
+    echo "       -o     building        Set a OWN Out-Folder, that take building output (AR_OWN_OUT). Works with a simlink, refers to 'normal' out-folder"
+    echo "       -X     building        SKIP building for TESTING DEBUGING of creating outputs from buid. Build must be there (SKIP_BUILD)=1"
+    echo "       -b     building        Set the build type. ex. 'build' to build the project and prepare for uploading to a board (BUILD_TYPE)"
+    echo "       ...                    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
+    echo 
+    echo "       -c     Arduino         Copy the build to Arduino folder, e.g to (ESP32_ARDUINO) '$HOME/Arduino/hardware/espressif/esp32'"
+    echo "       -e     Arduino         Create folder & archive (ARCHIVE_OUT)=1"
+    echo "       -d     Arduino         Deploy the build to Github arduino-esp32 (DEPLOY_OUT)=1"
+    echo 
+    echo "       -e     PlatformIO      PIO Create folder structure & archive (PIO_OUT_F)=1"
+    echo 
+    echo "       -S     Silent mode for Installation - Components. Don't use this unless you are sure the installs goes without errors (IDF_InstallSilent)"
+    echo "       -V     Silent mode for Building - Targets with idf.py. Don't use this unless you are sure the buildings goes without errors (IDF_BuildTargetSilent)"
     echo "       -W     Silent mode for Creating - Infos. Don't use this unless you are sure the creations goes without errors"
-
-    echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
-    echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
 #-------------------------------------
@@ -141,30 +143,35 @@ fi
 # Process Arguments were passed
 #-------------------------------
 echo -e "\n----------------------- 1) Given ARGUMENTS Process & Check ------------------------"
-while getopts ":A:a:p:I:f:i:c:o:t:b:D:sdeSVW" opt; do
+while getopts ":A:a:p:I:f:i:c:o:t:b:D:delsSVWX" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
-            echo -e '-s \t..\t Skip installing/updating of ESP-IDF and all components'
+            echo -e '-s  <esp-idf>\t Skip installing/updating of ESP-IDF and all components'
             ;;
         d )
             DEPLOY_OUT=1
-            echo -e '-d \t..\t Deploy the build to github arduino-esp32'
+            echo -e '-d \t..\t Deploy the build to github arduino-esp32 (DEPLOY_OUT)=1'
             ;;
         e )
             ARCHIVE_OUT=1
-            echo -e '-e \t..\t Archive the build to dist-Folder'
+            echo -e '-e \t..\t Arduiono create folder & archive (ARCHIVE_OUT)=1'
+            ;;
+        l )
+            PIO_OUT_F=1
+            echo -e '-l \tPIO\t Create structure & archive (PIO_OUT_F)=1'
+            echo -e "\t\t >> '$(shortFP "PIO")'"
             ;;
         c )
             export ESP32_ARDUINO="$OPTARG"
             echo -e "-c \t..\t Copy the build to arduino-esp32 Folder:"
-            echo -e "+\t\t >> '$(shortFP $ESP32_ARDUINO)'"
+            echo -e "\t\t >> '$(shortFP $ESP32_ARDUINO)'"
             COPY_OUT=1
             ;;
         o )
             export AR_OWN_OUT="$OPTARG"
             echo -e "-o \t..\t Use a own out-Folder (AR_OWN_OUT):"
-            echo -e "+\t\t >> '$(shortFP $AR_OWN_OUT)'"
+            echo -e "\t\t >> '$(shortFP $AR_OWN_OUT)'"
             ;;
         A )
             export AR_BRANCH="$OPTARG"
@@ -178,7 +185,7 @@ while getopts ":A:a:p:I:f:i:c:o:t:b:D:sdeSVW" opt; do
             export AR_PATH="$OPTARG"
             mkdir -p $AR_PATH # Create the Folder if it does not exist otherwise downloads will fail
             echo -e "-p  <ar.-esp32>\t Set local Arduino-Component Folder (AR_PATH):"
-               echo -e "+\t\t >> '$(shortFP $AR_PATH)'"
+            echo -e "\t\t >> '$(shortFP $AR_PATH)'"
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
@@ -187,7 +194,7 @@ while getopts ":A:a:p:I:f:i:c:o:t:b:D:sdeSVW" opt; do
         f )
             export IDF_PATH="$OPTARG"
             echo -e "-f  <esp-idf>\t Set local IDF-Folder (IDF_PATH):"
-            echo -e "+\t\t >> '$(shortFP $IDF_PATH)'"
+            echo -e "\t\t >> '$(shortFP $IDF_PATH)'"
             ;;
         i )
             export IDF_COMMIT="$OPTARG"
@@ -199,19 +206,23 @@ while getopts ":A:a:p:I:f:i:c:o:t:b:D:sdeSVW" opt; do
             ;;
         t )
             IFS=',' read -ra TARGET <<< "$OPTARG"
-            echo -e "-t \t..\t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
+            echo -e "-t \tbuild\t Set the build target(chip):$eTG '${TARGET[@]}' $eNO"
             ;;
         S )
             IDF_InstallSilent=1
-            echo -e '-S \t..\t Silent mode for installing ESP-IDF and components'
+            echo -e '-S  <esp-idf>\t Silent mode for installing ESP-IDF and components'
             ;;
         V )
             IDF_BuildTargetSilent=1
-            echo -e '-V \t..\t Silent mode for building Targets with idf.py'
+            echo -e '-V \tbuild\t Silent mode for building Targets with idf.py'
             ;;
         W )
             IDF_BuildInfosSilent=1
-            echo -e '-W \t..\t Silent mode for building of Infos.'
+            echo -e '-W \tOutput\t Silent mode for building of Infos.'
+            ;;
+        X )
+            SKIP_BUILD=1
+            echo -e '-X \tbuild\t Skip building for TESTING DEBUGING.'
             ;;
         b )
             b=$OPTARG
@@ -641,12 +652,9 @@ fi
 # if [ "$BUILD_TYPE" = "all" ]; then
 #     echo -e '### PIO create Library manifest file'
 #     mv -f $AR_ROOT/out/tools/esp32-arduino-libs/package.json package-1.json # Rename the file if exists
-
 # 	cd 
 # 	export IDF_VERSION=$(<$IDF_PATH/version.txt)
 #         echo "IDF version: $IDF_VERSION"
-
-
 #     #                                                  package.json
 #     #                                            to >> esp32-arduino-lib-builder/out/tools/esp32-arduino-libs
 #     python3 $SH_ROOT/tools/PIO-gen_lib_manifest.py -o "$TOOLS_JSON_OUT/" -s "v$IDF_VERSION" -c "$IDF_COMMIT"
@@ -656,7 +664,7 @@ fi
 # PIO create File-structure & archive *.tar.gz 
 # >> adapted from GH 'Jason2866/esp32-arduino-lib-builder'
 ##########################################################
-if [ $ARCHIVE_OUT -eq 1 ]; then
+if [ $PIO_OUT_F -eq 1 ]; then
     echo -e '### PIO create File-structure & archive *.tar.gz'
     source $SH_ROOT/tools/PIO-create-archive.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
