@@ -40,12 +40,16 @@ sS+=" -D error"
 # ------------------------------------
 # Build out Folder & post-Build flags
 # ------------------------------------
+#        ~~ NO building  ~   (SKIP_BUILD)   SKIP building for TESTING DEBUGING ONLY
+sS+=" -X"
 # OUT    ~~ during build ~~  (AR_OWN_OUT)  to store the build output.
 sS+=" -o $oneUpDir/Out-from_build"
 # Arduino  ~~ post-build ~~  (ESP32_ARDUINO) for use with Arduino.
 sS+=" -c $oneUpDir/to-arduino-esp32-$timeStampAR"
-# PIO & Ard.~~ post-build ~~ (ARCHIVE_OUT) Set flag to create archives
+# Arduiono  ~~ post-build ~~ (ARCHIVE_OUT) Set flag to  create Arduiono archives
 sS+=" -e"
+# PIO    ~~ post-build ~~    (POI_OUT_F) Set flag to create PIO archives
+sS+=" -l"
 #-d                          Deploy the build to github arduino-esp32"
 # ----------------
 # Silent Settings
