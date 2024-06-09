@@ -622,7 +622,7 @@ fi
 # ##############################################
 if [ $COPY_OUT -eq 1 ]; then
     mkdir -p $ESP32_ARDUINO # Create the Folder if it does not exist
-    echo -e '-- Copy all to arduino-esp32 installation path'
+    echo -e '-- Copy all to arduino-esp32'
     echo -e "   at: $(shortFP $ESP32_ARDUINO)"
     echo -e "   with:$eUS $SH_ROOT/tools/copy-to-arduino.sh $eNO"
     source $SH_ROOT/tools/copy-to-arduino.sh
