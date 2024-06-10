@@ -1,4 +1,5 @@
 menu "Arduino TinyUSB"
+    depends on ENABLE_ARDUINO_DEPENDS && SOC_USB_OTG_SUPPORTED
 
     config TINYUSB_ENABLED
         bool "Enable TinyUSB driver"
