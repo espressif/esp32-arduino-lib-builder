@@ -1,0 +1,24 @@
+diff --git a/components/esp_mm/esp_mmu_map.c b/components/esp_mm/esp_mmu_map.c
+index b7d927f8fe..6a8c4635f0 100644
+--- a/components/esp_mm/esp_mmu_map.c
++++ b/components/esp_mm/esp_mmu_map.c
+@@ -315,6 +315,19 @@ esp_err_t esp_mmu_map_reserve_block_with_caps(size_t size, mmu_mem_caps_t caps,
+     s_mmu_ctx.mem_regions[found_region_id].max_slot_size -= aligned_size;
+     ESP_EARLY_LOGV(TAG, "found laddr is 0x%x", laddr);
+ 
++    mem_block_t *mem_block = NULL;
++    mem_region_t *region = &s_mmu_ctx.mem_regions[found_region_id];
++    TAILQ_FOREACH(mem_block, &region->mem_block_head, entries) {
++        if (mem_block == TAILQ_FIRST(&region->mem_block_head) || mem_block == TAILQ_LAST(&region->mem_block_head, mem_block_head_)) {
++            TAILQ_REMOVE(&region->mem_block_head, mem_block, entries);
++        } else {
++            // probably the reservation of MMU region should be disallowed for this case - already some MMU mappings exist?
++            // assert/abort
++            ESP_EARLY_LOGE(TAG, "already some MMU mappings exist?");
++            abort();
++        }
++    }
++
+     uint32_t vaddr = 0;
+     if (caps & MMU_MEM_CAP_EXEC) {
+         vaddr = mmu_ll_laddr_to_vaddr(laddr, MMU_VADDR_INSTRUCTION);
