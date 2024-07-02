@@ -1,8 +1,9 @@
 #!/bin/bash
 
-if [ ! "$GITHUB_EVENT_NAME" == "schedule" ]; then
-    echo "Wrong event '$GITHUB_EVENT_NAME'!"
-    exit 1
+if [ -z "$TARGETS" ]; then
+    TARGETS="all"
 fi
 
-bash ./build.sh -d
+export IDF_CCACHE_ENABLE=1
+
+bash ./build.sh -e -t $TARGETS
