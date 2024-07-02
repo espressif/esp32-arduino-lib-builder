@@ -1,144 +1,155 @@
 name: Cron Build
 
-on: 
+on:
   schedule:
 #             ┌───────────── minute (0 - 59)
 #             │ ┌───────────── hour (0 - 23)
 #             │ │ ┌───────────── day of the month (1 - 31)
 #             │ │ │ ┌───────────── month (1 - 12 or JAN-DEC)
 #             │ │ │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
-#             │ │ │ │ │                                   
+#             │ │ │ │ │
 #             │ │ │ │ │
 #             │ │ │ │ │
 #             * * * * *
     - cron:  '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      idf_branch:
+        # This input can be a comma-separated list of strings (e.g. "release/v5.1,release/v5.3") or "all" to build all branches.
+        # For IDF versions before v5.1, "all" is not supported. Use a specific branch instead.
+        description: 'IDF branch to build (check workflow file for instructions on how to use this input)'
+        required: true
+        default: 'all'
+      target:
+        # This input can be a comma-separated list of strings (e.g. "esp32,esp32s2") or "all" to build all targets.
+        # For IDF versions before v5.1, "all" is not supported. Use a specific target list instead.
+        description: 'Target to build (check workflow file for instructions on how to use this input)'
+        required: true
+        default: 'all'
 
 defaults:
   run:
     shell: bash
 
 jobs:
-  run:
-    name: Build with IDF ${{ matrix.idf_branch }}
+  gen-matrix:
+    name: Generate matrix
     runs-on: ubuntu-latest
-    
+    outputs:
+      matrix: ${{ steps.gen-matrix.outputs.matrix }}
+      branches: ${{ steps.gen-matrix.outputs.branches }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate matrix
+        id: gen-matrix
+        run: |
+          bash ./tools/cron-gen-matrix.sh "${{ github.event.inputs.idf_branch }}" "${{ github.event.inputs.target }}"
+
+  build-libs:
+    name: Build with IDF ${{ matrix.idf_branch }} for ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    needs: gen-matrix
     strategy:
       fail-fast: false
-      matrix:
-        idf_branch: [release/v5.1, release/v4.4] #, release/v3.3]
+      matrix: ${{ fromJson(needs.gen-matrix.outputs.matrix) }}
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
+    - name: Check if result should be deployed
+      id: check
+      env:
+        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+        IDF_BRANCH: ${{ matrix.idf_branch }}
+      run: |
+        git checkout ${{ env.IDF_BRANCH }} || echo "Using master branch"
+        bash ./tools/check-deploy-needed.sh
+
     - name: Install dependencies
+      if: env.libs_has_commit == '0' || env.ar_has_commit == '0'
       run: bash ./tools/prepare-ci.sh
+
     - name: Build
       env:
-        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN || secrets.GITHUB_TOKEN }}
         GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
         GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
         IDF_BRANCH: ${{ matrix.idf_branch }}
+        TARGETS: ${{ matrix.target }}
+      if: env.libs_has_commit == '0' || env.ar_has_commit == '0'
       run: |
-        git checkout ${{ matrix.idf_branch }} || echo "Using master branch"
         bash ./tools/cron.sh
+
     - name: Upload build
-      if: failure()
+      if: failure() && (env.libs_has_commit == '0' || env.ar_has_commit == '0')
       uses: actions/upload-artifact@v4
       with:
-        name: build
+        name: build-${{ env.libs_version }}-${{ matrix.target }}
         path: build
-    - name: Upload archive
+
+    - name: Upload library files
+      if: env.libs_has_commit == '0' || env.ar_has_commit == '0'
       uses: actions/upload-artifact@v4
       with:
-        name: artifacts
+        name: libs-${{ env.libs_version }}-${{ matrix.target }}
         path: dist
 
+  combine-artifacts:
+    name: Combine artifacts for IDF ${{ matrix.idf_branch }}
+    runs-on: ubuntu-latest
+    needs: [gen-matrix, build-libs]
+    strategy:
+      fail-fast: false
+      matrix:
+        idf_branch: ${{ fromJson(needs.gen-matrix.outputs.branches) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  # check:
-  #   name: Check if result should be deployed
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       branch: [release/v5.1, release/v4.4] #, release/v3.3]
-  #   outputs:
-  #     idf_branch: ${{ steps.check.outputs.idf_branch }}
-  #     idf_commit: ${{ steps.check.outputs.idf_commit }}
-  #     ar_branch: ${{ steps.check.outputs.ar_branch }}
-  #     ar_new_commit_message: ${{ steps.check.outputs.ar_new_commit_message }}
-  #     ar_new_branch_name: ${{ steps.check.outputs.ar_new_branch_name }}
-  #     ar_new_pr_title: ${{ steps.check.outputs.ar_new_pr_title }}
-  #     ar_has_commit: ${{ steps.check.outputs.ar_has_commit }}
-  #     ar_has_branch: ${{ steps.check.outputs.ar_has_branch }}
-  #     ar_has_pr: ${{ steps.check.outputs.ar_has_pr }}
-  #     libs_version: ${{ steps.check.outputs.libs_version }}
-  #     libs_has_commit: ${{ steps.check.outputs.libs_has_commit }}
-  #     libs_has_branch: ${{ steps.check.outputs.libs_has_branch }}
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - id: check
-  #     env:
-  #       GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
-  #       GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
-  #       GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
-  #       IDF_BRANCH: ${{ matrix.idf_branch }}
-  #     run: bash ./tools/check-deploy-needed.sh
+      - name: Check if result should be deployed
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+          IDF_BRANCH: ${{ matrix.idf_branch }}
+        run: |
+          git checkout ${{ env.IDF_BRANCH }} || echo "Using master branch"
+          bash ./tools/check-deploy-needed.sh
 
-  # build:
-  #   name: Build Libs for ${{ matrix.target }}
-  #   runs-on: ubuntu-latest
-  #   needs: check
-  #   if: needs.check.outputs.libs_has_commit == '0' || needs.check.outputs.ar_has_commit == '0'
-  #   strategy:
-  #     matrix:
-  #       target: [esp32, esp32s2, esp32s3, esp32c3, esp32c6, esp32h2]
-  #     fail-fast: false
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   # - name: Install dependencies
-  #   #   run: bash ./tools/prepare-ci.sh
-  #   - shell: bash
-  #     name: Build Libs for ${{ matrix.target }}
-  #     run: echo ${{ matrix.target }}
-  #   #   run: bash ./build.sh -t ${{ matrix.target }}
-  #   # - name: Upload archive
-  #   #   uses: actions/upload-artifact@v3
-  #   #   with:
-  #   #     name: artifacts
-  #   #     path: dist
+      - name: Download artifacts
+        if: env.libs_has_commit == '0' || env.ar_has_commit == '0'
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: libs-${{ env.libs_version }}-*
+          merge-multiple: true
 
-  # deploy:
-  #   name: Deploy build
-  #   runs-on: ubuntu-latest
-  #   needs: [check, build]
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - shell: bash
-  #     env:
-  #       GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
-  #       GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
-  #       GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
-  #       IDF_BRANCH: ${{ needs.check.outputs.idf_branch }}
-  #       IDF_COMMIT: ${{ needs.check.outputs.idf_commit }}
-  #       AR_BRANCH: ${{ needs.check.outputs.ar_branch }}
-  #       AR_NEW_COMMIT_MESSAGE: ${{ needs.check.outputs.ar_new_commit_message }}
-  #       AR_NEW_BRANCH_NAME: ${{ needs.check.outputs.ar_new_branch_name }}
-  #       AR_NEW_PR_TITLE: ${{ needs.check.outputs.ar_new_pr_title }}
-  #       AR_HAS_COMMIT: ${{ needs.check.outputs.ar_has_commit }}
-  #       AR_HAS_BRANCH: ${{ needs.check.outputs.ar_has_branch }}
-  #       AR_HAS_PR: ${{ needs.check.outputs.ar_has_pr }}
-  #       LIBS_VERSION: ${{ needs.check.outputs.libs_version }}
-  #       LIBS_HAS_COMMIT: ${{ needs.check.outputs.libs_has_commit }}
-  #       LIBS_HAS_BRANCH: ${{ needs.check.outputs.libs_has_branch }}
-  #     run: |
-  #       echo "IDF_COMMIT: $IDF_COMMIT"
-  #       echo "AR_BRANCH: $AR_BRANCH"
-  #       echo "AR_NEW_COMMIT_MESSAGE: $AR_NEW_COMMIT_MESSAGE"
-  #       echo "AR_NEW_BRANCH_NAME: $AR_NEW_BRANCH_NAME"
-  #       echo "AR_NEW_PR_TITLE: $AR_NEW_PR_TITLE"
-  #       echo "AR_HAS_COMMIT: $AR_HAS_COMMIT"
-  #       echo "AR_HAS_BRANCH: $AR_HAS_BRANCH"
-  #       echo "AR_HAS_PR: $AR_HAS_PR"
-  #       echo "LIBS_VERSION: $LIBS_VERSION"
-  #       echo "LIBS_HAS_COMMIT: $LIBS_HAS_COMMIT"
-  #       echo "LIBS_HAS_BRANCH: $LIBS_HAS_BRANCH"
+      - name: Combine artifacts
+        if: env.libs_has_commit == '0' || env.ar_has_commit == '0'
+        run: |
+          bash ./tools/cron-combine.sh
 
+      - name: Upload full esp32-arduino-libs archive
+        if: env.libs_has_commit == '0' || env.ar_has_commit == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-arduino-libs
+          path: dist/esp32-arduino-libs.tar.gz
+
+      - name: Upload package_esp32_index.template.json
+        if: env.libs_has_commit == '0' || env.ar_has_commit == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-esp32-index-json
+          path: dist/package_esp32_index.template.json
+
+      - name: Push changes
+        if: github.repository == 'espressif/esp32-arduino-lib-builder' && (env.libs_has_commit == '0' || env.ar_has_commit == '0')
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+          GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
+          IDF_BRANCH: ${{ matrix.idf_branch }}
+        run: |
+          bash ./tools/push-to-arduino.sh

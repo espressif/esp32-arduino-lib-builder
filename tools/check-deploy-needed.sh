@@ -1,5 +1,10 @@
 #/bin/bash
 
+if [ "$GITHUB_EVENT_NAME" != "schedule" ] && [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ] && [ "$GITHUB_EVENT_NAME" != "repository_dispatch" -o "$GITHUB_EVENT_ACTION" != "deploy" ]; then
+	echo "Wrong event '$GITHUB_EVENT_NAME'!"
+	exit 1
+fi
+
 source ./tools/config.sh
 
 IDF_COMMIT=`github_last_commit "$IDF_REPO" "$IDF_BRANCH"`
@@ -70,16 +75,22 @@ echo "LIBS_VERSION: $LIBS_VERSION"
 echo "LIBS_HAS_COMMIT: $LIBS_HAS_COMMIT"
 echo "LIBS_HAS_BRANCH: $LIBS_HAS_BRANCH"
 
-if [ ! -x $GITHUB_OUTPUT ]; then
-	echo "idf_commit=$IDF_COMMIT" >> "$GITHUB_OUTPUT"
-	echo "ar_branch=$AR_BRANCH" >> "$GITHUB_OUTPUT"
-	echo "ar_new_commit_message=$AR_NEW_COMMIT_MESSAGE" >> "$GITHUB_OUTPUT"
-	echo "ar_new_branch_name=$AR_NEW_BRANCH_NAME" >> "$GITHUB_OUTPUT"
-	echo "ar_new_pr_title=$AR_NEW_PR_TITLE" >> "$GITHUB_OUTPUT"
-	echo "ar_has_commit=$AR_HAS_COMMIT" >> "$GITHUB_OUTPUT"
-	echo "ar_has_branch=$AR_HAS_BRANCH" >> "$GITHUB_OUTPUT"
-	echo "ar_has_pr=$AR_HAS_PR" >> "$GITHUB_OUTPUT"
-	echo "libs_version=$LIBS_VERSION" >> "$GITHUB_OUTPUT"
-	echo "libs_has_commit=$LIBS_HAS_COMMIT" >> "$GITHUB_OUTPUT"
-	echo "libs_has_branch=$LIBS_HAS_BRANCH" >> "$GITHUB_OUTPUT"
+if [ ! -x $GITHUB_ENV ]; then
+	echo "idf_commit=$IDF_COMMIT" >> "$GITHUB_ENV"
+	echo "ar_branch=$AR_BRANCH" >> "$GITHUB_ENV"
+	echo "ar_new_commit_message=$AR_NEW_COMMIT_MESSAGE" >> "$GITHUB_ENV"
+	echo "ar_new_branch_name=$AR_NEW_BRANCH_NAME" >> "$GITHUB_ENV"
+	echo "ar_new_pr_title=$AR_NEW_PR_TITLE" >> "$GITHUB_ENV"
+	echo "ar_has_commit=$AR_HAS_COMMIT" >> "$GITHUB_ENV"
+	echo "ar_has_branch=$AR_HAS_BRANCH" >> "$GITHUB_ENV"
+	echo "ar_has_pr=$AR_HAS_PR" >> "$GITHUB_ENV"
+	echo "libs_version=$LIBS_VERSION" >> "$GITHUB_ENV"
+	echo "libs_has_commit=$LIBS_HAS_COMMIT" >> "$GITHUB_ENV"
+	echo "libs_has_branch=$LIBS_HAS_BRANCH" >> "$GITHUB_ENV"
+fi
+
+if [ "$LIBS_HAS_COMMIT" == "0" ] || [ "$AR_HAS_COMMIT" == "0" ]; then
+	echo "Deploy needed"
+else
+	echo "Deploy not needed. Skipping..."
 fi
