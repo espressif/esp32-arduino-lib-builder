@@ -299,6 +299,7 @@ done
 
 # update package_esp32_index.template.json
 if [ "$BUILD_TYPE" = "all" ]; then
+    echo "* Generating package_esp32_index.template.json..."
     python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
     python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/"
     if [ $? -ne 0 ]; then exit 1; fi
@@ -306,6 +307,7 @@ fi
 
 # Generate PlatformIO manifest file
 if [ "$BUILD_TYPE" = "all" ]; then
+    echo "* Generating PlatformIO manifest file..."
     pushd $IDF_PATH
     ibr=$(git describe --all 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
@@ -316,18 +318,21 @@ fi
 
 # copy everything to arduino-esp32 installation
 if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
+    echo "* Copying to Arduino..."
     ./tools/copy-to-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 # push changes to esp32-arduino-libs and create pull request into arduino-esp32
 if [ $DEPLOY_OUT -eq 1 ]; then
+    echo "* Pushing to Arduino..."
     ./tools/push-to-arduino.sh
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
 # archive the build
 if [ $ARCHIVE_OUT -eq 1 ]; then
+    echo "* Archiving build..."
     ./tools/archive-build.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
 fi

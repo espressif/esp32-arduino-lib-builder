@@ -5,4 +5,10 @@ if [ ! "$GITHUB_EVENT_NAME" == "schedule" ]; then
     exit 1
 fi
 
-bash ./build.sh -d
+if [ -z "$TARGET" ]; then
+    TARGET="all"
+fi
+
+export IDF_CCACHE_ENABLE=1
+
+bash ./build.sh -e -t $TARGET

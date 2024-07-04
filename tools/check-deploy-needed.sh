@@ -4,6 +4,11 @@ source ./tools/config.sh
 
 IDF_COMMIT=`github_last_commit "$IDF_REPO" "$IDF_BRANCH"`
 
+if [ -z $IDF_COMMIT ]; then
+	echo "Failed to get IDF commit for branch $IDF_BRANCH"
+	exit 1
+fi
+
 if [ -z $GITHUB_HEAD_REF ]; then
 	current_branch=`git branch --show-current`
 else
@@ -82,4 +87,12 @@ if [ ! -x $GITHUB_OUTPUT ]; then
 	echo "libs_version=$LIBS_VERSION" >> "$GITHUB_OUTPUT"
 	echo "libs_has_commit=$LIBS_HAS_COMMIT" >> "$GITHUB_OUTPUT"
 	echo "libs_has_branch=$LIBS_HAS_BRANCH" >> "$GITHUB_OUTPUT"
+fi
+
+if [ "$LIBS_HAS_COMMIT" == "0" ] || [ "$AR_HAS_COMMIT" == "0" ]; then
+	echo "Deploy needed"
+	export DEPLOY_NEEDED="1"
+else
+	echo "Deploy not needed. Skipping..."
+	export DEPLOY_NEEDED="0"
 fi
