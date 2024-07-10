@@ -39,6 +39,7 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	cd $IDF_PATH
 	patch -p1 -N -i ../patches/esp32s2_i2c_ll_master_init.diff
 	patch -p1 -N -i ../patches/mmu_map.diff
+	patch -p1 -N -i ../patches/lwip_max_tcp_pcb.diff
 	cd -
 fi
 
