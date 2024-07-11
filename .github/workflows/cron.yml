@@ -1,4 +1,4 @@
-name: Cron Build
+name: Cron Deploy
 
 on:
   schedule:
@@ -17,187 +17,18 @@ defaults:
   run:
     shell: bash
 
-env:
-  LATEST_RELEASE_BRANCH: "release/v5.1" # Change this to the latest release branch so the checkouts are done correctly
-
 jobs:
-  gen-matrix:
-    name: Generate matrix
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.gen-matrix.outputs.matrix }}
-      branches: ${{ steps.gen-matrix.outputs.branches }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Generate matrix
-        id: gen-matrix
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
-
-          # Change this based on the IDF branches we want to build. Don't forget to update env.LATEST_RELEASE_BRANCH
-          all_branches=("release/v5.1")
-
-          # Change this based on the COMMON targets for all branches we want to build.
-          common_targets="[\"esp32\", \"esp32s2\", \"esp32s3\", \"esp32c2\", \"esp32c3\", \"esp32c6\", \"esp32h2\"]"
-
-          # For additional targets per branch, add them here
-          additional_targets="[{\"idf_branch\": \"release/v5.3\", \"target\": \"esp32p4\"}]"
-
-          branches="["
-          matrix="{"
-
-          for branch in ${all_branches[@]}; do
-              if [ "$branch" == "$LATEST_RELEASE_BRANCH" ]; then
-                  git checkout master
-              else
-                  git checkout $branch
-              fi
-              export IDF_BRANCH=$branch
-              source ./tools/check-deploy-needed.sh
-              if [ "$DEPLOY_NEEDED" == "1" ]; then
-                  branches+="\"$branch\","
-              fi
-          done
-
-          branches="${branches%,}]"
-          matrix+="\"idf_branch\": $branches,"
-          matrix+="\"target\": $common_targets,"
-
-          matrix+="\"include\": "
-          # Add all additional targets that are in the selected branches
-          matrix+=$(echo $additional_targets | jq --argjson branches "$branches" '[.[] | select(.idf_branch as $branch | $branches | index($branch))]')
-
-          matrix+="}"
-
-          echo "Branches: $branches"
-
-          echo "Matrix:"
-          echo "$matrix" | jq .
-
-          if [ ! -x $GITHUB_OUTPUT ]; then
-              echo "matrix=$matrix" >> $GITHUB_OUTPUT
-              echo "branches=$branches" >> $GITHUB_OUTPUT
-          fi
-
   build-libs:
-    name: Build with IDF ${{ matrix.idf_branch }} for ${{ matrix.target }}
-    runs-on: ubuntu-latest
-    if: needs.gen-matrix.outputs.branches != '[]'
-    needs: gen-matrix
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.gen-matrix.outputs.matrix) }}
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        # Useful workaround for the checkout action to work with the matrix
-        # https://github.com/actions/runner/issues/409#issuecomment-1013325196
-        ref: ${{ matrix.idf_branch == env.LATEST_RELEASE_BRANCH && 'master' || matrix.idf_branch }}
-
-    - name: Install dependencies
-      run: bash ./tools/prepare-ci.sh
-
-    - name: Build
-      env:
-        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN || secrets.GITHUB_TOKEN }}
-        GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
-        GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
-        IDF_BRANCH: ${{ matrix.idf_branch }}
-        TARGET: ${{ matrix.target }}
-      run: |
-        bash ./tools/cron.sh
-
-    - name: Replace invalid characters in the artifact name
-      run: |
-        branch=${{ matrix.idf_branch }}
-        echo "libs_branch=${branch//\//_}" >> $GITHUB_ENV
-
-    - name: Upload build
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-${{ env.libs_branch }}-${{ matrix.target }}
-        path: build
-
-    - name: Upload library files
-      uses: actions/upload-artifact@v4
-      with:
-        name: libs-${{ env.libs_branch }}-${{ matrix.target }}
-        path: dist
-
-  combine-artifacts:
-    name: Combine artifacts for IDF ${{ matrix.idf_branch }}
-    runs-on: ubuntu-latest
-    needs: [gen-matrix, build-libs]
-    # Condition is evaluated before the job is run so it won't cause a failure
-    if: needs.gen-matrix.outputs.branches != '[]'
+    name: Build with IDF ${{ matrix.idf_branch }}
+    uses: ./.github/workflows/cron_build.yml
+    with:
+      idf_branch: ${{ matrix.idf_branch }}
+      lib_builder_branch: ${{ matrix.lib_builder_branch }}
+      targets: ${{ matrix.targets }}
     strategy:
       fail-fast: false
       matrix:
-        idf_branch: ${{ fromJson(needs.gen-matrix.outputs.branches) }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Useful workaround for the checkout action to work with the matrix
-          # https://github.com/actions/runner/issues/409#issuecomment-1013325196
-          ref: ${{ matrix.idf_branch == env.LATEST_RELEASE_BRANCH && 'master' || matrix.idf_branch }}
-
-      - name: Replace invalid characters in the artifact name
-        run: |
-          branch=${{ matrix.idf_branch }}
-          echo "libs_branch=${branch//\//_}" >> $GITHUB_ENV
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
-          pattern: libs-${{ env.libs_branch }}-*
-          merge-multiple: true
-
-      - name: Combine artifacts
-        run: |
-          set -e
-          mkdir -p out
-
-          libs_folder="out/tools/esp32-arduino-libs"
-
-          files=$(find dist -name 'arduino-esp32-libs-esp*.tar.gz')
-          for file in $files; do
-              echo "Extracting $file"
-              tar zxvf $file -C out
-              cat $libs_folder/versions.txt >> $libs_folder/versions_full.txt
-          done
-
-          # Merge versions.txt files
-          awk -i inplace '!seen[$0]++' $libs_folder/versions_full.txt
-          mv -f $libs_folder/versions_full.txt $libs_folder/versions.txt
-
-          cd $libs_folder && tar zcf ../../../dist/esp32-arduino-libs.tar.gz * && cd ../../..
-          cp out/package_esp32_index.template.json dist/package_esp32_index.template.json
-
-      - name: Upload full esp32-arduino-libs archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: esp32-arduino-libs
-          path: dist/esp32-arduino-libs.tar.gz
-
-      - name: Upload package_esp32_index.template.json
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-esp32-index-json
-          path: dist/package_esp32_index.template.json
-
-      - name: Push changes
-        if: github.repository == 'espressif/esp32-arduino-lib-builder'
-        env:
-          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
-          GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
-          GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
-          IDF_BRANCH: ${{ matrix.idf_branch }}
-        run: |
-          bash ./tools/push-to-arduino.sh
+        include:
+          - idf_branch: "release/v5.1"
+            lib_builder_branch: "master"
+            targets: "esp32,esp32s2,esp32s3,esp32c3,esp32c6,esp32h2"
