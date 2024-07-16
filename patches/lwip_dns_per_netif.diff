@@ -123,7 +123,7 @@ diff --git a/components/lwip/lwip/src/include/lwip/opt.h b/components/lwip/lwip/
 index 2c58c53229d0df1d5e60dab8fd65c48562a76bed..91aa3513fde2a285543649c8bbf7795b6d1471d4 100644
 --- a/components/lwip/lwip/src/include/lwip/opt.h
 +++ b/components/lwip/lwip/src/include/lwip/opt.h
-@@ -1161,6 +1161,22 @@
+@@ -1161,6 +1161,20 @@
  #define DNS_LOCAL_HOSTLIST              0
  #endif /* DNS_LOCAL_HOSTLIST */
  
@@ -139,8 +139,6 @@ index 2c58c53229d0df1d5e60dab8fd65c48562a76bed..91aa3513fde2a285543649c8bbf7795b
 + * */
 +#if !defined LWIP_DNS_SETSERVER_WITH_NETIF && defined __DOXYGEN__
 +#define LWIP_DNS_SETSERVER_WITH_NETIF   0
-+#elif !defined LWIP_DNS_SETSERVER_WITH_NETIF
-+#define LWIP_DNS_SETSERVER_WITH_NETIF   1
 +#endif /* LWIP_DNS_SETSERVER_WITH_NETIF */
 +
  /** If this is turned on, the local host-list can be dynamically changed

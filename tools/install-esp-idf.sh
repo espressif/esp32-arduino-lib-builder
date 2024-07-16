@@ -41,6 +41,7 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	patch -p1 -N -i ../patches/mmu_map.diff
 	patch -p1 -N -i ../patches/lwip_max_tcp_pcb.diff
 	patch -p1 -N -i ../patches/lwip_dns_per_netif.diff
+	patch -p1 -N -i ../patches/lwip_dns_per_netif_2.diff
 	cd -
 fi
 

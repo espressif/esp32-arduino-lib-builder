@@ -1,0 +1,527 @@
+diff --git a/components/esp_netif/Kconfig b/components/esp_netif/Kconfig
+index 4511bbeaafbacc7774f11e6cfa0a2734b64867f3..7704a2959a255142c06eb489977916e93ac74305 100644
+--- a/components/esp_netif/Kconfig
++++ b/components/esp_netif/Kconfig
+@@ -84,4 +84,15 @@ menu "ESP NETIF Adapter"
+         help
+             Enable LwIP IEEE 802.1D bridge support in ESP-NETIF. Note that "Number of clients store data in netif"
+             (LWIP_NUM_NETIF_CLIENT_DATA) option needs to be properly configured to be LwIP bridge available!
++
++    config ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++        bool "Enable DNS server per interface"
++        default n
++        select LWIP_DNS_SETSERVER_WITH_NETIF
++        help
++            Enable this option to use the DNS server which belongs to the selected default network interface.
++            This feature collects DNS server and netif information from LWIP core modules.
++            Whenever a new default netif is selected, global DNS servers in LWIP are updated with the netif
++            related servers.
++
+ endmenu
+diff --git a/components/esp_netif/include/esp_netif.h b/components/esp_netif/include/esp_netif.h
+index d8d9918ce4e5375d20cc28228aab6e8356456cbf..f5df24632b0451e1b4737d2616a44241b46173f4 100644
+--- a/components/esp_netif/include/esp_netif.h
++++ b/components/esp_netif/include/esp_netif.h
+@@ -769,6 +769,11 @@ esp_err_t esp_netif_dhcps_get_clients_by_mac(esp_netif_t *esp_netif, int num, es
+  *   and is designed to be set via this API.
+  *   If DHCP client is disabled, all DNS server types can be set via this API only.
+  *
++ *   Note that LWIP stores DNS server information globally, not per interface, so the first parameter is unused
++ *   in the default LWIP configuration.
++ *   If CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF=1 this API sets internal DNS server information per
++ *   netif. It's also possible to set the global DNS server info by supplying esp_netif=NULL
++ *
+  *   If DHCP server is enabled, the Main DNS Server setting is used by the DHCP server to provide a DNS Server option
+  *   to DHCP clients (Wi-Fi stations).
+  *   - The default Main DNS server is typically the IP of the DHCP server itself.
+@@ -794,6 +799,11 @@ esp_err_t esp_netif_set_dns_info(esp_netif_t *esp_netif, esp_netif_dns_type_t ty
+  * This may be result of a previous call to esp_netif_set_dns_info(). If the interface's DHCP client is enabled,
+  * the Main or Backup DNS Server may be set by the current DHCP lease.
+  *
++ * Note that LWIP stores DNS server information globally, not per interface, so the first parameter is unused
++ * in the default LWIP configuration.
++ * If CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF=1 this API returns internally saved DNS server information per
++ * netif. It's also possible to ask for the global DNS server info by supplying esp_netif=NULL
++ *
+  * @param[in]  esp_netif Handle to esp-netif instance
+  * @param[in]  type Type of DNS Server to get: ESP_NETIF_DNS_MAIN, ESP_NETIF_DNS_BACKUP, ESP_NETIF_DNS_FALLBACK
+  * @param[out] dns  DNS Server result is written here on success
+diff --git a/components/esp_netif/lwip/esp_netif_lwip.c b/components/esp_netif/lwip/esp_netif_lwip.c
+index e0cd05c6f0f952ee6c31b86400ad8a4128a60c69..62edeb69eaef74be81a9b0c9c6fe13b09b56180f 100644
+--- a/components/esp_netif/lwip/esp_netif_lwip.c
++++ b/components/esp_netif/lwip/esp_netif_lwip.c
+@@ -114,16 +114,6 @@ do {
+     action;                                                                                     \
+ } while(0)
+ 
+-//
+-//  Internal types
+-//
+-typedef enum esp_netif_action {
+-    ESP_NETIF_UNDEF,
+-    ESP_NETIF_STARTED,
+-    ESP_NETIF_STOPPED,
+-    ESP_NETIF_SET_DEFAULT,
+-} esp_netif_action_t;
+-
+ //
+ //  Internal variables for this module
+ //
+@@ -307,6 +297,11 @@ static void esp_netif_set_default_netif_internal(esp_netif_t *esp_netif)
+     } else {
+         netif_set_default(esp_netif->lwip_netif);
+     }
++#ifdef CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++    for (int i = 0; i < DNS_MAX_SERVERS; ++i) {
++        dns_setserver(i, &esp_netif->dns[i]);
++    }
++#endif
+ }
+ 
+ /**
+@@ -317,7 +312,7 @@ static void esp_netif_set_default_netif_internal(esp_netif_t *esp_netif)
+ static esp_err_t esp_netif_update_default_netif_lwip(esp_netif_api_msg_t *msg)
+ {
+     esp_netif_t *esp_netif = msg->esp_netif;
+-    esp_netif_action_t action = (esp_netif_action_t)msg->data;
++    esp_netif_route_prio_action_t action = (esp_netif_route_prio_action_t)msg->data;
+ 
+     ESP_LOGD(TAG, "%s %p", __func__, esp_netif);
+ 
+@@ -337,6 +332,7 @@ static esp_err_t esp_netif_update_default_netif_lwip(esp_netif_api_msg_t *msg)
+             esp_netif_set_default_netif_internal(s_last_default_esp_netif);
+         break;
+         case ESP_NETIF_STARTED:
++        case ESP_NETIF_GOT_IP:
+         {
+             // check if previously default interface hasn't been destroyed in the meantime
+             s_last_default_esp_netif = esp_netif_is_active(s_last_default_esp_netif);
+@@ -352,6 +348,7 @@ static esp_err_t esp_netif_update_default_netif_lwip(esp_netif_api_msg_t *msg)
+ 
+         default:
+         case ESP_NETIF_STOPPED:
++        case ESP_NETIF_LOST_IP:
+         {
+             s_last_default_esp_netif = NULL;
+             esp_netif_t *netif = esp_netif_next_unsafe(NULL);
+@@ -383,7 +380,7 @@ static esp_err_t esp_netif_update_default_netif_lwip(esp_netif_api_msg_t *msg)
+  * @param esp_netif current interface which just updated state
+  * @param action updating action (on-off)
+  */
+-static esp_err_t esp_netif_update_default_netif(esp_netif_t *esp_netif, esp_netif_action_t action)
++esp_err_t esp_netif_update_default_netif(esp_netif_t *esp_netif, esp_netif_route_prio_action_t action)
+ {
+     return esp_netif_lwip_ipc_call(esp_netif_update_default_netif_lwip, esp_netif, (void*)action);
+ }
+@@ -503,6 +500,24 @@ void* esp_netif_get_netif_impl(esp_netif_t *esp_netif)
+     return NULL;
+ }
+ 
++#if CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++static void store_dnsserver_info(struct netif* netif, u8_t numdns, const ip_addr_t *dnsserver)
++{
++    if (netif == NULL) {
++        return;
++    }
++    esp_netif_t *esp_netif = lwip_get_esp_netif(netif);
++    if (esp_netif == NULL || !esp_netif_is_netif_listed(esp_netif)) {
++        return;
++    }
++    if (!ip_addr_isany(dnsserver)) {
++        ip_addr_copy(esp_netif->dns[numdns], *dnsserver);
++    } else {
++        ip_addr_copy(esp_netif->dns[numdns], *IP_ADDR_ANY);
++    }
++}
++#endif
++
+ static void tcpip_init_done(void *arg)
+ {
+     sys_sem_t *init_sem = arg;
+@@ -546,6 +561,12 @@ esp_err_t esp_netif_init(void)
+         sys_sem_wait(&init_sem);
+         sys_sem_free(&init_sem);
+         ESP_LOGD(TAG, "LwIP stack has been initialized");
++#if CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++        if (dns_setserver_callback(store_dnsserver_info) != ERR_OK) {
++            ESP_LOGE(TAG, "Feiled to configure DNS set server callback");
++            return ESP_FAIL;
++        }
++#endif
+     }
+ 
+ #if !LWIP_TCPIP_CORE_LOCKING
+@@ -1075,11 +1096,7 @@ static esp_err_t esp_netif_start_api(esp_netif_api_msg_t *msg)
+     ESP_LOGD(TAG, "%s %p", __func__, esp_netif);
+     if (ESP_NETIF_IS_POINT2POINT_TYPE(esp_netif, PPP_LWIP_NETIF)) {
+ #if CONFIG_PPP_SUPPORT
+-        esp_err_t ret = esp_netif_start_ppp(esp_netif);
+-        if (ret == ESP_OK) {
+-            esp_netif_update_default_netif(esp_netif, ESP_NETIF_STARTED);
+-        }
+-        return ret;
++        return esp_netif_start_ppp(esp_netif);
+ #endif
+     }
+ 
+@@ -1156,8 +1173,10 @@ static esp_err_t esp_netif_start_api(esp_netif_api_msg_t *msg)
+         LOG_NETIF_DISABLED_AND_DO("IPv4's DHCP Client", return ESP_ERR_NOT_SUPPORTED);
+ #endif
+     }
+-
+-    esp_netif_update_default_netif(esp_netif, ESP_NETIF_STARTED);
++    // For netifs with (active) DHCP client: we update the default netif after getting a valid IP
++    if (!((esp_netif->flags & ESP_NETIF_DHCP_CLIENT) && esp_netif->dhcpc_status != ESP_NETIF_DHCP_STOPPED)) {
++        esp_netif_update_default_netif(esp_netif, ESP_NETIF_STARTED);
++    }
+ 
+     return ESP_OK;
+ }
+@@ -1371,7 +1390,7 @@ static void esp_netif_internal_dhcpc_cb(struct netif *netif)
+             if (memcmp(ip_info, ip_info_old, sizeof(esp_netif_ip_info_t))) {
+                 evt.ip_changed = true;
+             }
+-
++            esp_netif_update_default_netif(esp_netif, ESP_NETIF_GOT_IP);
+             memcpy(&evt.ip_info, ip_info, sizeof(esp_netif_ip_info_t));
+             memcpy(ip_info_old, ip_info, sizeof(esp_netif_ip_info_t));
+             ESP_LOGD(TAG, "if%p ip changed=%d", esp_netif, evt.ip_changed);
+@@ -1412,7 +1431,7 @@ static void esp_netif_ip_lost_timer(void *arg)
+                 .esp_netif = esp_netif,
+         };
+         int ret;
+-
++        esp_netif_update_default_netif(esp_netif, ESP_NETIF_LOST_IP);
+         ESP_LOGD(TAG, "if%p ip lost tmr: raise ip lost event", esp_netif);
+         memset(esp_netif->ip_info_old, 0, sizeof(esp_netif_ip_info_t));
+         if (esp_netif->lost_ip_event) {
+@@ -1731,7 +1750,10 @@ static esp_err_t esp_netif_up_api(esp_netif_api_msg_t *msg)
+     netif_set_up(lwip_netif);
+     netif_set_link_up(lwip_netif);
+ 
+-    esp_netif_update_default_netif(esp_netif, ESP_NETIF_STARTED);
++    // For netifs with (active) DHCP client: we update the default netif after getting a valid IP
++    if (!((esp_netif->flags & ESP_NETIF_DHCP_CLIENT) && esp_netif->dhcpc_status != ESP_NETIF_DHCP_STOPPED)) {
++        esp_netif_update_default_netif(esp_netif, ESP_NETIF_STARTED);
++    }
+ 
+     return ESP_OK;
+ }
+@@ -1910,7 +1932,7 @@ static esp_err_t esp_netif_set_ip_info_api(esp_netif_api_msg_t *msg)
+                 if (memcmp(ip_info, esp_netif->ip_info_old, sizeof(esp_netif_ip_info_t))) {
+                     evt.ip_changed = true;
+                 }
+-
++                esp_netif_update_default_netif(esp_netif, ESP_NETIF_GOT_IP);
+                 memcpy(&evt.ip_info, ip_info, sizeof(esp_netif_ip_info_t));
+                 memcpy(esp_netif->ip_info_old, ip_info, sizeof(esp_netif_ip_info_t));
+                 ret = esp_event_post(IP_EVENT, evt_id, &evt, sizeof(evt), 0);
+@@ -1971,7 +1993,7 @@ static esp_err_t esp_netif_set_dns_info_api(esp_netif_api_msg_t *msg)
+ 
+     ip_addr_t lwip_ip = {};
+     ESPIP_TO_IP(&dns->ip, &lwip_ip);
+-    if (esp_netif->flags & ESP_NETIF_DHCP_SERVER) {
++    if (esp_netif && esp_netif->flags & ESP_NETIF_DHCP_SERVER) {
+ #if ESP_DHCPS
+         // if DHCP server configured to set DNS in dhcps API
+         if (type != ESP_NETIF_DNS_MAIN) {
+@@ -1984,7 +2006,17 @@ static esp_err_t esp_netif_set_dns_info_api(esp_netif_api_msg_t *msg)
+         LOG_NETIF_DISABLED_AND_DO("DHCP Server", return ESP_ERR_NOT_SUPPORTED);
+ #endif
+     } else {
++#ifdef CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++        if (esp_netif) {
++            store_dnsserver_info(esp_netif->lwip_netif, type, &lwip_ip);
++        }
++        if (esp_netif == s_last_default_esp_netif ||    // if this is the default one -> need to update global DNS servers
++            esp_netif == NULL) {                        // if the netif ptr is set to NULL -> we explicitly require the update
++            dns_setserver(type, &lwip_ip);
++        }
++#else
+         dns_setserver(type, &lwip_ip);
++#endif
+     }
+ 
+     return ESP_OK;
+@@ -1992,9 +2024,11 @@ static esp_err_t esp_netif_set_dns_info_api(esp_netif_api_msg_t *msg)
+ 
+ esp_err_t esp_netif_set_dns_info(esp_netif_t *esp_netif, esp_netif_dns_type_t type, esp_netif_dns_info_t *dns)
+ {
++#ifndef CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
+     if (esp_netif == NULL) {
+         return ESP_ERR_ESP_NETIF_INVALID_PARAMS;
+     }
++#endif
+ 
+     if (dns == NULL) {
+         ESP_LOGD(TAG, "set dns null dns");
+@@ -2022,7 +2056,7 @@ static esp_err_t esp_netif_get_dns_info_api(esp_netif_api_msg_t *msg)
+ 
+     ESP_LOGD(TAG, "esp_netif_get_dns_info: esp_netif=%p type=%d", esp_netif, type);
+ 
+-    if (esp_netif->flags & ESP_NETIF_DHCP_SERVER) {
++    if (esp_netif && esp_netif->flags & ESP_NETIF_DHCP_SERVER) {
+ #if ESP_DHCPS
+         ip4_addr_t dns_ip;
+         dhcps_dns_getserver(esp_netif->dhcps, &dns_ip);
+@@ -2033,7 +2067,15 @@ static esp_err_t esp_netif_get_dns_info_api(esp_netif_api_msg_t *msg)
+ #endif
+     } else {
+         const ip_addr_t*  dns_ip = NULL;
++#ifdef CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++        if (esp_netif == NULL) {    // by setting esp_netif to NULL we require the global DNS server entry
++            dns_ip = dns_getserver(type);
++        } else {
++            dns_ip = &esp_netif->dns[type];
++        }
++#else
+         dns_ip = dns_getserver(type);
++#endif
+         if(dns_ip != NULL) {
+             IP_TO_ESPIP(dns_ip, &dns->ip);
+         }
+@@ -2044,9 +2086,11 @@ static esp_err_t esp_netif_get_dns_info_api(esp_netif_api_msg_t *msg)
+ 
+ esp_err_t esp_netif_get_dns_info(esp_netif_t *esp_netif, esp_netif_dns_type_t type, esp_netif_dns_info_t *dns)
+ {
++#ifndef CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
+     if (esp_netif == NULL) {
+         return ESP_ERR_ESP_NETIF_INVALID_PARAMS;
+     }
++#endif
+ 
+     if (dns == NULL) {
+         ESP_LOGE(TAG, "%s: dns_info cannot be NULL", __func__);
+@@ -2142,7 +2186,7 @@ static void esp_netif_internal_nd6_cb(struct netif *netif, uint8_t ip_index)
+         ESP_LOGW(TAG,"CONFIG_LWIP_ESP_MLDV6_REPORT not enabled, but esp-netif configured with ESP_NETIF_FLAG_MLDV6_REPORT");
+ #endif
+     }
+-
++    esp_netif_update_default_netif(esp_netif, ESP_NETIF_GOT_IP);
+     memcpy(&evt.ip6_info, &ip6_info, sizeof(esp_netif_ip6_info_t));
+     int ret = esp_event_post(IP_EVENT, IP_EVENT_GOT_IP6, &evt, sizeof(evt), 0);
+     if (ESP_OK != ret) {
+@@ -2685,7 +2729,7 @@ static esp_err_t esp_netif_add_ip6_address_api(esp_netif_api_msg_t *msg)
+     err_t err = netif_add_ip6_address(msg->esp_netif->lwip_netif, &ip6addr, &index);
+     ESP_RETURN_ON_FALSE(err == ERR_OK && index >= 0, ESP_ERR_ESP_NETIF_IP6_ADDR_FAILED, TAG,
+                         "Failed to add ip6 address");
+-
++    esp_netif_update_default_netif(msg->esp_netif, ESP_NETIF_GOT_IP);
+     netif_ip6_addr_set_state(msg->esp_netif->lwip_netif, index,
+                              addr->preferred ? IP6_ADDR_PREFERRED : IP6_ADDR_DEPRECATED);
+     ip_event_got_ip6_t evt = {.esp_netif = msg->esp_netif, .ip_index = index};
+diff --git a/components/esp_netif/lwip/esp_netif_lwip_internal.h b/components/esp_netif/lwip/esp_netif_lwip_internal.h
+index 955dd19f9d7b4c58393b83c4308cff36d3a617f1..7881348ff26c3d918690507c30d5abbe6d380999 100644
+--- a/components/esp_netif/lwip/esp_netif_lwip_internal.h
++++ b/components/esp_netif/lwip/esp_netif_lwip_internal.h
+@@ -1,5 +1,5 @@
+ /*
+- * SPDX-FileCopyrightText: 2015-2023 Espressif Systems (Shanghai) CO LTD
++ * SPDX-FileCopyrightText: 2015-2024 Espressif Systems (Shanghai) CO LTD
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  */
+@@ -117,4 +117,19 @@ struct esp_netif_obj {
+ #endif // CONFIG_ESP_NETIF_BRIDGE_EN
+     // mldv6 timer
+     bool mldv6_report_timer_started;
++
++#ifdef CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++    ip_addr_t dns[DNS_MAX_SERVERS];
++#endif
+ };
++
++typedef enum esp_netif_set_default_state {
++    ESP_NETIF_UNDEF,
++    ESP_NETIF_STARTED,
++    ESP_NETIF_GOT_IP,
++    ESP_NETIF_STOPPED,
++    ESP_NETIF_LOST_IP,
++    ESP_NETIF_SET_DEFAULT,
++} esp_netif_route_prio_action_t;
++
++esp_err_t esp_netif_update_default_netif(esp_netif_t *esp_netif, esp_netif_route_prio_action_t action);
+diff --git a/components/esp_netif/lwip/esp_netif_lwip_ppp.c b/components/esp_netif/lwip/esp_netif_lwip_ppp.c
+index 1c5e91d3f6e172984bbc2418c08836703b79c66c..d3f37c7fb54e4431c823e3938ee819247361efd8 100644
+--- a/components/esp_netif/lwip/esp_netif_lwip_ppp.c
++++ b/components/esp_netif/lwip/esp_netif_lwip_ppp.c
+@@ -75,6 +75,7 @@ static void on_ppp_status_changed(ppp_pcb *pcb, int err_code, void *ctx)
+             break;
+         case PPPERR_CONNECT: /* Connection lost */
+             ESP_LOGI(TAG, "Connection lost");
++            esp_netif_update_default_netif(netif, ESP_NETIF_LOST_IP);
+             err = esp_event_post(IP_EVENT, netif->lost_ip_event, &evt, sizeof(evt), 0);
+ 
+             if (ESP_OK != err) {
+diff --git a/components/esp_netif/test_apps/test_app_esp_netif/main/esp_netif_test.c b/components/esp_netif/test_apps/test_app_esp_netif/main/esp_netif_test.c
+index 84705bc784e3551151dd92c32ba4f0ee81434b2e..080f565ec52bde549dcadd8f9d594c283e04820d 100644
+--- a/components/esp_netif/test_apps/test_app_esp_netif/main/esp_netif_test.c
++++ b/components/esp_netif/test_apps/test_app_esp_netif/main/esp_netif_test.c
+@@ -502,6 +502,81 @@ TEST(esp_netif, route_priority)
+     }
+ }
+ 
++// to probe DNS server info directly in LWIP
++const ip_addr_t * dns_getserver(u8_t numdns);
++
++TEST(esp_netif, set_get_dnsserver)
++{
++    // create a couple of netifs
++    test_case_uses_tcpip();
++    const char *if_keys[] = {"if0", "if1", "if2", "if3", "if4", "if5", "if6", "if7", "if8", "if9"};
++    const int nr_of_netifs = sizeof(if_keys) / sizeof(char *);
++    esp_netif_t *netifs[nr_of_netifs];
++    esp_netif_driver_ifconfig_t driver_config = { .handle =  (void*)1, .transmit = dummy_transmit };
++    // create 10 netifs with different route prio
++    for (int i = 0; i < nr_of_netifs; ++i) {
++        esp_netif_inherent_config_t base_netif_config = { .if_key = if_keys[i], .route_prio = i };
++        esp_netif_config_t cfg = {  .base = &base_netif_config,
++                .stack = ESP_NETIF_NETSTACK_DEFAULT_WIFI_STA,
++                .driver = &driver_config };
++        netifs[i] = esp_netif_new(&cfg);
++        TEST_ASSERT_NOT_NULL(netifs[i]);
++        // set the interface up and connected -- to enable the default netif based on route_prio
++        esp_netif_action_start(netifs[i], 0, 0, 0);
++        esp_netif_action_connected(netifs[i], 0, 0, 0);
++    }
++
++    esp_netif_dns_info_t dns[2];
++    esp_netif_dns_info_t get_dns;
++    TEST_ASSERT_EQUAL(ESP_OK, esp_netif_str_to_ip4("1.2.3.4", &dns[0].ip.u_addr.ip4));
++    TEST_ASSERT_EQUAL(ESP_OK, esp_netif_str_to_ip4("5.6.7.8", &dns[1].ip.u_addr.ip4));
++
++    // set DNS info to one netif
++    TEST_ASSERT_EQUAL(ESP_OK, esp_netif_set_dns_info(netifs[3], ESP_NETIF_DNS_MAIN, &dns[0]));
++    TEST_ASSERT_EQUAL(ESP_OK, esp_netif_set_dns_info(netifs[3], ESP_NETIF_DNS_BACKUP, &dns[1]));
++#ifndef CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++    // check that calling setters/getters with 'esp_netif==NULL' is invalid
++    TEST_ASSERT_NOT_EQUAL(ESP_OK, esp_netif_set_dns_info(NULL, ESP_NETIF_DNS_BACKUP, &dns[1]));
++    TEST_ASSERT_NOT_EQUAL(ESP_OK, esp_netif_get_dns_info(NULL, ESP_NETIF_DNS_BACKUP, &get_dns));
++
++    // check that the global DNS is configured the same way
++    const ip_addr_t *ip = dns_getserver(0);
++    TEST_ASSERT_EQUAL(ip->u_addr.ip4.addr, dns[0].ip.u_addr.ip4.addr);
++    ip = dns_getserver(1);
++    TEST_ASSERT_EQUAL(ip->u_addr.ip4.addr, dns[1].ip.u_addr.ip4.addr);
++
++    // check that we get the same DNS information for all netifs
++    for (int i=0; i < nr_of_netifs; ++i) {
++        TEST_ASSERT_EQUAL(ESP_OK, esp_netif_get_dns_info(netifs[i], ESP_NETIF_DNS_MAIN, &get_dns));
++        TEST_ASSERT_EQUAL(get_dns.ip.u_addr.ip4.addr, dns[0].ip.u_addr.ip4.addr);
++        TEST_ASSERT_EQUAL(ESP_OK, esp_netif_get_dns_info(netifs[i], ESP_NETIF_DNS_BACKUP, &get_dns));
++        TEST_ASSERT_EQUAL(get_dns.ip.u_addr.ip4.addr, dns[1].ip.u_addr.ip4.addr);
++    }
++#else
++    // check that calling setters/getters with 'esp_netif==NULL' is valid, they set/get global DNS servers
++    TEST_ASSERT_EQUAL(ESP_OK, esp_netif_set_dns_info(NULL, ESP_NETIF_DNS_MAIN, &dns[0]));
++    TEST_ASSERT_EQUAL(ESP_OK, esp_netif_get_dns_info(NULL, ESP_NETIF_DNS_BACKUP, &get_dns));
++    const ip_addr_t *ip = dns_getserver(0);
++    TEST_ASSERT_EQUAL(ip->u_addr.ip4.addr, dns[0].ip.u_addr.ip4.addr);
++    ip = dns_getserver(1);
++    TEST_ASSERT_EQUAL(ip->u_addr.ip4.addr, get_dns.ip.u_addr.ip4.addr);     // same as what we got at the esp-netif layer
++    TEST_ASSERT_NOT_EQUAL(ip->u_addr.ip4.addr, dns[1].ip.u_addr.ip4.addr);  // but different from what we set earlier per netif
++
++    // now we set the netif[3] as default one and check again
++    esp_netif_set_default_netif(netifs[3]);
++    ip = dns_getserver(1);
++    TEST_ASSERT_EQUAL(ip->u_addr.ip4.addr, dns[1].ip.u_addr.ip4.addr);  // now the ESP_NETIF_DNS_BACKUP[3[ should be set globally
++
++    // check that we get a different DNS server with another netif
++    TEST_ASSERT_EQUAL(ESP_OK, esp_netif_get_dns_info(netifs[5], ESP_NETIF_DNS_MAIN, &get_dns));
++    TEST_ASSERT_NOT_EQUAL(dns[0].ip.u_addr.ip4.addr, get_dns.ip.u_addr.ip4.addr);
++#endif
++
++    for (int i=0; i < nr_of_netifs; ++i) {
++        esp_netif_destroy(netifs[i]);
++        TEST_ASSERT_FALSE(esp_netif_is_netif_listed(netifs[i]));
++    }
++}
+ 
+ TEST_GROUP_RUNNER(esp_netif)
+ {
+@@ -531,6 +606,7 @@ TEST_GROUP_RUNNER(esp_netif)
+     RUN_TEST_CASE(esp_netif, dhcp_server_state_transitions_mesh)
+ #endif
+     RUN_TEST_CASE(esp_netif, route_priority)
++    RUN_TEST_CASE(esp_netif, set_get_dnsserver)
+ }
+ 
+ void app_main(void)
+diff --git a/components/esp_netif/test_apps/test_app_esp_netif/pytest_esp_netif.py b/components/esp_netif/test_apps/test_app_esp_netif/pytest_esp_netif.py
+index 841d8253608c3fd83da0d7e52801f8270be5f8a0..43c01256372ff4219b516883def12ae3ba380a8d 100644
+--- a/components/esp_netif/test_apps/test_app_esp_netif/pytest_esp_netif.py
++++ b/components/esp_netif/test_apps/test_app_esp_netif/pytest_esp_netif.py
+@@ -1,6 +1,5 @@
+-# SPDX-FileCopyrightText: 2022 Espressif Systems (Shanghai) CO LTD
++# SPDX-FileCopyrightText: 2022-2024 Espressif Systems (Shanghai) CO LTD
+ # SPDX-License-Identifier: CC0-1.0
+-
+ import pytest
+ from pytest_embedded import Dut
+ 
+@@ -8,5 +7,9 @@ from pytest_embedded import Dut
+ @pytest.mark.esp32s2
+ @pytest.mark.esp32c3
+ @pytest.mark.generic
++@pytest.mark.parametrize('config', [
++    'global_dns',
++    'dns_per_netif',
++], indirect=True)
+ def test_esp_netif(dut: Dut) -> None:
+     dut.expect_unity_test_output()
+diff --git a/components/esp_netif/test_apps/test_app_esp_netif/sdkconfig.ci.dns_per_netif b/components/esp_netif/test_apps/test_app_esp_netif/sdkconfig.ci.dns_per_netif
+new file mode 100644
+index 0000000000000000000000000000000000000000..3abbf3a3bcfdd6715d8e05462ea4ddb809e39729
+--- /dev/null
++++ b/components/esp_netif/test_apps/test_app_esp_netif/sdkconfig.ci.dns_per_netif
+@@ -0,0 +1 @@
++CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF=y
+diff --git a/components/esp_netif/test_apps/test_app_esp_netif/sdkconfig.ci.global_dns b/components/esp_netif/test_apps/test_app_esp_netif/sdkconfig.ci.global_dns
+new file mode 100644
+index 0000000000000000000000000000000000000000..ba627cbf81dba8d3dced317d56729b45d020917b
+--- /dev/null
++++ b/components/esp_netif/test_apps/test_app_esp_netif/sdkconfig.ci.global_dns
+@@ -0,0 +1 @@
++CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF=n
+diff --git a/components/lwip/Kconfig b/components/lwip/Kconfig
+index 5d80561043eb3c9f07c0e95d7d4284c314da6b59..c3588ef1f4ce1e3f04b3febd03d9fe92e509b694 100644
+--- a/components/lwip/Kconfig
++++ b/components/lwip/Kconfig
+@@ -1130,6 +1130,15 @@ menu "LWIP"
+             help
+                 This option allows you to config dns fallback server address.
+ 
++        config LWIP_DNS_SETSERVER_WITH_NETIF
++            bool "Enable DNS server settings with netif"
++            default n
++            help
++                This option allows collecting DNS server settings per netif using
++                configurable callback function.
++                It's typically used with CONFIG_ESP_NETIF_SET_DNS_PER_DEFAULT_NETIF
++                which configures a callback to collect the DNS info on esp_netif layer.
++
+     endmenu # DNS
+ 
+     config LWIP_BRIDGEIF_MAX_PORTS
+diff --git a/components/lwip/port/include/lwipopts.h b/components/lwip/port/include/lwipopts.h
+index 48feeb16c38e25c6fc0117d804c76f45eb8af75d..b20b07479bdcace5b5c475376f606945ce0f23ca 100644
+--- a/components/lwip/port/include/lwipopts.h
++++ b/components/lwip/port/include/lwipopts.h
+@@ -503,6 +503,17 @@ static inline uint32_t timeout_from_offered(uint32_t lease, uint32_t min)
+ #define LWIP_DNS_SUPPORT_MDNS_QUERIES   0
+ #endif
+ 
++/**
++ * LWIP_DNS_SETSERVER_WITH_NETIF: If this is turned on, the dns_setserver_with_netif() is enabled and called
++ * from all internal modules (instead of dns_setserver()) allowing to setup a user callback to collect DNS server
++ * information acquired by the related network interface.
++ */
++#ifdef CONFIG_LWIP_DNS_SETSERVER_WITH_NETIF
++#define LWIP_DNS_SETSERVER_WITH_NETIF   1
++#else
++#define LWIP_DNS_SETSERVER_WITH_NETIF   0
++#endif
++
+ /*
+    ---------------------------------
+    ---------- UDP options ----------
