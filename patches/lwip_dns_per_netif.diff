@@ -1,0 +1,204 @@
+diff --git a/components/lwip/lwip/src/core/dns.c b/components/lwip/lwip/src/core/dns.c
+index e9edc205f7dce821deb4afb4baae48e4ce832d51..eec4c2870985d8fd6f23b4fe91ea11b067fb40c7 100644
+--- a/components/lwip/lwip/src/core/dns.c
++++ b/components/lwip/lwip/src/core/dns.c
+@@ -101,6 +101,10 @@
+ static bool s_is_tmr_start = false;
+ #endif /* ESP_LWIP_DNS_TIMERS_ONDEMAND */
+ 
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++static dns_setserver_callback_t s_dns_setserver_callback = NULL;
++#endif /* LWIP_DNS_SETSERVER_WITH_NETIF */
++
+ #include <string.h>
+ #if ESP_DNS
+ #include <stdbool.h>
+@@ -1769,4 +1773,27 @@ dns_gethostbyname_addrtype(const char *hostname, ip_addr_t *addr, dns_found_call
+                      LWIP_DNS_ISMDNS_ARG(is_mdns));
+ }
+ 
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++void
++dns_setserver_with_netif(struct netif* netif, u8_t numdns, const ip_addr_t *dnsserver)
++{
++  if (s_dns_setserver_callback) {
++    s_dns_setserver_callback(netif, numdns, dnsserver);
++  } else {
++    dns_setserver(numdns, dnsserver);
++  }
++}
++
++err_t
++dns_setserver_callback(dns_setserver_callback_t callback)
++{
++  if (s_dns_setserver_callback) {
++    /* fail if the callback has been set already */
++    return ERR_ARG;
++  }
++  s_dns_setserver_callback = callback;  /* support only one time configuration */
++  return ERR_OK;
++}
++#endif /* LWIP_DNS_SETSERVER_WITH_NETIF */
++
+ #endif /* LWIP_DNS */
+diff --git a/components/lwip/lwip/src/core/ipv4/dhcp.c b/components/lwip/lwip/src/core/ipv4/dhcp.c
+index e05ce8f650375f67d4b06613160a42ec63a6aec8..65e99a2dfebad7d5d4085418f76e04b0ea30a9e3 100644
+--- a/components/lwip/lwip/src/core/ipv4/dhcp.c
++++ b/components/lwip/lwip/src/core/ipv4/dhcp.c
+@@ -777,7 +777,11 @@ dhcp_handle_ack(struct netif *netif, struct dhcp_msg *msg_in)
+     }
+ #endif
+     ip_addr_set_ip4_u32_val(dns_addr, lwip_htonl(dhcp_get_option_value(dhcp, DHCP_OPTION_IDX_DNS_SERVER + n)));
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++    dns_setserver_with_netif(netif, n, &dns_addr);
++#else
+     dns_setserver(n, &dns_addr);
++#endif
+   }
+ #endif /* LWIP_DHCP_PROVIDE_DNS_SERVERS */
+ }
+diff --git a/components/lwip/lwip/src/core/ipv6/dhcp6.c b/components/lwip/lwip/src/core/ipv6/dhcp6.c
+index 41444a4c75bb449310a66a72580f1f2d8b81f2e4..217d0264001050a2a21f16c57a3980bc7f8c9b4a 100644
+--- a/components/lwip/lwip/src/core/ipv6/dhcp6.c
++++ b/components/lwip/lwip/src/core/ipv6/dhcp6.c
+@@ -547,7 +547,12 @@ dhcp6_handle_config_reply(struct netif *netif, struct pbuf *p_msg_in)
+       }
+       ip6_addr_assign_zone(dns_addr6, IP6_UNKNOWN, netif);
+       /* @todo: do we need a different offset than DHCP(v4)? */
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++      dns_setserver_with_netif(netif, n, &dns_addr);
++#else
+       dns_setserver(n, &dns_addr);
++#endif
++
+     }
+   }
+   /* @ todo: parse and set Domain Search List */
+diff --git a/components/lwip/lwip/src/core/ipv6/nd6.c b/components/lwip/lwip/src/core/ipv6/nd6.c
+index 74b395f3baccc2a9aa2f2b7e0f99abb5da6a4d1e..408f23f22ef7c3aad55c1e60a37d5f14a109dba4 100644
+--- a/components/lwip/lwip/src/core/ipv6/nd6.c
++++ b/components/lwip/lwip/src/core/ipv6/nd6.c
+@@ -780,14 +780,23 @@ nd6_input(struct pbuf *p, struct netif *inp)
+ 
+             if (htonl(rdnss_opt->lifetime) > 0) {
+               /* TODO implement Lifetime > 0 */
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++              dns_setserver_with_netif(inp, rdnss_server_idx++, &rdnss_address);
++#else
+               dns_setserver(rdnss_server_idx++, &rdnss_address);
++#endif
++
+             } else {
+               /* TODO implement DNS removal in dns.c */
+               u8_t s;
+               for (s = 0; s < DNS_MAX_SERVERS; s++) {
+                 const ip_addr_t *addr = dns_getserver(s);
+                 if(ip_addr_cmp(addr, &rdnss_address)) {
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++                  dns_setserver_with_netif(inp, s, NULL);
++#else
+                   dns_setserver(s, NULL);
++#endif
+                 }
+               }
+             }
+diff --git a/components/lwip/lwip/src/include/lwip/dns.h b/components/lwip/lwip/src/include/lwip/dns.h
+index fad97230a459c501e4693803b65932837a9668ee..964daafb5fd7dfc031d4ac0fa4f5a320ee38c2a6 100644
+--- a/components/lwip/lwip/src/include/lwip/dns.h
++++ b/components/lwip/lwip/src/include/lwip/dns.h
+@@ -122,6 +122,12 @@ err_t          dns_local_addhost(const char *hostname, const ip_addr_t *addr);
+ #endif /* DNS_LOCAL_HOSTLIST_IS_DYNAMIC */
+ #endif /* DNS_LOCAL_HOSTLIST */
+ 
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++typedef void (*dns_setserver_callback_t)(struct netif* netif, u8_t numdns, const ip_addr_t *dnsserver);
++void            dns_setserver_with_netif(struct netif* netif, u8_t numdns, const ip_addr_t *dnsserver);
++err_t           dns_setserver_callback(dns_setserver_callback_t callback);
++#endif /* LWIP_DNS_SETSERVER_WITH_NETIF */
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/components/lwip/lwip/src/include/lwip/opt.h b/components/lwip/lwip/src/include/lwip/opt.h
+index 2c58c53229d0df1d5e60dab8fd65c48562a76bed..91aa3513fde2a285543649c8bbf7795b6d1471d4 100644
+--- a/components/lwip/lwip/src/include/lwip/opt.h
++++ b/components/lwip/lwip/src/include/lwip/opt.h
+@@ -1161,6 +1161,22 @@
+ #define DNS_LOCAL_HOSTLIST              0
+ #endif /* DNS_LOCAL_HOSTLIST */
+ 
++/** LWIP_DNS_SETSERVER_WITH_NETIF: If this is turned on, the dns_setserver_with_netif() is enabled and called
++ * from all internal modules (instead of dns_setserver()) allowing to setup a user callback to collect DNS server
++ * information acquired by the related network interface.
++ * This could be used to overcome the LWIP limitation of using DNS servers
++ * globally, which could in some cases overwrite distinct DNS server information of one netif by another.
++ * If you want to use this option, you would have to set LWIP_DNS_SETSERVER_WITH_NETIF=1 and:
++ * 1) Register DNS setserver callback using dns_setserver_callback() and collect the DNS server information
++ * in the callback and store it separately for each netif.
++ * 2) Restore the actual DNS server information using dns_setserver() before every DNS lookup.
++ * */
++#if !defined LWIP_DNS_SETSERVER_WITH_NETIF && defined __DOXYGEN__
++#define LWIP_DNS_SETSERVER_WITH_NETIF   0
++#elif !defined LWIP_DNS_SETSERVER_WITH_NETIF
++#define LWIP_DNS_SETSERVER_WITH_NETIF   1
++#endif /* LWIP_DNS_SETSERVER_WITH_NETIF */
++
+ /** If this is turned on, the local host-list can be dynamically changed
+  *  at runtime. */
+ #if !defined DNS_LOCAL_HOSTLIST_IS_DYNAMIC || defined __DOXYGEN__
+diff --git a/components/lwip/lwip/src/netif/ppp/ppp.c b/components/lwip/lwip/src/netif/ppp/ppp.c
+index be585531357071e6f3fcc467649c83a379abfdff..3609b3c0c256fc6828ab1ea7324dac58e4c861d6 100644
+--- a/components/lwip/lwip/src/netif/ppp/ppp.c
++++ b/components/lwip/lwip/src/netif/ppp/ppp.c
+@@ -1109,12 +1109,23 @@ int cifproxyarp(ppp_pcb *pcb, u32_t his_adr) {
+  */
+ int sdns(ppp_pcb *pcb, u32_t ns1, u32_t ns2) {
+   ip_addr_t ns;
++#if !LWIP_DNS_SETSERVER_WITH_NETIF
+   LWIP_UNUSED_ARG(pcb);
++#endif
+ 
+   ip_addr_set_ip4_u32_val(ns, ns1);
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++  dns_setserver_with_netif(pcb->netif, 0, &ns);
++#else
+   dns_setserver(0, &ns);
++#endif
++
+   ip_addr_set_ip4_u32_val(ns, ns2);
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++  dns_setserver_with_netif(pcb->netif, 1, &ns);
++#else
+   dns_setserver(1, &ns);
++#endif
+   return 1;
+ }
+ 
+@@ -1125,17 +1136,27 @@ int sdns(ppp_pcb *pcb, u32_t ns1, u32_t ns2) {
+ int cdns(ppp_pcb *pcb, u32_t ns1, u32_t ns2) {
+   const ip_addr_t *nsa;
+   ip_addr_t nsb;
++#if !LWIP_DNS_SETSERVER_WITH_NETIF
+   LWIP_UNUSED_ARG(pcb);
++#endif
+ 
+   nsa = dns_getserver(0);
+   ip_addr_set_ip4_u32_val(nsb, ns1);
+   if (ip_addr_cmp(nsa, &nsb)) {
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++    dns_setserver_with_netif(pcb->netif, 0, IP_ADDR_ANY);
++#else
+     dns_setserver(0, IP_ADDR_ANY);
++#endif
+   }
+   nsa = dns_getserver(1);
+   ip_addr_set_ip4_u32_val(nsb, ns2);
+   if (ip_addr_cmp(nsa, &nsb)) {
++#if LWIP_DNS_SETSERVER_WITH_NETIF
++    dns_setserver_with_netif(pcb->netif, 1, IP_ADDR_ANY);
++#else
+     dns_setserver(1, IP_ADDR_ANY);
++#endif
+   }
+   return 1;
+ }
