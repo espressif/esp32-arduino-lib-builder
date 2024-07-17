@@ -12,6 +12,7 @@ on:
 #             │ │ │ │ │
 #             * * * * *
     - cron:  '0 */6 * * *'
+  workflow_dispatch: # For testing
 
 defaults:
   run:
@@ -25,6 +26,7 @@ jobs:
       idf_branch: ${{ matrix.idf_branch }}
       lib_builder_branch: ${{ matrix.lib_builder_branch }}
       targets: ${{ matrix.targets }}
+    secrets: inherit
     strategy:
       fail-fast: false
       matrix:

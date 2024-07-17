@@ -16,5 +16,4 @@ done
 awk -i inplace '!seen[$0]++' $libs_folder/versions_full.txt
 mv -f $libs_folder/versions_full.txt $libs_folder/versions.txt
 
-cd $libs_folder && tar zcf ../../../dist/esp32-arduino-libs.tar.gz * && cd ../../..
-cp out/package_esp32_index.template.json dist/package_esp32_index.template.json
+cd out/tools && zip -r ../../dist/esp32-arduino-libs.zip * && cd ../..
