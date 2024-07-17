@@ -10,6 +10,7 @@ if ! [ -x "$(command -v git)" ]; then
     exit 1
 fi
 
+CCACHE_ENABLE=1
 TARGET="all"
 BUILD_TYPE="all"
 BUILD_DEBUG="default"
@@ -21,8 +22,9 @@ if [ -z $DEPLOY_OUT ]; then
 fi
 
 function print_help() {
-    echo "Usage: build.sh [-s] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
+    echo "Usage: build.sh [-s] [-n] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
+    echo "       -n     Disable ccache"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
     echo "       -I     Set which branch of ESP-IDF to be used for compilation"
     echo "       -i     Set which commit of ESP-IDF to be used for compilation"
@@ -40,6 +42,9 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
+            ;;
+        n )
+            CCACHE_ENABLE=0
             ;;
         d )
             DEPLOY_OUT=1
@@ -90,6 +95,8 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
 done
 shift $((OPTIND -1))
 CONFIGS=$@
+
+export IDF_CCACHE_ENABLE=$CCACHE_ENABLE
 
 # Output the TARGET array
 echo "TARGET(s): ${TARGET[@]}"
@@ -142,7 +149,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
             # Skip building for targets that are not in the $TARGET array
             continue
         fi
-                
+
         configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
         for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
             configs="$configs;configs/defconfig.$defconf"
@@ -187,7 +194,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             continue
         fi
     fi
-    
+
     # Skip chips that should not be a part of the final libs
     # WARNING!!! this logic needs to be updated when cron builds are split into jobs
     if [ "$TARGET" = "all" ] && [ $target_skip -eq 1 ]; then
