@@ -58,7 +58,7 @@ jobs:
   build-libs:
     name: Build for ${{ matrix.target }} (${{ inputs.idf_branch }})
     runs-on: ubuntu-latest
-    if: needs.check-if-needed.outputs.libs_has_asset == '0'
+    if: needs.check-if-needed.outputs.deploy_needed == '1'
     needs: check-if-needed
     strategy:
       fail-fast: false
@@ -103,23 +103,18 @@ jobs:
     name: Combine artifacts and push changes for IDF ${{ inputs.idf_branch }}
     runs-on: ubuntu-latest
     needs: [check-if-needed, build-libs]
-    if: |
-      always() &&
-      needs.check-if-needed.result == 'success' &&
-      needs.check-if-needed.outputs.deploy_needed == '1'
+    if: needs.check-if-needed.outputs.deploy_needed == '1'
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.lib_builder_branch }}
 
       - name: Replace invalid characters in the artifact name
-        if: needs.check-if-needed.outputs.libs_has_asset == '0'
         run: |
           branch=${{ inputs.idf_branch }}
           echo "libs_branch=${branch//\//_}" >> $GITHUB_ENV
 
       - name: Download artifacts
-        if: needs.check-if-needed.outputs.libs_has_asset == '0'
         uses: actions/download-artifact@v4
         with:
           path: dist
@@ -127,11 +122,9 @@ jobs:
           merge-multiple: true
 
       - name: Combine artifacts
-        if: needs.check-if-needed.outputs.libs_has_asset == '0'
         run: bash ./tools/combine-artifacts.sh
 
       - name: Upload full esp32-arduino-libs archive
-        if: needs.check-if-needed.outputs.libs_has_asset == '0'
         uses: actions/upload-artifact@v4
         with:
           name: esp32-arduino-libs-${{ env.libs_branch }}
