@@ -37,9 +37,10 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 
 	# Temporarily patch the ESP32-S2 I2C LL driver to keep the clock source
 	cd $IDF_PATH
-	patch -p1 -N -i ../patches/esp32s2_i2c_ll_master_init.diff
-	patch -p1 -N -i ../patches/mmu_map.diff
-	patch -p1 -N -i ../patches/lwip_max_tcp_pcb.diff
+	patch -p1 -N -i $AR_PATCHES/esp32s2_i2c_ll_master_init.diff
+	patch -p1 -N -i $AR_PATCHES/mmu_map.diff
+	patch -p1 -N -i $AR_PATCHES/lwip_max_tcp_pcb.diff
+	patch -p1 -N -i $AR_PATCHES/esp32c6_provisioning_bluedroid.diff
 	cd -
 fi
 
