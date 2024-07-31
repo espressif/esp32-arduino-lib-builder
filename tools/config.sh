@@ -51,7 +51,6 @@ AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/esp32-arduino-libs/$IDF_TARGET"
 PIO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
 TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
-IDF_LIBS_DIR="$AR_ROOT/../esp32-arduino-libs"
 
 if [ -d "$IDF_PATH" ]; then
     export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
@@ -133,6 +132,37 @@ function github_pr_exists(){ # github_pr_exists <repo-path> <branch-name>
     if [ ! "$pr_num" == "" ] && [ ! "$pr_num" == "null" ]; then echo 1; else echo 0; fi
 }
 
+function github_release_id(){ # github_release_id <repo-path> <release-tag>
+    local repo_path="$1"
+    local release_tag="$2"
+    local release=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases" | jq --arg release_tag "$release_tag" -r '.[] | select(.tag_name == $release_tag) | .id'`
+    if [ ! "$release" == "" ] && [ ! "$release" == "null" ]; then echo "$release"; else echo ""; fi
+}
+
+function github_release_asset_id(){ # github_release_asset_id <repo-path> <release-id> <release-file>
+    local repo_path="$1"
+    local release_id="$2"
+    local release_file="$3"
+    local release_asset=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases/$release_id/assets" | jq --arg release_file "$release_file" -r '.[] | select(.name == $release_file) | .id'`
+    if [ ! "$release_asset" == "" ] && [ ! "$release_asset" == "null" ]; then echo "$release_asset"; else echo ""; fi
+}
+
+function github_release_asset_upload(){ # github_release_asset_upload <repo-path> <release-id> <release-file-name> <release-file-path>
+    local repo_path="$1"
+    local release_id="$2"
+    local release_file_name="$3"
+    local release_file_path="$4"
+    local file_extension="${release_file_name##*.}"
+    local release_asset=`curl -s -k -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" -H "Content-Type: application/$file_extension" --data-binary "@$release_file_path" "https://uploads.github.com/repos/$repo_path/releases/$release_id/assets?name=$release_file_name" | jq -r '.id'`
+    if [ ! "$release_asset" == "" ] && [ ! "$release_asset" == "null" ]; then echo "$release_asset"; else echo ""; fi
+}
+
+function github_release_asset_delete(){ # github_release_asset_delete <repo-path> <release-asset-id>
+    local repo_path="$1"
+    local release_asset_id="$2"
+    local res=$(curl -s -k -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases/assets/$release_asset_id")
+    if [ "$res" -eq 204 ]; then echo 1; else echo 0; fi
+}
 
 
 function git_branch_exists(){ # git_branch_exists <repo-path> <branch-name>
