@@ -215,10 +215,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         idf_libs_configs="$idf_libs_configs;configs/defconfig.$defconf"
     done
 
-    if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-        rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-    fi
-
     echo "* Build IDF-Libs: $idf_libs_configs"
     rm -rf build sdkconfig
     clear_component_hashes
@@ -246,10 +242,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             bootloader_configs="$bootloader_configs;configs/defconfig.$defconf";
         done
 
-        if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-            rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-        fi
-
         echo "* Build BootLoader: $bootloader_configs"
         rm -rf build sdkconfig
         clear_component_hashes
@@ -263,10 +255,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         for defconf in `echo "$mem_conf" | jq -c '.[]' | tr -d '"'`; do
             mem_configs="$mem_configs;configs/defconfig.$defconf";
         done
-
-        if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-            rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-        fi
 
         echo "* Build Memory Variant: $mem_configs"
         rm -rf build sdkconfig
