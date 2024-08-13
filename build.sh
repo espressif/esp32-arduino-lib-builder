@@ -115,9 +115,14 @@ else
     source ./tools/config.sh
 fi
 
-if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-    rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-fi
+function clear_component_hashes(){
+    if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
+        rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
+    fi
+    if [ -f "$AR_MANAGED_COMPS/espressif__esp-dsp/.component_hash" ]; then
+        rm -rf $AR_MANAGED_COMPS/espressif__esp-dsp/.component_hash
+    fi
+}
 
 if [ "$BUILD_TYPE" != "all" ]; then
     if [ "$TARGET" = "all" ]; then
@@ -157,6 +162,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
 
         echo "idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
         rm -rf build sdkconfig
+        clear_component_hashes
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
         if [ $? -ne 0 ]; then exit 1; fi
     done
@@ -209,16 +215,14 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         idf_libs_configs="$idf_libs_configs;configs/defconfig.$defconf"
     done
 
-    if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-        rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-    fi
-
     echo "* Build IDF-Libs: $idf_libs_configs"
     rm -rf build sdkconfig
+    clear_component_hashes
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
+        clear_component_hashes
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
@@ -238,12 +242,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             bootloader_configs="$bootloader_configs;configs/defconfig.$defconf";
         done
 
-        if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-            rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-        fi
-
         echo "* Build BootLoader: $bootloader_configs"
         rm -rf build sdkconfig
+        clear_component_hashes
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
         if [ $? -ne 0 ]; then exit 1; fi
     done
@@ -255,12 +256,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             mem_configs="$mem_configs;configs/defconfig.$defconf";
         done
 
-        if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-            rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-        fi
-
         echo "* Build Memory Variant: $mem_configs"
         rm -rf build sdkconfig
+        clear_component_hashes
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
         if [ $? -ne 0 ]; then exit 1; fi
     done
