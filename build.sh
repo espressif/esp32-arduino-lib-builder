@@ -1,12 +1,17 @@
 #!/bin/bash
 
 if ! [ -x "$(command -v python3)" ]; then
-    echo "ERROR: python is not installed! Please install python first."
+    echo "ERROR: python is not installed or not in PATH! Please install python first."
     exit 1
 fi
 
 if ! [ -x "$(command -v git)" ]; then
-    echo "ERROR: git is not installed! Please install git first."
+    echo "ERROR: git is not installed or not in PATH! Please install git first."
+    exit 1
+fi
+
+if ! [ -x "$(command -v ninja)" ]; then
+    echo "ERROR: ninja is not installed or not in PATH! Please install ninja first."
     exit 1
 fi
 
