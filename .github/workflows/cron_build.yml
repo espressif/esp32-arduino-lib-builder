@@ -1,0 +1,161 @@
+name: Cron Build Matrix
+
+on:
+  workflow_call:
+    inputs:
+      idf_branch:
+        type: string
+        required: true
+        description: 'IDF branch to build'
+      lib_builder_branch:
+        type: string
+        required: true
+        description: 'Branch of the lib-builder to use'
+      targets:
+        type: string
+        required: true
+        description: 'Targets to build'
+
+env:
+  IDF_BRANCH: ${{ inputs.idf_branch }}
+
+jobs:
+  check-if-needed:
+    name: Check if deploy is needed for ${{ inputs.idf_branch }}
+    runs-on: ubuntu-latest
+    outputs:
+      idf_commit: ${{ steps.check.outputs.idf_commit }}
+      ar_branch: ${{ steps.check.outputs.ar_branch }}
+      ar_new_commit_message: ${{ steps.check.outputs.ar_new_commit_message }}
+      ar_new_branch_name: ${{ steps.check.outputs.ar_new_branch_name }}
+      ar_new_pr_title: ${{ steps.check.outputs.ar_new_pr_title }}
+      ar_has_commit: ${{ steps.check.outputs.ar_has_commit }}
+      ar_has_branch: ${{ steps.check.outputs.ar_has_branch }}
+      ar_has_pr: ${{ steps.check.outputs.ar_has_pr }}
+      libs_release_tag: ${{ steps.check.outputs.libs_release_tag }}
+      libs_version: ${{ steps.check.outputs.libs_version }}
+      libs_release_id: ${{ steps.check.outputs.libs_release_id }}
+      libs_has_release: ${{ steps.check.outputs.libs_has_release }}
+      libs_asset_id: ${{ steps.check.outputs.libs_asset_id }}
+      libs_has_asset: ${{ steps.check.outputs.libs_has_asset }}
+      deploy_needed: ${{ steps.check.outputs.deploy_needed }}
+      targets_list: ${{ steps.check.outputs.targets_list }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.lib_builder_branch }}
+
+      - name: Check deploy and generate variables
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          source ./tools/check-deploy-needed.sh
+          targets_list=$(echo "${{ inputs.targets }}" | sed 's/ *, */,/g' | sed 's/^/["/' | sed 's/$/"]/' | sed 's/,/","/g')
+          echo "Targets list: $targets_list"
+          echo "targets_list=$targets_list" >> $GITHUB_OUTPUT
+
+  build-libs:
+    name: Build for ${{ matrix.target }} (${{ inputs.idf_branch }})
+    runs-on: ubuntu-latest
+    if: needs.check-if-needed.outputs.deploy_needed == '1'
+    needs: check-if-needed
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.check-if-needed.outputs.targets_list) }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.lib_builder_branch }}
+
+    - name: Install dependencies
+      run: bash ./tools/prepare-ci.sh
+
+    - name: Build
+      env:
+        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+        GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
+        GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
+        TARGET: ${{ matrix.target }}
+      run: |
+        bash ./tools/cron.sh
+
+    - name: Replace invalid characters in the artifact name
+      run: |
+        branch=${{ inputs.idf_branch }}
+        echo "libs_branch=${branch//\//_}" >> $GITHUB_ENV
+
+    - name: Upload build
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ env.libs_branch }}-${{ matrix.target }}
+        path: build
+
+    - name: Upload library files
+      uses: actions/upload-artifact@v4
+      with:
+        name: libs-${{ env.libs_branch }}-${{ matrix.target }}
+        path: dist
+
+  combine-artifacts:
+    name: Combine artifacts and push changes for IDF ${{ inputs.idf_branch }}
+    runs-on: ubuntu-latest
+    needs: [check-if-needed, build-libs]
+    if: needs.check-if-needed.outputs.deploy_needed == '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.lib_builder_branch }}
+
+      - name: Replace invalid characters in the artifact name
+        run: |
+          branch=${{ inputs.idf_branch }}
+          echo "libs_branch=${branch//\//_}" >> $GITHUB_ENV
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: libs-${{ env.libs_branch }}-*
+          merge-multiple: true
+
+      - name: Combine artifacts
+        run: bash ./tools/combine-artifacts.sh
+
+      - name: Upload full esp32-arduino-libs archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-arduino-libs-${{ env.libs_branch }}
+          path: dist/esp32-arduino-libs.zip
+          compression-level: 0
+
+      - name: Push changes
+        if: github.repository == 'espressif/esp32-arduino-lib-builder'
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+          GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
+          IDF_COMMIT: ${{ needs.check-if-needed.outputs.idf_commit }}
+          AR_BRANCH: ${{ needs.check-if-needed.outputs.ar_branch }}
+          AR_NEW_COMMIT_MESSAGE: ${{ needs.check-if-needed.outputs.ar_new_commit_message }}
+          AR_NEW_BRANCH_NAME: ${{ needs.check-if-needed.outputs.ar_new_branch_name }}
+          AR_NEW_PR_TITLE: ${{ needs.check-if-needed.outputs.ar_new_pr_title }}
+          AR_HAS_COMMIT: ${{ needs.check-if-needed.outputs.ar_has_commit }}
+          AR_HAS_BRANCH: ${{ needs.check-if-needed.outputs.ar_has_branch }}
+          AR_HAS_PR: ${{ needs.check-if-needed.outputs.ar_has_pr }}
+          LIBS_RELEASE_TAG: ${{ needs.check-if-needed.outputs.libs_release_tag }}
+          LIBS_VERSION: ${{ needs.check-if-needed.outputs.libs_version }}
+          LIBS_RELEASE_ID: ${{ needs.check-if-needed.outputs.libs_release_id }}
+          LIBS_HAS_RELEASE: ${{ needs.check-if-needed.outputs.libs_has_release }}
+          LIBS_ASSET_ID: ${{ needs.check-if-needed.outputs.libs_asset_id }}
+          LIBS_HAS_ASSET: ${{ needs.check-if-needed.outputs.libs_has_asset }}
+        run: |
+          bash ./tools/push-to-arduino.sh
+
+      - name: Upload package_esp32_index.template.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-esp32-index-json-${{ env.libs_branch }}
+          path: out/package_esp32_index.template.json
