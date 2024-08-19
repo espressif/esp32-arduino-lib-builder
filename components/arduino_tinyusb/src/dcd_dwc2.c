@@ -226,7 +226,6 @@ static void edpt_activate(uint8_t rhport, tusb_desc_endpoint_t const * p_endpoin
     } else {
       fifo_num = get_free_fifo();
     }
-    TU_ASSERT(fifo_num != 0);
 #endif
     dwc2->epin[epnum].diepctl = dxepctl | (fifo_num << DIEPCTL_TXFNUM_Pos);
     dwc2->daintmsk |= (1 << (DAINTMSK_IEPM_Pos + epnum));
