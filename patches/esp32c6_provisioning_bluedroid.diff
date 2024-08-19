@@ -1,0 +1,12 @@
+diff --git a/components/protocomm/src/simple_ble/simple_ble.c b/components/protocomm/src/simple_ble/simple_ble.c
+index 8a4ae0f3d9..cd6421c6e5 100644
+--- a/components/protocomm/src/simple_ble/simple_ble.c
++++ b/components/protocomm/src/simple_ble/simple_ble.c
+@@ -225,7 +225,7 @@ esp_err_t simple_ble_start(simple_ble_cfg_t *cfg)
+ #ifdef CONFIG_BTDM_CTRL_MODE_BTDM
+     ret = esp_bt_controller_enable(ESP_BT_MODE_BTDM);
+-#elif defined CONFIG_BTDM_CTRL_MODE_BLE_ONLY || CONFIG_BT_CTRL_MODE_EFF
++#elif defined CONFIG_BTDM_CTRL_MODE_BLE_ONLY || CONFIG_BT_CTRL_MODE_EFF || CONFIG_IDF_TARGET_ESP32C6
+     ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+ #else
+     ESP_LOGE(TAG, "Configuration mismatch. Select BLE Only or BTDM mode from menuconfig");

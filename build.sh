@@ -1,16 +1,25 @@
 #!/bin/bash
 
 if ! [ -x "$(command -v python3)" ]; then
-    echo "ERROR: python is not installed! Please install python first."
+    echo "ERROR: python is not installed or not in PATH! Please install python first."
     exit 1
 fi
 
 if ! [ -x "$(command -v git)" ]; then
-    echo "ERROR: git is not installed! Please install git first."
+    echo "ERROR: git is not installed or not in PATH! Please install git first."
     exit 1
 fi
 
+if ! [ -x "$(command -v ninja)" ]; then
+    echo "ERROR: ninja is not installed or not in PATH! Please install ninja first."
+    exit 1
+fi
+
+# Fixes building some components. See https://github.com/espressif/arduino-esp32/issues/10167
+export IDF_COMPONENT_OVERWRITE_MANAGED_COMPONENTS=1
+
 CCACHE_ENABLE=1
+
 TARGET="all"
 BUILD_TYPE="all"
 BUILD_DEBUG="default"
@@ -122,10 +131,6 @@ else
     source ./tools/config.sh
 fi
 
-if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-    rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-fi
-
 if [ "$BUILD_TYPE" != "all" ]; then
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
@@ -216,10 +221,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         idf_libs_configs="$idf_libs_configs;configs/defconfig.$defconf"
     done
 
-    if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-        rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-    fi
-
     echo "* Build IDF-Libs: $idf_libs_configs"
     rm -rf build sdkconfig
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
@@ -245,10 +246,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             bootloader_configs="$bootloader_configs;configs/defconfig.$defconf";
         done
 
-        if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-            rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-        fi
-
         echo "* Build BootLoader: $bootloader_configs"
         rm -rf build sdkconfig
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
@@ -261,10 +258,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         for defconf in `echo "$mem_conf" | jq -c '.[]' | tr -d '"'`; do
             mem_configs="$mem_configs;configs/defconfig.$defconf";
         done
-
-        if [ -f "$AR_MANAGED_COMPS/espressif__esp-sr/.component_hash" ]; then
-            rm -rf $AR_MANAGED_COMPS/espressif__esp-sr/.component_hash
-        fi
 
         echo "* Build Memory Variant: $mem_configs"
         rm -rf build sdkconfig
