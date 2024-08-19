@@ -11,7 +11,7 @@ MANIFEST_DATA = {
     "license": "LGPL-2.1-or-later",
     "repository": {
         "type": "git",
-        "url": "https://github.com/espressif/esp32-arduino-libs",
+        "url": "https://github.com/espressif/esp32-arduino-lib-builder",
     },
 }
 
