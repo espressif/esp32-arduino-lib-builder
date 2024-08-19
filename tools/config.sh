@@ -30,7 +30,7 @@ AR_USER="espressif"
 # The full name of the repository
 AR_REPO="$AR_USER/arduino-esp32"
 IDF_REPO="$AR_USER/esp-idf"
-AR_LIBS_REPO="$AR_USER/esp32-arduino-libs"
+AR_LIBS_REPO="$AR_USER/esp32-arduino-lib-builder"
 
 AR_REPO_URL="https://github.com/$AR_REPO.git"
 IDF_REPO_URL="https://github.com/$IDF_REPO.git"
