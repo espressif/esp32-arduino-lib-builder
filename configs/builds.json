@@ -45,6 +45,16 @@
 	],
 	"targets":[
 		{
+			"target": "esp32p4",
+			"skip": 1,
+			"features":[],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"]
+			],
+			"mem_variants":[]
+		},
+		{
 			"target": "esp32c2",
 			"skip": 1,
 			"features":[],
