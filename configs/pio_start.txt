@@ -47,7 +47,6 @@ if "ZIGBEE_MODE_ZCZR" in flatten_cppdefines:
         LIBS=[
             "-lesp_zb_api_zczr",
             "-lesp_zb_cli_command",
-            "-lzboss_stack.zczr.trace",
             "-lzboss_stack.zczr",
             "-lzboss_port"
         ]
@@ -57,7 +56,6 @@ if "ZIGBEE_MODE_ED" in flatten_cppdefines:
         LIBS=[
             "-lesp_zb_api_ed",
             "-lesp_zb_cli_command",
-            "-lzboss_stack.ed.trace",
             "-lzboss_stack.ed",
             "-lzboss_port"
         ]
