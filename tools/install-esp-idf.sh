@@ -17,6 +17,8 @@ if [ ! -d "$IDF_PATH" ]; then
 	idf_was_installed="1"
 fi
 
+git -C "$IDF_PATH" fetch --all --tags
+
 if [ "$IDF_TAG" ]; then
     git -C "$IDF_PATH" checkout "tags/$IDF_TAG"
     idf_was_installed="1"
