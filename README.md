@@ -22,20 +22,21 @@ For more information and troubleshooting, please refer to the [UI README](tools/
 
 To use it, follow these steps:
 
-1. Make sure you have the required dependencies installed:
+1. Make sure you have the following prerequisites:
   - Python 3.9 or later
-  - The [Textual](https://github.com/textualize/textual/) library
   - All the dependencies listed in the previous section
 
-2. Execute the script `tools/config_editor/app.py` from any folder. It will automatically detect the path to the root of the repository.
+2. Install the required UI packages using `pip install -r tools/config_editor/requirements.txt`.
 
-3. Configure the compilation and ESP-IDF options as desired.
+3. Execute the script `tools/config_editor/app.py` from any folder. It will automatically detect the path to the root of the repository.
 
-4. Click on the "Compile Static Libraries" button to start the compilation process.
+4. Configure the compilation and ESP-IDF options as desired.
 
-5. The script will show the compilation output in a new screen. Note that the compilation process can take many hours, depending on the number of libraries selected and the options chosen.
+5. Click on the "Compile Static Libraries" button to start the compilation process.
 
-6. If the compilation is successful and the option to copy the libraries to the Arduino Core folder is enabled, it will already be available for use in the Arduino IDE. Otherwise, you can find the compiled libraries in the `esp32-arduino-libs` folder alongside this repository.
+6. The script will show the compilation output in a new screen. Note that the compilation process can take many hours, depending on the number of libraries selected and the options chosen.
+
+7. If the compilation is successful and the option to copy the libraries to the Arduino Core folder is enabled, it will already be available for use in the Arduino IDE. Otherwise, you can find the compiled libraries in the `esp32-arduino-libs` folder alongside this repository.
   - Note that the copy operation doesn't currently support the core downloaded from the Arduino IDE Boards Manager, only the manual installation from the [`arduino-esp32`](https://github.com/espressif/arduino-esp32) repository.
 
 ### Documentation

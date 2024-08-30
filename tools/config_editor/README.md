@@ -6,7 +6,7 @@ It has mouse support and can be pre-configured using command line arguments.
 
 ## Requirements
   - Python 3.9 or later
-  - The "textual" library (install it using `pip install textual`)
+  - Install the required packages using `pip install -r requirements.txt`
   - The requirements from esp32-arduino-lib-builder
 
 ## Troubleshooting
