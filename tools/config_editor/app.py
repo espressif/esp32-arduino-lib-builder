@@ -112,10 +112,10 @@ class ConfigEditorApp(App):
     ENABLE_COMMAND_PALETTE = False
     CSS_PATH = "style.tcss"
     SCREENS = {
-        "main": MainScreen(),
-        "settings": SettingsScreen(),
-        "compile": CompileScreen(),
-        "editor": EditorScreen(),
+        "main": MainScreen,
+        "settings": SettingsScreen,
+        "compile": CompileScreen,
+        "editor": EditorScreen,
     }
 
     def on_mount(self) -> None:
