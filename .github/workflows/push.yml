@@ -5,13 +5,21 @@ on:
     branches:
     - master
   pull_request:
+    paths:
+      - "**"
+      - "!**.md"
+      - "!.github/workflows/cron_build.yml"
+      - "!.github/workflows/cron.yml"
+      - "!.github/workflows/docker.yml"
+      - "!.github/workflows/repository_dispatch.yml"
+      - "!tools/config_editor/**"
+      - "!tools/docker/**"
 
 concurrency:
   group: esp-idf-libs-${{github.event.pull_request.number || github.ref}}
   cancel-in-progress: true
 
 jobs:
-
   build-libs:
     name: Build Libs for ${{ matrix.target }}
     runs-on: ubuntu-latest
@@ -21,16 +29,20 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v4
+
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
+
     - name: Build Libs for ${{ matrix.target }}
       run: bash ./build.sh -e -t ${{ matrix.target }}
+
     - name: Upload build
       if: failure()
       uses: actions/upload-artifact@v4
       with:
         name: build-${{ matrix.target }}
         path: build
+
     - name: Upload archive
       uses: actions/upload-artifact@v4
       with:
@@ -48,17 +60,20 @@ jobs:
           path: dist
           pattern: artifacts-*
           merge-multiple: true
+
       - shell: bash
         run: |
           mkdir -p out
           find dist -name 'arduino-esp32-libs-esp*.tar.gz' -exec tar zxvf {} -C out \;
           cd out/tools/esp32-arduino-libs && tar zcf ../../../dist/esp32-arduino-libs.tar.gz * && cd ../../..
           cp out/package_esp32_index.template.json dist/package_esp32_index.template.json
+
       - name: Upload full esp32-arduino-libs archive
         uses: actions/upload-artifact@v4
         with:
           name: esp32-arduino-libs
           path: dist/esp32-arduino-libs.tar.gz
+
       - name: Upload package_esp32_index.template.json
         uses: actions/upload-artifact@v4
         with:

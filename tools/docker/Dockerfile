@@ -34,7 +34,6 @@ RUN : \
     python3-setuptools \
     python3-venv \
     wget \
-  && pip3 install --upgrade pip textual-dev \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/* \
   && :
@@ -70,7 +69,8 @@ RUN echo LIBBUILDER_CHECKOUT_REF=$LIBBUILDER_CHECKOUT_REF LIBBUILDER_CLONE_BRANC
       fi && \
       git checkout $LIBBUILDER_CHECKOUT_REF && \
       git submodule update --init --recursive; \
-    fi
+    fi && \
+    pip3 install --upgrade -r $LIBBUILDER_PATH/tools/config_editor/requirements.txt
 
 COPY entrypoint.sh $LIBBUILDER_PATH/entrypoint.sh
 
