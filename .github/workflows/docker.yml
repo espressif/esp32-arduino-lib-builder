@@ -10,9 +10,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/docker.yml"
-      - "tools/config_editor/**"
-      - "tools/docker/**"
-      - "!**.md"
+      - "tools/config_editor/requirements.txt"
+      - "tools/docker/Dockerfile"
+      - "tools/docker/entrypoint.sh"
 
 env:
   # Build the image for amd64 and arm64
@@ -23,7 +23,7 @@ jobs:
   docker:
     # Disable the job in forks
     if: ${{ github.event_name == 'pull_request' || github.repository_owner == 'espressif' }}
-
+    name: Build and push if needed
     runs-on: ubuntu-latest
     steps:
       # Depending on the branch/tag, set CLONE_BRANCH_OR_TAG variable (used in the Dockerfile
@@ -62,7 +62,6 @@ jobs:
       - name: Check variables
         run: |
           echo "CLONE_BRANCH_OR_TAG: $CLONE_BRANCH_OR_TAG"
-          echo "CHECKOUT_REF: $CHECKOUT_REF"
           echo "TAG_NAME: $TAG_NAME"
           echo "URL: $URL"
 
