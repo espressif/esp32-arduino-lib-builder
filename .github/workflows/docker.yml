@@ -23,7 +23,7 @@ jobs:
   docker:
     # Disable the job in forks
     if: ${{ github.event_name == 'pull_request' || github.repository_owner == 'espressif' }}
-    name: Build and push if needed
+    name: Build docker image and push if needed
     runs-on: ubuntu-latest
     steps:
       # Depending on the branch/tag, set CLONE_BRANCH_OR_TAG variable (used in the Dockerfile
