@@ -46,7 +46,6 @@
 	"targets":[
 		{
 			"target": "esp32p4",
-			"skip": 1,
 			"features":[],
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
