@@ -41,7 +41,6 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	cd $IDF_PATH
 	patch -p1 -N -i $AR_PATCHES/esp32s2_i2c_ll_master_init.diff
 	patch -p1 -N -i $AR_PATCHES/lwip_max_tcp_pcb.diff
-	patch -p1 -N -i $AR_PATCHES/esp32c6_provisioning_bluedroid.diff
 	cd -
 fi
 
