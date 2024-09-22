@@ -49,9 +49,14 @@
 			"features":[],
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
-				["qio","80m"]
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
 			],
-			"mem_variants":[]
+			"mem_variants":[
+				["dio","80m"]
+			]
 		},
 		{
 			"target": "esp32c2",
