@@ -541,7 +541,7 @@ for item; do
 	done
 done
 
-for lib in "openthread" "espressif__esp-tflite-micro" "bt"; do
+for lib in "openthread" "espressif__esp-tflite-micro" "bt" "espressif__esp_matter; do
 	if [ -f "$AR_SDK/lib/lib$lib.a" ]; then
 		echo "Stripping $AR_SDK/lib/lib$lib.a"
 		"$TOOLCHAIN-strip" -g "$AR_SDK/lib/lib$lib.a"
