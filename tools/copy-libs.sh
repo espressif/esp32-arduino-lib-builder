@@ -498,7 +498,7 @@ sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/Add
 mv $FLAGS_DIR/cpp_flags_temp $FLAGS_DIR/cpp_flags
 sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $FLAGS_DIR/S_flags > $FLAGS_DIR/S_flags_temp
 mv $FLAGS_DIR/S_flags_temp $FLAGS_DIR/S_flags
-CHIP_RESOLVE_DIR="$AR_SDK/include/espressif__esp_matter/connectedhomeip/onnectedhomeip/src/lib/address_resolve"
+CHIP_RESOLVE_DIR="$AR_SDK/include/espressif__esp_matter/connectedhomeip/connectedhomeip/src/lib/address_resolve"
 sed 's/CHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER/<lib\/address_resolve\/AddressResolve_DefaultImpl.h>/' $CHIP_RESOLVE_DIR/AddressResolve.h > $CHIP_RESOLVE_DIR/AddressResolve_temp.h
 mv $CHIP_RESOLVE_DIR/AddressResolve_temp.h $CHIP_RESOLVE_DIR/AddressResolve.h
 
