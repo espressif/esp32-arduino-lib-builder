@@ -491,6 +491,17 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
+# Matter Library adjustments
+sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $FLAGS_DIR/c_flags > $FLAGS_DIR/c_flags_temp
+mv $FLAGS_DIR/c_flags_temp $FLAGS_DIR/c_flags
+sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $FLAGS_DIR/cpp_flags > $FLAGS_DIR/cpp_flags_temp
+mv $FLAGS_DIR/cpp_flags_temp $FLAGS_DIR/cpp_flags
+sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $FLAGS_DIR/S_flags > $FLAGS_DIR/S_flags_temp
+mv $FLAGS_DIR/S_flags_temp $FLAGS_DIR/S_flags
+CHIP_RESOLVE_DIR="$AR_SDK/include/espressif__esp_matter/connectedhomeip/onnectedhomeip/src/lib/address_resolve"
+sed 's/CHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER/<lib\/address_resolve\/AddressResolve_DefaultImpl.h>/' AddressResolve.h > AddressResolve_temp.h
+mv AddressResolve_temp.h AddressResolve.h
+
 # copy zigbee + zboss lib
 if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
 	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
