@@ -33,3 +33,8 @@ add_custom_command(
 	VERBATIM
 )
 add_custom_target(mem-variant DEPENDS "mem_variant")
+
+##################
+### ESP Matter ###
+##################
+idf_build_set_property(CXX_COMPILE_OPTIONS "-std=gnu++17;-DCHIP_HAVE_CONFIG_H" APPEND)
