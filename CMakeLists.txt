@@ -2,8 +2,8 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.5)
 
-//set(DL_PATH ${CMAKE_SOURCE_DIR}/managed_components/espressif__esp-dl)
-//set(EXTRA_COMPONENT_DIRS ${DL_PATH}/esp-dl)
+#set(DL_PATH ${CMAKE_SOURCE_DIR}/managed_components/espressif__esp-dl)
+#set(EXTRA_COMPONENT_DIRS ${DL_PATH}/esp-dl)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(arduino-lib-builder)
