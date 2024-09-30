@@ -15,6 +15,7 @@ dependencies:
   espressif/esp-dl:
     version: "master"
     git: https://github.com/espressif/esp-dl.git
+    path: esp-dl
     require: public
     rules:
       - if: "target in [esp32s3, esp32s2, esp32]"
