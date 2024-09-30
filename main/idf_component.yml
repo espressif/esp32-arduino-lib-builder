@@ -7,27 +7,48 @@ dependencies:
     require: public
     rules:
       - if: "target in [esp32, esp32s2, esp32s3]"
+      - if: "$COMPONENTS_SUBSET in [full, all]"
   espressif/esp-tflite-micro:
     version: ">=1.2.0"
     require: public
     rules:
       - if: "target not in [esp32c2]"
+      - if: "$COMPONENTS_SUBSET in [full, all]"
   espressif/esp-dl:
     version: "master"
     git: https://github.com/espressif/esp-dl.git
     path: esp-dl
     require: public
     rules:
-      - if: "target in [esp32s3, esp32s2, esp32, esp32p4]"
+      - if: "target in [esp32s3, esp32, esp32p4]"
+      - if: "$COMPONENTS_SUBSET in [full, all]"
+  espressif/human_face_detect:
+    version: "master"
+    git: https://github.com/espressif/esp-dl.git
+    path: models/human_face_detect
+    require: public
+    rules:
+      - if: "target in [esp32s3, esp32, esp32p4]"
+      - if: "$COMPONENTS_SUBSET in [full, all]"
+  espressif/pedestrian_detect:
+    version: "master"
+    git: https://github.com/espressif/esp-dl.git
+    path: models/pedestrian_detect
+    require: public
+    rules:
+      - if: "target in [esp32s3, esp32, esp32p4]"
+      - if: "$COMPONENTS_SUBSET in [full, all]"
   espressif/esp-sr:
     version: ">=1.4.2"
     rules:
       - if: "target in [esp32s3]"
+      - if: "$COMPONENTS_SUBSET in [full, all]"
   espressif/esp_matter:
     version: "^1.3.0"
     require: public
     rules:
       - if: "target not in [esp32c2, esp32h2, esp32p4]"
+      - if: "$COMPONENTS_SUBSET in [full, all]"
 
   # esp-sr: "^1.3.1"
   # esp32-camera: "^2.0.4"
