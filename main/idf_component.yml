@@ -15,8 +15,7 @@ dependencies:
       - if: "target not in [esp32c2]"
       - if: "$COMPONENTS_SUBSET in [full, all]"
   # ESP-DL for ESP32, ESP32S2 and ESP32-S3
-  espressif/esp-dl:
-    version: "master"
+  espressif/esp-dl-old:
     version: "af7808ba09448ce82c704455975d4cf1e4305fd7"
     git: https://github.com/espressif/esp-dl.git
     require: public
@@ -24,7 +23,7 @@ dependencies:
       - if: "target in [esp32s3, esp32s2, esp32]"
       - if: "$COMPONENTS_SUBSET in [full, all]"
   # ESP-DL for ESP32-P4
-  espressif/esp-dl2:
+  espressif/esp-dl:
     version: "master"
     git: https://github.com/espressif/esp-dl.git
     path: esp-dl
