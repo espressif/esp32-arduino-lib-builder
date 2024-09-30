@@ -15,7 +15,7 @@ dependencies:
       - if: "target not in [esp32c2]"
       - if: "$COMPONENTS_SUBSET in [full, all]"
   espressif/esp-dl:
-    version: "master"
+    version: "af7808ba09448ce82c704455975d4cf1e4305fd7"
     git: https://github.com/espressif/esp-dl.git
     path: esp-dl
     require: public
