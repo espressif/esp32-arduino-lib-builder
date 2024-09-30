@@ -12,12 +12,12 @@ dependencies:
     require: public
     rules:
       - if: "target not in [esp32c2]"
-  espressif/esp-dl:
-    version: "master"
-    git: https://github.com/espressif/esp-dl.git
-    require: public
-    rules:
-      - if: "target in [esp32s3, esp32s2, esp32]"
+#  espressif/esp-dl:
+#    version: "master"
+#    git: https://github.com/espressif/esp-dl.git
+#    require: public
+#    rules:
+#      - if: "target in [esp32s3, esp32s2, esp32]"
   espressif/esp-sr:
     version: ">=1.4.2"
     rules:
