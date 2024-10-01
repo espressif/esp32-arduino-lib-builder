@@ -37,4 +37,6 @@ add_custom_target(mem-variant DEPENDS "mem_variant")
 ##################
 ### ESP Matter ###
 ##################
-idf_build_set_property(CXX_COMPILE_OPTIONS "-std=gnu++17;-DCHIP_HAVE_CONFIG_H" APPEND)
+# JUST TESTING -Os related to bigged mbedTLS library...
+idf_build_set_property(CXX_COMPILE_OPTIONS "-std=gnu++17;-Os;-DCHIP_HAVE_CONFIG_H" APPEND)
+idf_build_set_property(C_COMPILE_OPTIONS "-Os" APPEND)
