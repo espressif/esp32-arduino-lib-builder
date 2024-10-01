@@ -13,7 +13,7 @@ dependencies:
     rules:
       - if: "target not in [esp32c2]"
   espressif/esp-dl:
-    version: "master"
+    version: "af7808ba09448ce82c704455975d4cf1e4305fd7"
     git: https://github.com/espressif/esp-dl.git
     require: public
     rules:
