@@ -233,6 +233,17 @@ menu "Arduino TinyUSB"
 
     endmenu
 
+    menu "NCM driver"
+        depends on TINYUSB_ENABLED
+
+        config TINYUSB_NCM_ENABLED
+            bool "Enable USB NCM TinyUSB driver"
+            default y
+            help
+                Enable USB NCM TinyUSB driver.
+
+    endmenu
+
     config TINYUSB_DEBUG_LEVEL
         int "TinyUSB log level (0-3)"
         default 0
