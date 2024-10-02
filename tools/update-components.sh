@@ -18,8 +18,8 @@ if [ ! -d "$TINYUSB_REPO_DIR" ]; then
     # git checkout 7fb8d3341ce2feb46b0bce0bef069d31cf080168
     # from feW DAYS after Keyboard LED problem COMMIT - Breaks LED
     # git checkout a435befcdeb6bbd40cf3ba342756f8d73f031957
-    # Commit from April 27th, latter.
-    git checkout ef7be4c2ffa0061aec2ea32f530a4037f7309f1e
+    # Commit from April 26th, latter.
+    git checkout ee9ad0f184752e4006ccfa6ae49b7ac83707d771
     cd -
 else
     git -C "$TINYUSB_REPO_DIR" fetch && \
