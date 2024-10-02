@@ -4,7 +4,7 @@ menu "Arduino TinyUSB"
     config TINYUSB_ENABLED
         bool "Enable TinyUSB driver"
         default y
-        depends on IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+        depends on IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32P4
         select FREERTOS_SUPPORT_STATIC_ALLOCATION
         select FREERTOS_USE_AUTHENTIC_INCLUDE_PATHS
         help
