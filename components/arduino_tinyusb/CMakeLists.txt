@@ -15,14 +15,18 @@ if(CONFIG_TINYUSB_ENABLED)
         "-DCFG_TUSB_DEBUG=${CONFIG_TINYUSB_DEBUG_LEVEL}"
         "-Wno-type-limits" # needed for the vanila tinyusb with turned off classes
     )
+  elseif(IDF_TARGET STREQUAL "esp32p4")
+    set(compile_options
+        "-DCFG_TUSB_MCU=OPT_MCU_ESP32P4"
+        "-DCFG_TUSB_DEBUG=${CONFIG_TINYUSB_DEBUG_LEVEL}"
+        "-Wno-type-limits" # needed for the vanila tinyusb with turned off classes
+    )
   endif()
 
   set(srcs
       # espressif:
-      #"${COMPONENT_DIR}/src/dcd_esp32sx.c"
       "${COMPONENT_DIR}/src/dcd_dwc2.c"
       # tusb:
-      #"${COMPONENT_DIR}/tinyusb/src/portable/espressif/esp32sx/dcd_esp32sx.c"
       #"{COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c"
       "${COMPONENT_DIR}/tinyusb/src/class/cdc/cdc_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/hid/hid_device.c"
@@ -32,6 +36,7 @@ if(CONFIG_TINYUSB_ENABLED)
       "${COMPONENT_DIR}/tinyusb/src/class/dfu/dfu_rt_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/dfu/dfu_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/vendor/vendor_device.c"
+      "${COMPONENT_DIR}/tinyusb/src/class/net/ncm_device.c"
       "${COMPONENT_DIR}/tinyusb/src/common/tusb_fifo.c"
       "${COMPONENT_DIR}/tinyusb/src/device/usbd_control.c"
       "${COMPONENT_DIR}/tinyusb/src/device/usbd.c"
@@ -56,16 +61,15 @@ if(CONFIG_TINYUSB_ENABLED)
 
   set(requires esp_rom freertos soc)
   set(priv_requires arduino main)
-  ### tinyusb lib ###
-  ###################
-  idf_component_register(INCLUDE_DIRS ${includes_public} PRIV_INCLUDE_DIRS ${includes_private} SRCS ${srcs} REQUIRES ${requires} PRIV_REQUIRES ${priv_requires})
-  # add_library(${COMPONENT_TARGET} STATIC ${srcs})
-  # target_include_directories(
-  #   ${COMPONENT_TARGET}
-  #   PUBLIC ${includes_public}
-  #   PRIVATE ${includes_private})
+
+  idf_component_register(
+    INCLUDE_DIRS ${includes_public} 
+    PRIV_INCLUDE_DIRS ${includes_private} 
+    SRCS ${srcs} 
+    REQUIRES ${requires} 
+    PRIV_REQUIRES ${priv_requires}
+    )
   target_compile_options(${COMPONENT_TARGET} PRIVATE ${compile_options})
-  #target_link_libraries(${COMPONENT_TARGET} INTERFACE ${COMPONENT_TARGET})
 
 else()
 
