@@ -28,14 +28,16 @@ menu "Arduino TinyUSB"
 
         config TINYUSB_CDC_RX_BUFSIZE
             int "CDC FIFO size of RX"
-            default 64
+            default 64 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 512 if IDF_TARGET_ESP32P4
             depends on TINYUSB_CDC_ENABLED
             help
                 CDC FIFO size of RX
 
         config TINYUSB_CDC_TX_BUFSIZE
             int "CDC FIFO size of TX"
-            default 64
+            default 64 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 512 if IDF_TARGET_ESP32P4
             depends on TINYUSB_CDC_ENABLED
             help
                 CDC FIFO size of TX
@@ -86,7 +88,8 @@ menu "Arduino TinyUSB"
 
         config TINYUSB_HID_BUFSIZE
             int "HID Buffer size"
-            default 64
+            default 64 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 512 if IDF_TARGET_ESP32P4
             depends on TINYUSB_HID_ENABLED
             help
                 HID Buffer size. Should be sufficient to hold ID (if any) + Data
@@ -111,14 +114,16 @@ menu "Arduino TinyUSB"
 
         config TINYUSB_MIDI_RX_BUFSIZE
             int "MIDI FIFO size of RX"
-            default 64
+            default 64 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 512 if IDF_TARGET_ESP32P4
             depends on TINYUSB_MIDI_ENABLED
             help
                 MIDI FIFO size of RX
 
         config TINYUSB_MIDI_TX_BUFSIZE
             int "MIDI FIFO size of TX"
-            default 64
+            default 64 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 512 if IDF_TARGET_ESP32P4
             depends on TINYUSB_MIDI_ENABLED
             help
                 MIDI FIFO size of TX
@@ -143,8 +148,9 @@ menu "Arduino TinyUSB"
 
         config TINYUSB_VIDEO_STREAMING_BUFSIZE
             int "VIDEO streaming endpoint size"
-            range 0 64
-            default 64
+            range 0 512
+            default 64 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 512 if IDF_TARGET_ESP32P4
             depends on TINYUSB_VIDEO_ENABLED
             help
                 VIDEO streaming endpoint size
@@ -219,14 +225,16 @@ menu "Arduino TinyUSB"
 
         config TINYUSB_VENDOR_RX_BUFSIZE
             int "VENDOR FIFO size of RX"
-            default 64
+            default 64 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 512 if IDF_TARGET_ESP32P4
             depends on TINYUSB_VENDOR_ENABLED
             help
                 VENDOR FIFO size of RX
 
         config TINYUSB_VENDOR_TX_BUFSIZE
             int "VENDOR FIFO size of TX"
-            default 64
+            default 64 if IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32S3
+            default 512 if IDF_TARGET_ESP32P4
             depends on TINYUSB_VENDOR_ENABLED
             help
                 VENDOR FIFO size of TX
