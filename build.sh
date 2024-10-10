@@ -169,7 +169,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
 
         echo "idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
+        COMPONENTS_SUBSET=full idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
         if [ $? -ne 0 ]; then exit 1; fi
     done
     exit 0
@@ -223,11 +223,11 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
     echo "* Build IDF-Libs: $idf_libs_configs"
     rm -rf build sdkconfig
-    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
+    COMPONENTS_SUBSET=full idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
+        COMPONENTS_SUBSET=full idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -248,7 +248,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
         echo "* Build BootLoader: $bootloader_configs"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
+        COMPONENTS_SUBSET=none idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
         if [ $? -ne 0 ]; then exit 1; fi
     done
 
@@ -261,7 +261,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
         echo "* Build Memory Variant: $mem_configs"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
+        COMPONENTS_SUBSET=none idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
         if [ $? -ne 0 ]; then exit 1; fi
     done
 done
