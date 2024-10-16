@@ -12,37 +12,6 @@ dependencies:
     require: public
     rules:
       - if: "target not in [esp32c2]"
-  # ESP-DL for ESP32, ESP32S2 and ESP32-S3
-  #  espressif/esp-dl-old:
-  #   version: "af7808ba09448ce82c704455975d4cf1e4305fd7"
-  #   git: https://github.com/espressif/esp-dl.git
-  #   require: public
-  #   rules:
-  #     - if: "target in [esp32s3, esp32s2, esp32]"
-  # ESP-DL for ESP32-P4
-  espressif/esp-dl:
-    version: "master"
-    git: https://github.com/espressif/esp-dl.git
-    path: esp-dl
-    require: public
-    rules:
-      - if: "target in [esp32p4]"
-  # ESP-DL Face Detection for ESP32-P4
-  espressif/human_face_detect:
-    version: "master"
-    git: https://github.com/espressif/esp-dl.git
-    path: models/human_face_detect
-    require: public
-    rules:
-      - if: "target in [esp32p4]"
-  # ESP-DL Pedestrian Detection for ESP32-P4
-  espressif/pedestrian_detect:
-    version: "master"
-    git: https://github.com/espressif/esp-dl.git
-    path: models/pedestrian_detect
-    require: public
-    rules:
-      - if: "target in [esp32p4]"
   espressif/esp-sr:
     version: ">=1.4.2"
     rules:
@@ -52,44 +21,3 @@ dependencies:
     require: public
     rules:
       - if: "target not in [esp32c2, esp32h2, esp32p4]"
-
-  # esp-sr: "^1.3.1"
-  # esp32-camera: "^2.0.4"
-  # esp-dl:
-  #   git: https://github.com/espressif/esp-dl.git
-  # espressif/esp_rainmaker:
-  #   path: components/esp_rainmaker
-  #   git: https://github.com/espressif/esp-rainmaker.git
-
-  # # Defining a dependency from the registry:
-  # # https://components.espressif.com/component/example/cmp
-  # example/cmp: "^3.3.3" # Automatically update minor releases
-  #
-  # # Other ways to define dependencies
-  #
-  # # For components maintained by Espressif only name can be used.
-  # # Same as `espressif/cmp`
-  # component: "~1.0.0" # Automatically update bugfix releases
-  #
-  # # Or in a longer form with extra parameters
-  # component2:
-  #   version: ">=2.0.0"
-  #
-  #   # For transient dependencies `public` flag can be set.
-  #   # `public` flag doesn't have an effect for the `main` component.
-  #   # All dependencies of `main` are public by default.
-  #   public: true
-  #
-  #   # For components hosted on non-default registry:
-  #   service_url: "https://componentregistry.company.com"
-  #
-  # # For components in git repository:
-  # test_component:
-  #   path: test_component
-  #   git: ssh://git@gitlab.com/user/components.git
-  #
-  # # For test projects during component development
-  # # components can be used from a local directory
-  # # with relative or absolute path
-  # some_local_component:
-  #   path: ../../projects/component
