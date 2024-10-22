@@ -33,3 +33,5 @@ add_custom_command(
 	VERBATIM
 )
 add_custom_target(mem-variant DEPENDS "mem_variant")
+
+idf_build_set_property(COMPILE_DEFINITIONS "-DESP32_ARDUINO_LIB_BUILDER" APPEND)
