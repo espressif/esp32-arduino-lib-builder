@@ -491,17 +491,6 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
-# Matter Library adjustments
-for flag_file in "c_flags" "cpp_flags" "S_flags"; do
-	echo "Fixing $FLAGS_DIR/$flag_file"
- 	sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $FLAGS_DIR/$flag_file > $FLAGS_DIR/$flag_file.temp
-	mv $FLAGS_DIR/$flag_file.temp $FLAGS_DIR/$flag_file
-done
-CHIP_RESOLVE_DIR="$AR_SDK/include/espressif__esp_matter/connectedhomeip/connectedhomeip/src/lib/address_resolve"
-sed 's/CHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER/<lib\/address_resolve\/AddressResolve_DefaultImpl.h>/' $CHIP_RESOLVE_DIR/AddressResolve.h > $CHIP_RESOLVE_DIR/AddressResolve_temp.h
-mv $CHIP_RESOLVE_DIR/AddressResolve_temp.h $CHIP_RESOLVE_DIR/AddressResolve.h
-# End of Matter Library adjustments
-
 # copy zigbee + zboss lib
 if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
 	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
@@ -541,7 +530,7 @@ for item; do
 	done
 done
 
-for lib in "openthread" "espressif__esp-tflite-micro" "bt" "espressif__esp_matter"; do
+for lib in "openthread" "espressif__esp-tflite-micro" "bt"; do
 	if [ -f "$AR_SDK/lib/lib$lib.a" ]; then
 		echo "Stripping $AR_SDK/lib/lib$lib.a"
 		"$TOOLCHAIN-strip" -g "$AR_SDK/lib/lib$lib.a"
