@@ -2,6 +2,7 @@
 # This script is not part of the container, it is meant to be run on the host machine.
 # Note that this file will build the release/v5.1 branch. For other branches, change the tag accordingly.
 # You can check the available tags at https://hub.docker.com/r/espressif/esp32-arduino-lib-builder/tags
+# As this script is unsigned, you may need to run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` before running it.
 # Usage: .\run.ps1 <path_to_arduino_esp32>
 
 # Exit on error
