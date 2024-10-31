@@ -1,3 +1,9 @@
+log_instEnviroment.txt
+log_idfBuild.txt
+log_pythonBuild.txt
+esp-idf
+components/arduino
+out
 .DS_Store
 .vscode
 managed_components/
