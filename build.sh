@@ -111,24 +111,25 @@ export IDF_CCACHE_ENABLE=$CCACHE_ENABLE
 echo "TARGET(s): ${TARGET[@]}"
 
 mkdir -p dist
+rm -f "log_*.txt" # remove old log files if any exists
 
 if [ $SKIP_ENV -eq 0 ]; then
     echo "* Installing/Updating ESP-IDF and all components..."
     # update components from git
-    ./tools/update-components.sh
+    ./tools/update-components.sh >> log_instEnviroment.txt
     if [ $? -ne 0 ]; then exit 1; fi
 
     # install arduino component
-    ./tools/install-arduino.sh
+    ./tools/install-arduino.sh >> log_instEnviroment.txt
     if [ $? -ne 0 ]; then exit 1; fi
 
     # install esp-idf
-    source ./tools/install-esp-idf.sh
+    source ./tools/install-esp-idf.sh >> log_instEnviroment.txt
     if [ $? -ne 0 ]; then exit 1; fi
 else
     # $IDF_PATH/install.sh
     # source $IDF_PATH/export.sh
-    source ./tools/config.sh
+    source ./tools/config.sh >> log_instEnviroment.txt
 fi
 
 if [ "$BUILD_TYPE" != "all" ]; then
@@ -169,7 +170,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
 
         echo "idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE >> log_idfBuild.txt
         if [ $? -ne 0 ]; then exit 1; fi
     done
     exit 0
@@ -218,16 +219,16 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     # Build IDF Libs
     idf_libs_configs="$main_configs"
     for defconf in `echo "$target_json" | jq -c '.idf_libs[]' | tr -d '"'`; do
-        idf_libs_configs="$idf_libs_configs;configs/defconfig.$defconf"
+        idf_libs_configs="$idf_libs_configs;configs/defconfig.$defconf" >> log_idfBuild.txt
     done
 
     echo "* Build IDF-Libs: $idf_libs_configs"
     rm -rf build sdkconfig
-    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
+    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs >> log_idfBuild.txt
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin >> log_idfBuild.txt
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -248,7 +249,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
         echo "* Build BootLoader: $bootloader_configs"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader >> log_idfBuild.txt
         if [ $? -ne 0 ]; then exit 1; fi
     done
 
@@ -261,7 +262,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
         echo "* Build Memory Variant: $mem_configs"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant >> log_idfBuild.txt
         if [ $? -ne 0 ]; then exit 1; fi
     done
 done
@@ -300,8 +301,8 @@ done
 # update package_esp32_index.template.json
 if [ "$BUILD_TYPE" = "all" ]; then
     echo "* Generating package_esp32_index.template.json..."
-    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/"
-    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/"
+    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" >> log_pythonBuild.txt
+    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" >> log_pythonBuild.txt
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
@@ -312,7 +313,7 @@ if [ "$BUILD_TYPE" = "all" ]; then
     ibr=$(git describe --all 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
     popd
-    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
+    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" >> log_pythonBuild.txt
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
@@ -336,3 +337,4 @@ if [ $ARCHIVE_OUT -eq 1 ]; then
     ./tools/archive-build.sh "$TARGET"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
+./../addOns-esp32_AR_lib-builder/postBuild_AggregatedFolders.sh
