@@ -112,26 +112,30 @@ echo "TARGET(s): ${TARGET[@]}"
 
 mkdir -p dist
 rm -f "log_*.txt" # remove old log files if any exists
+touch log_errors.txt && touch log_instEnviroment.txt && touch log_idfBuild.txt && touch log_pythonBuild.txt
 
 if [ $SKIP_ENV -eq 0 ]; then
     echo "* Installing/Updating ESP-IDF and all components..."
     # update components from git
-    ./tools/update-components.sh >> log_instEnviroment.txt
+    osascript -e 'tell application "Terminal" to do script "tail -n 20 -f '$(realpath log_errors.txt)'"'
+    osascript -e 'tell application "Terminal" to do script "tail -n 20 -f '$(realpath log_instEnviroment.txt)'"'
+    ./tools/update-components.sh 1>> log_instEnviroment.txt 2>> log_errors.txt
     if [ $? -ne 0 ]; then exit 1; fi
 
     # install arduino component
-    ./tools/install-arduino.sh >> log_instEnviroment.txt
+    ./tools/install-arduino.sh 1>> log_instEnviroment.txt 2>> log_errors.txt
     if [ $? -ne 0 ]; then exit 1; fi
 
     # install esp-idf
-    source ./tools/install-esp-idf.sh >> log_instEnviroment.txt
+    source ./tools/install-esp-idf.sh 1>> log_instEnviroment.txt 2>> log_errors.txt
     if [ $? -ne 0 ]; then exit 1; fi
 else
     # $IDF_PATH/install.sh
     # source $IDF_PATH/export.sh
-    source ./tools/config.sh >> log_instEnviroment.txt
+    source ./tools/config.sh 1>> log_instEnviroment.txt 2>> log_errors.txt
 fi
 
+osascript -e 'tell application "Terminal" to do script "tail -n 20 -f '$(realpath log_idfBuild.txt)'"'
 if [ "$BUILD_TYPE" != "all" ]; then
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
@@ -170,7 +174,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
 
         echo "idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE >> log_idfBuild.txt
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE 1>> log_idfBuild.txt 2>> log_errors.txt
         if [ $? -ne 0 ]; then exit 1; fi
     done
     exit 0
@@ -224,11 +228,11 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
     echo "* Build IDF-Libs: $idf_libs_configs"
     rm -rf build sdkconfig
-    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs >> log_idfBuild.txt
+    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs 1>> log_idfBuild.txt 2>> log_errors.txt
     if [ $? -ne 0 ]; then exit 1; fi
 
     if [ "$target" == "esp32s3" ]; then
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin >> log_idfBuild.txt
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin 1>> log_idfBuild.txt 2>> log_errors.txt
         if [ $? -ne 0 ]; then exit 1; fi
         AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
         # sr model.bin
@@ -249,7 +253,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
         echo "* Build BootLoader: $bootloader_configs"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader >> log_idfBuild.txt
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader 1>> log_idfBuild.txt 2>> log_errors.txt
         if [ $? -ne 0 ]; then exit 1; fi
     done
 
@@ -262,7 +266,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
 
         echo "* Build Memory Variant: $mem_configs"
         rm -rf build sdkconfig
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant >> log_idfBuild.txt
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant 1>> log_idfBuild.txt 2>> log_errors.txt
         if [ $? -ne 0 ]; then exit 1; fi
     done
 done
@@ -299,10 +303,11 @@ for component in `ls "$AR_MANAGED_COMPS"`; do
 done
 
 # update package_esp32_index.template.json
+osascript -e 'tell application "Terminal" to do script "tail -n 20 -f '$(realpath log_pythonBuild.txt)'"'
 if [ "$BUILD_TYPE" = "all" ]; then
     echo "* Generating package_esp32_index.template.json..."
-    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" >> log_pythonBuild.txt
-    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" >> log_pythonBuild.txt
+    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -j "$AR_COMPS/arduino/package/package_esp32_index.template.json" -o "$AR_OUT/" 1>> log_pythonBuild.txt 2>> log_errors.txt
+    python3 ./tools/gen_tools_json.py -i "$IDF_PATH" -o "$TOOLS_JSON_OUT/" 1>> log_pythonBuild.txt 2>> log_errors.txt
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
@@ -313,7 +318,7 @@ if [ "$BUILD_TYPE" = "all" ]; then
     ibr=$(git describe --all 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
     popd
-    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" >> log_pythonBuild.txt
+    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic" 1>> log_pythonBuild.txt 2>> log_errors.txt
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
