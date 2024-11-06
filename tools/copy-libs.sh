@@ -39,7 +39,9 @@ fi
 if [ -e "$AR_SDK/platformio-build.py" ]; then
 	rm -rf "$AR_SDK/platformio-build.py"
 fi
+
 mkdir -p "$AR_SDK"
+mkdir -p "$AR_SDK/lib"
 
 function get_actual_path(){
 	p="$PWD"; cd "$1"; r="$PWD"; cd "$p"; echo "$r";
@@ -449,8 +451,6 @@ echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (bo
 echo "        join(FRAMEWORK_DIR, \"cores\", board_config.get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
-
-mkdir -p "$AR_SDK/lib"
 
 AR_LIBS="$LD_LIBS"
 PIO_LIBS=""
