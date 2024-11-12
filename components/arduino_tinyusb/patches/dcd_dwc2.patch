@@ -1,6 +1,6 @@
 --- a/components/arduino_tinyusb/src/dcd_dwc2.c	2024-10-02 12:17:40.000000000 +0300
 +++ b/components/arduino_tinyusb/src/dcd_dwc2.c	2024-10-02 12:19:48.000000000 +0300
-@@ -316,6 +316,16 @@
+@@ -209,6 +209,17 @@
  //--------------------------------------------------------------------
  // Endpoint
  //--------------------------------------------------------------------
@@ -14,10 +14,11 @@
 +  return 0;
 +}
 +#endif
- 
++ 
  static void edpt_activate(uint8_t rhport, tusb_desc_endpoint_t const * p_endpoint_desc) {
    dwc2_regs_t* dwc2 = DWC2_REG(rhport);
-@@ -332,7 +342,19 @@
+   uint8_t const epnum = tu_edpt_number(p_endpoint_desc->bEndpointAddress);
+@@ -224,7 +235,19 @@
                     (p_endpoint_desc->bmAttributes.xfer != TUSB_XFER_ISOCHRONOUS ? DOEPCTL_SD0PID_SEVNFRM : 0) |
                     (xfer->max_size << DOEPCTL_MPSIZ_Pos);
    if (dir == TUSB_DIR_IN) {
@@ -38,7 +39,7 @@
    }
  
    dwc2_dep_t* dep = &dwc2->ep[1 - dir][epnum];
-@@ -840,6 +862,10 @@
+@@ -304,6 +327,10 @@
      }
    }
  
@@ -49,7 +50,7 @@
    dfifo_flush_tx(dwc2, 0x10); // all tx fifo
    dfifo_flush_rx(dwc2);
  
-@@ -1186,6 +1212,9 @@
+@@ -908,6 +935,9 @@
    if (int_status & GINTSTS_USBRST) {
      // USBRST is start of reset.
      dwc2->gintsts = GINTSTS_USBRST;
@@ -59,7 +60,7 @@
      bus_reset(rhport);
    }
  
-@@ -1217,7 +1246,11 @@
+@@ -939,7 +969,11 @@
  
    if (int_status & GINTSTS_USBSUSP) {
      dwc2->gintsts = GINTSTS_USBSUSP;
@@ -72,7 +73,7 @@
    }
  
    if (int_status & GINTSTS_WKUINT) {
-@@ -1234,6 +1267,9 @@
+@@ -956,6 +990,9 @@
  
      if (otg_int & GOTGINT_SEDET) {
        dcd_event_bus_signal(rhport, DCD_EVENT_UNPLUGGED, true);
