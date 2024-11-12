@@ -28,6 +28,7 @@ if(CONFIG_TINYUSB_ENABLED)
       "${COMPONENT_DIR}/src/dcd_dwc2.c"
       # tusb:
       #"{COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c"
+      "{COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2/dwc2_common.c"
       "${COMPONENT_DIR}/tinyusb/src/class/cdc/cdc_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/hid/hid_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/midi/midi_device.c"
