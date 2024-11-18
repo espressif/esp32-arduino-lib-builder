@@ -25,7 +25,7 @@ if [ -z $IDF_TARGET ]; then
 fi
 
 # Owner of the target ESP32 Arduino repository
-AR_USER="espressif"
+AR_USER="$GITHUB_REPOSITORY_OWNER"
 
 # The full name of the repository
 AR_REPO="$AR_USER/arduino-esp32"
@@ -99,12 +99,55 @@ if [[ "$AR_OS" == "macos" ]]; then
     export SSTAT="stat -f %z"
 fi
 
+function github_get_libs_idf(){ # github_get_libs_idf <repo-path> <branch-name> <message-prefix>
+    local repo_path="$1"
+    local branch_name="$2"
+    local message_prefix="$3"
+    message_prefix=$(echo $message_prefix | sed 's/[]\/$*.^|[]/\\&/g') # Escape special characters
+    local page=1
+    local version_found=""
+    local libs_version=""
+
+    while [[ "$libs_version" == "" && "$page" -le 3 ]]; do
+        # Get the latest commit message that matches the prefix and extract the hash from the last commit message
+        version_found=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/commits?sha=$branch_name&per_page=100&page=$page" | \
+            jq -r --arg prefix "$message_prefix" '[ .[] | select(.commit.message | test($prefix + " [a-f0-9]{8}")) ][0] | .commit.message' | \
+            grep -Eo "$message_prefix [a-f0-9]{8}" | \
+            awk 'END {print $NF}'`
+        if [[ "$version_found" != "" && "$version_found" != "null" ]]; then
+            libs_version=$version_found
+        else
+            page=$((page+1))
+        fi
+    done
+
+    if [ ! "$libs_version" == "" ] && [ ! "$libs_version" == "null" ]; then echo $libs_version; else echo ""; fi
+}
+
 function github_commit_exists(){ #github_commit_exists <repo-path> <branch-name> <commit-message>
     local repo_path="$1"
     local branch_name="$2"
     local commit_message="$3"
-    local commits_found=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/commits?sha=$branch_name" | jq -r '.[].commit.message' | grep "$commit_message" | wc -l`
-    if [ ! "$commits_found" == "" ] && [ ! "$commits_found" == "null" ] && [ ! "$commits_found" == "0" ]; then echo $commits_found; else echo 0; fi
+    local page=1
+    local commits_found=0
+
+    while [ "$page" -le 3 ]; do
+        local response=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/commits?sha=$branch_name&per_page=100&page=$page"`
+
+        if [[ -z "$response" || "$response" == "[]" ]]; then
+            break
+        fi
+
+        local commits=`echo "$response" | jq -r '.[].commit.message' | grep "$commit_message" | wc -l`
+        if [ "$commits" -gt 0 ]; then
+            commits_found=1
+            break
+        fi
+
+        page=$((page+1))
+    done
+
+    echo $commits_found
 }
 
 function github_last_commit(){ # github_last_commit <repo-path> <branch-name>

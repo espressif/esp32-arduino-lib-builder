@@ -12,7 +12,7 @@ on:
 #             │ │ │ │ │
 #             * * * * *
     - cron:  '0 */6 * * *'
-  workflow_dispatch: # For testing
+  workflow_dispatch: # For manually rebuilding the libraries
 
 defaults:
   run:
@@ -21,6 +21,7 @@ defaults:
 jobs:
   build-libs:
     name: Build with IDF ${{ matrix.idf_branch }}
+    if: github.repository_owner == 'espressif'
     uses: ./.github/workflows/cron_build.yml
     with:
       idf_branch: ${{ matrix.idf_branch }}
