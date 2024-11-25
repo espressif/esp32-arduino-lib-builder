@@ -66,7 +66,7 @@ if __name__ == '__main__':
     dep_skip = False
     for dep in farray['packages'][0]['platforms'][0]['toolsDependencies']:
         if dep['name'] == tool_name:
-            if dep['version'] == tool_version:
+            if dep['version'] == tool_version and not tool_name.startswith('esp32-arduino-libs'):
                 print('Skipping {0}. Same version {1}'.format(tool_name, tool_version))
                 dep_skip = True
                 break

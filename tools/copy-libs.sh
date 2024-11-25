@@ -39,7 +39,9 @@ fi
 if [ -e "$AR_SDK/platformio-build.py" ]; then
 	rm -rf "$AR_SDK/platformio-build.py"
 fi
+
 mkdir -p "$AR_SDK"
+mkdir -p "$AR_SDK/lib"
 
 function get_actual_path(){
 	p="$PWD"; cd "$1"; r="$PWD"; cd "$p"; echo "$r";
@@ -55,6 +57,8 @@ AS_FLAGS=""
 
 INCLUDES=""
 DEFINES=""
+
+EXCLUDE_LIBS=";"
 
 LD_FLAGS=""
 LD_LIBS=""
@@ -76,6 +80,17 @@ if [ "$IS_XTENSA" = "y" ]; then
 	TOOLCHAIN="xtensa-$IDF_TARGET-elf"
 else
 	TOOLCHAIN="riscv32-esp-elf"
+fi
+
+# copy zigbee + zboss lib
+if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
+	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
+	EXCLUDE_LIBS+="esp_zb_api_ed;"
+fi
+
+if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
+	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
+	EXCLUDE_LIBS+="zboss_stack.ed;zboss_port.debug;"
 fi
 
 #collect includes, defines and c-flags
@@ -200,12 +215,14 @@ for item; do
 				add_next=1
 				LD_FLAGS+="$item "
 			elif [ "${item:0:2}" = "-l" ]; then # -l[lib_name]
-				LD_LIBS+="$item "
-				exclude_libs=";m;c;gcc;stdc++;"
 				short_name="${item:2}"
-				if [[ $exclude_libs != *";$short_name;"* && $LD_LIBS_SEARCH != *"lib$short_name.a"* ]]; then
-					LD_LIBS_SEARCH+="lib$short_name.a "
-					#echo "lib add: $item"
+				if [[ $EXCLUDE_LIBS != *";$short_name;"* ]]; then
+					LD_LIBS+="$item "
+					exclude_libs=";m;c;gcc;stdc++;"
+					if [[ $exclude_libs != *";$short_name;"* && $LD_LIBS_SEARCH != *"lib$short_name.a"* ]]; then
+						LD_LIBS_SEARCH+="lib$short_name.a "
+						#echo "1. lib add: $item"
+					fi
 				fi
 			elif [ "$item" = "-o" ]; then
 				add_next=0
@@ -244,30 +261,38 @@ for item; do
 						if [[ $LD_LIB_FILES != *"$item"* ]]; then
 							# do we already have lib with the same name?
 							if [[ $LD_LIBS != *"-l$lname"* ]]; then
-								# echo "collecting lib '$lname' and file: $item"
-								LD_LIB_FILES+="$item "
-								LD_LIBS+="-l$lname "
+								if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
+									#echo "2. collecting lib '$lname' and file: $item"
+									LD_LIB_FILES+="$item "
+									LD_LIBS+="-l$lname "
+								fi
 							else 
 								# echo "!!! need to rename: '$lname'"
 								for i in {2..9}; do
 									n_item="${item:0:${#item}-2}_$i.a"
 									n_name=$lname"_$i"
 									if [ -f "$n_item" ]; then
-										# echo "renamed add: -l$n_name"
-										LD_LIBS+="-l$n_name "
+										if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
+											#echo "3. renamed add: -l$n_name"
+											LD_LIBS+="-l$n_name "
+										fi
 										break
 									elif [[ $LD_LIB_FILES != *"$n_item"* && $LD_LIBS != *"-l$n_name"* ]]; then
-										echo "Renaming '$lname' to '$n_name': $item"
-										cp -f "$item" "$n_item"
-										LD_LIB_FILES+="$n_item "
-										LD_LIBS+="-l$n_name "
+										if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
+											#echo "4. Renaming '$lname' to '$n_name': $item"
+											cp -f "$item" "$n_item"
+											LD_LIB_FILES+="$n_item "
+											LD_LIBS+="-l$n_name "
+										fi
 										break
 									fi
 								done
 							fi
 						else
-							# echo "just add: -l$lname"
-							LD_LIBS+="-l$lname "
+							if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
+								#echo "5. just add: -l$lname"
+								LD_LIBS+="-l$lname "
+							fi
 						fi
 					else
 						echo "*** Skipping $(basename $item): size too small $lsize"
@@ -427,8 +452,6 @@ echo "        join(FRAMEWORK_DIR, \"cores\", board_config.get(\"build.core\"))" 
 echo "    ]," >> "$AR_PLATFORMIO_PY"
 echo "" >> "$AR_PLATFORMIO_PY"
 
-mkdir -p "$AR_SDK/lib"
-
 AR_LIBS="$LD_LIBS"
 PIO_LIBS=""
 set -- $LD_LIBS
@@ -501,15 +524,6 @@ CHIP_RESOLVE_DIR="$AR_SDK/include/espressif__esp_matter/connectedhomeip/connecte
 sed 's/CHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER/<lib\/address_resolve\/AddressResolve_DefaultImpl.h>/' $CHIP_RESOLVE_DIR/AddressResolve.h > $CHIP_RESOLVE_DIR/AddressResolve_temp.h
 mv $CHIP_RESOLVE_DIR/AddressResolve_temp.h $CHIP_RESOLVE_DIR/AddressResolve.h
 # End of Matter Library adjustments
-
-# copy zigbee + zboss lib
-if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
-	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-fi
-
-if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
-	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-fi
 
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
