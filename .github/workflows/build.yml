@@ -1,0 +1,30 @@
+name: Build ESP32 Arduino Libraries
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git wget flex bison gperf python3 python3-pip python3-setuptools cmake ninja-build ccache libffi-dev libssl-dev dfu-util libusb-1.0-0
+
+    - name: Build libraries
+      run: |
+        ./build.sh -t esp32,esp32s2,esp32c3,esp32s3 -b build
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: esp32-arduino-libs
+        path: esp32-arduino-libs
