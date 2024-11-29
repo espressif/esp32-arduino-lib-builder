@@ -147,6 +147,7 @@ for item in "${@:2:${#@}-5}"; do
 	fi
 done
 
+set -- $C_FLAGS
 #parse link command to extract libs and flags
 add_next=0
 is_dir=0
