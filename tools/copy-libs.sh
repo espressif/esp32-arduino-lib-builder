@@ -286,82 +286,8 @@ done
 
 mkdir -p "$AR_SDK"
 
-# start generation of platformio-build.py
-AR_PLATFORMIO_PY="$AR_SDK/platformio-build.py"
-cat configs/pio_start.txt > "$AR_PLATFORMIO_PY"
-
-echo "    ASFLAGS=[" >> "$AR_PLATFORMIO_PY"
-if [ "$IS_XTENSA" = "y" ]; then
-	echo "        \"-mlongcalls\"" >> "$AR_PLATFORMIO_PY"
-else
-	echo "        \"-march=rv32imc\"" >> "$AR_PLATFORMIO_PY"
-fi
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    ASPPFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_AS_FLAGS
-for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-echo "        \"-x\", \"assembler-with-cpp\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    CFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_C_FLAGS
-last_item="${@: -1}"
-for item in "${@:0:${#@}}"; do
-	if [ "${item:0:1}" != "/" ]; then
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-	fi
-done
-echo "        \"$last_item\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    CXXFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_CXX_FLAGS
-last_item="${@: -1}"
-for item in "${@:0:${#@}}"; do
-	if [ "${item:0:1}" != "/" ]; then
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-	fi
-done
-echo "        \"$last_item\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    CCFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_CC_FLAGS
-for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-echo "        \"-MMD\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    LINKFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_LD_FLAGS
-for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-set -- $PIO_LD_SCRIPTS
-for item; do
-	echo "        \"-T\", \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-set -- $PIO_LD_FUNCS
-for item; do
-	echo "        \"-u\", \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-echo "        '-Wl,-Map=\"%s\"' % join(\"\${BUILD_DIR}\", \"\${PROGNAME}.map\")" >> "$AR_PLATFORMIO_PY"
-
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
 # include dirs
 REL_INC=""
-echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY"
 
 set -- $INCLUDES
 
@@ -388,13 +314,6 @@ for item; do
 		out_sub="${item#*$ipath}"
 		out_cpath="$AR_SDK/include/$fname$out_sub"
 		REL_INC+="-iwithprefixbefore $fname$out_sub "
-		if [ "$out_sub" = "" ]; then
-			echo "        join($PIO_SDK, \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
-		else
-			pio_sub="${out_sub:1}"
-			pio_sub=`echo $pio_sub | sed 's/\//\\", \\"/g'`
-			echo "        join($PIO_SDK, \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
-		fi
 		for f in `find "$item" -name '*.h'`; do
 			rel_f=${f#*$item}
 			rel_p=${rel_f%/*}
@@ -420,10 +339,6 @@ for item; do
 		fi
 	fi
 done
-echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"cores\", board_config.get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
 
 AR_LIBS="$LD_LIBS"
 PIO_LIBS=""
@@ -439,38 +354,6 @@ set -- $LD_LIB_FILES
 for item; do
 	cp "$item" "$AR_SDK/lib/"
 done
-
-echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, \"lib\")," >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, \"ld\")," >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    LIBS=[" >> "$AR_PLATFORMIO_PY"
-echo "        $PIO_LIBS" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    CPPDEFINES=[" >> "$AR_PLATFORMIO_PY"
-set -- $DEFINES
-for item; do
-	item="${item:2}" #remove -D
-	if [[ $item == *"="* ]]; then
-		item=(${item//=/ })
-		re='^[+-]?[0-9]+([.][0-9]+)?$'
-		if [[ ${item[1]} =~ $re ]]; then
-			echo "        (\"${item[0]}\", ${item[1]})," >> "$AR_PLATFORMIO_PY"
-		else
-			echo "        (\"${item[0]}\", '${item[1]}')," >> "$AR_PLATFORMIO_PY"
-		fi
-	else
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-	fi
-done
-
-# end generation of platformio-build.py
-cat configs/pio_end.txt >> "$AR_PLATFORMIO_PY"
 
 # replace double backslashes with single one
 DEFINES=`echo "$DEFINES" | tr -s '\'`
