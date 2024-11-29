@@ -63,14 +63,6 @@ LD_LIBS_SEARCH=""
 LD_SCRIPTS=""
 LD_SCRIPT_DIRS=""
 
-PIO_CC_FLAGS=""
-PIO_C_FLAGS=""
-PIO_CXX_FLAGS=""
-PIO_AS_FLAGS=""
-PIO_LD_FLAGS=""
-PIO_LD_FUNCS=""
-PIO_LD_SCRIPTS=""
-
 TOOLCHAIN_PREFIX=""
 if [ "$IS_XTENSA" = "y" ]; then
 	TOOLCHAIN="xtensa-$IDF_TARGET-elf"
@@ -105,8 +97,6 @@ for item in "${@:2:${#@}-5}"; do
 		if [[ "${item:2:7}" != "ARDUINO" ]] && [[ "$item" != "-DESP32=ESP32" ]]; then #skip ARDUINO defines
 			DEFINES+="$item "
 		fi
-	elif [ "$prefix" = "-O" ]; then
-		PIO_CC_FLAGS+="$item "
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			C_FLAGS+="$item "
@@ -124,11 +114,6 @@ for item in "${@:2:${#@}-5}"; do
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			AS_FLAGS+="$item "
-			if [[ $C_FLAGS == *"$item"* ]]; then
-				PIO_CC_FLAGS+="$item "
-			else
-				PIO_AS_FLAGS+="$item "
-			fi
 		fi
 	fi
 done
@@ -143,17 +128,7 @@ for item in "${@:2:${#@}-5}"; do
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			CPP_FLAGS+="$item "
-			if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
-				PIO_CXX_FLAGS+="$item "
-			fi
 		fi
-	fi
-done
-
-set -- $C_FLAGS
-for item; do
-	if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
-		PIO_C_FLAGS+="$item "
 	fi
 done
 
@@ -180,7 +155,6 @@ else
 fi
 if [ "$IDF_TARGET" = "esp32" ]; then
 	LD_SCRIPTS+="-T esp32.rom.redefined.ld "
-	PIO_LD_SCRIPTS+="esp32.rom.redefined.ld "
 fi
 set -- $str
 for item; do
@@ -213,7 +187,6 @@ for item; do
 				is_dir=0
 			elif [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:19}" != "-fdebug-prefix-map=" && "${item:0:17}" != "-Wl,--start-group" && "${item:0:15}" != "-Wl,--end-group" ]]; then
 				LD_FLAGS+="$item "
-				PIO_LD_FLAGS+="$item "
 			fi
 		fi
 	else
@@ -225,10 +198,8 @@ for item; do
 			elif [ "$is_script" = "1" ]; then
 				is_script=0
 				LD_SCRIPTS+="$item "
-				PIO_LD_SCRIPTS+="$item "
 			else
 				LD_FLAGS+="$item "
-				PIO_LD_FUNCS+="$item "
 			fi
 		else
 			if [ "${item:${#item}-2:2}" = ".a" ]; then
@@ -287,194 +258,6 @@ done
 #
 
 mkdir -p "$AR_SDK"
-
-# start generation of platformio-build.py
-AR_PLATFORMIO_PY="$AR_SDK/platformio-build.py"
-cat configs/pio_start.txt > "$AR_PLATFORMIO_PY"
-
-echo "    ASFLAGS=[" >> "$AR_PLATFORMIO_PY"
-if [ "$IS_XTENSA" = "y" ]; then
-	echo "        \"-mlongcalls\"" >> "$AR_PLATFORMIO_PY"
-else
-	echo "        \"-march=rv32imc\"" >> "$AR_PLATFORMIO_PY"
-fi
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    ASPPFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_AS_FLAGS
-for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-echo "        \"-x\", \"assembler-with-cpp\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    CFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_C_FLAGS
-last_item="${@: -1}"
-for item in "${@:0:${#@}}"; do
-	if [ "${item:0:1}" != "/" ]; then
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-	fi
-done
-echo "        \"$last_item\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    CXXFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_CXX_FLAGS
-last_item="${@: -1}"
-for item in "${@:0:${#@}}"; do
-	if [ "${item:0:1}" != "/" ]; then
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-	fi
-done
-echo "        \"$last_item\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    CCFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_CC_FLAGS
-for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-echo "        \"-MMD\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    LINKFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_LD_FLAGS
-for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-set -- $PIO_LD_SCRIPTS
-for item; do
-	echo "        \"-T\", \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-set -- $PIO_LD_FUNCS
-for item; do
-	echo "        \"-u\", \"$item\"," >> "$AR_PLATFORMIO_PY"
-done
-echo "        '-Wl,-Map=\"%s\"' % join(\"\${BUILD_DIR}\", \"\${PROGNAME}.map\")" >> "$AR_PLATFORMIO_PY"
-
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-# include dirs
-REL_INC=""
-echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY"
-
-set -- $INCLUDES
-
-for item; do
-	if [[ "$item" != $PWD ]]; then
-		ipath="$item"
-		fname=`basename "$ipath"`
-		dname=`basename $(dirname "$ipath")`
-		if [[ "$fname" == "main" && "$dname" == $(basename "$PWD") ]]; then
-			continue
-		fi
-		while [[ "$dname" != "components" && "$dname" != "managed_components" && "$dname" != "build" ]]; do
-			ipath=`dirname "$ipath"`
-			fname=`basename "$ipath"`
-			dname=`basename $(dirname "$ipath")`
-		done
-		if [[ "$fname" == "arduino" ]]; then
-			continue
-		fi
-		if [[ "$fname" == "config" ]]; then
-			continue
-		fi
-
-		out_sub="${item#*$ipath}"
-		out_cpath="$AR_SDK/include/$fname$out_sub"
-		REL_INC+="-iwithprefixbefore $fname$out_sub "
-		if [ "$out_sub" = "" ]; then
-			echo "        join($PIO_SDK, \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
-		else
-			pio_sub="${out_sub:1}"
-			pio_sub=`echo $pio_sub | sed 's/\//\\", \\"/g'`
-			echo "        join($PIO_SDK, \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
-		fi
-		for f in `find "$item" -name '*.h'`; do
-			rel_f=${f#*$item}
-			rel_p=${rel_f%/*}
-			mkdir -p "$out_cpath$rel_p"
-			cp -n $f "$out_cpath$rel_p/"
-		done
-		for f in `find "$item" -name '*.hpp'`; do
-			rel_f=${f#*$item}
-			rel_p=${rel_f%/*}
-			mkdir -p "$out_cpath$rel_p"
-			cp -n $f "$out_cpath$rel_p/"
-		done
-		for f in `find "$item" -name '*.inc'`; do
-			rel_f=${f#*$item}
-			rel_p=${rel_f%/*}
-			mkdir -p "$out_cpath$rel_p"
-			cp -n $f "$out_cpath$rel_p/"
-		done
-		# Temporary measure to fix issues caused by https://github.com/espressif/esp-idf/commit/dc4731101dd567cc74bbe4d0f03afe52b7db9afb#diff-1d2ce0d3989a80830fdf230bcaafb3117f32046d16cf46616ac3d55b4df2a988R17
-		if [[ "$fname" == "bt" && "$out_sub" == "/include/$IDF_TARGET/include" && -f "$ipath/controller/$IDF_TARGET/esp_bt_cfg.h" ]]; then
-			mkdir -p "$AR_SDK/include/$fname/controller/$IDF_TARGET"
-			cp -n "$ipath/controller/$IDF_TARGET/esp_bt_cfg.h" "$AR_SDK/include/$fname/controller/$IDF_TARGET/esp_bt_cfg.h"
-		fi
-	fi
-done
-echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"cores\", board_config.get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-mkdir -p "$AR_SDK/lib"
-
-AR_LIBS="$LD_LIBS"
-PIO_LIBS=""
-set -- $LD_LIBS
-for item; do
-	if [ "$PIO_LIBS" != "" ]; then
-		PIO_LIBS+=", "
-	fi
-	PIO_LIBS+="\"$item\""
-done
-
-set -- $LD_LIB_FILES
-for item; do
-	cp "$item" "$AR_SDK/lib/"
-done
-
-echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, \"lib\")," >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, \"ld\")," >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    LIBS=[" >> "$AR_PLATFORMIO_PY"
-echo "        $PIO_LIBS" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-echo "    CPPDEFINES=[" >> "$AR_PLATFORMIO_PY"
-set -- $DEFINES
-for item; do
-	item="${item:2}" #remove -D
-	if [[ $item == *"="* ]]; then
-		item=(${item//=/ })
-		re='^[+-]?[0-9]+([.][0-9]+)?$'
-		if [[ ${item[1]} =~ $re ]]; then
-			echo "        (\"${item[0]}\", ${item[1]})," >> "$AR_PLATFORMIO_PY"
-		else
-			echo "        (\"${item[0]}\", '${item[1]}')," >> "$AR_PLATFORMIO_PY"
-		fi
-	else
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
-	fi
-done
-
-# end generation of platformio-build.py
-cat configs/pio_end.txt >> "$AR_PLATFORMIO_PY"
 
 # replace double backslashes with single one
 DEFINES=`echo "$DEFINES" | tr -s '\'`
