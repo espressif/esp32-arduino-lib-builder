@@ -67,14 +67,6 @@ LD_LIBS_SEARCH=""
 LD_SCRIPTS=""
 LD_SCRIPT_DIRS=""
 
-PIO_CC_FLAGS=""
-PIO_C_FLAGS=""
-PIO_CXX_FLAGS=""
-PIO_AS_FLAGS=""
-PIO_LD_FLAGS=""
-PIO_LD_FUNCS=""
-PIO_LD_SCRIPTS=""
-
 TOOLCHAIN_PREFIX=""
 if [ "$IS_XTENSA" = "y" ]; then
 	TOOLCHAIN="xtensa-$IDF_TARGET-elf"
@@ -120,8 +112,6 @@ for item in "${@:2:${#@}-5}"; do
 		if [[ "${item:2:7}" != "ARDUINO" ]] && [[ "$item" != "-DESP32=ESP32" ]]; then #skip ARDUINO defines
 			DEFINES+="$item "
 		fi
-	elif [ "$prefix" = "-O" ]; then
-		PIO_CC_FLAGS+="$item "
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			C_FLAGS+="$item "
@@ -139,11 +129,6 @@ for item in "${@:2:${#@}-5}"; do
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			AS_FLAGS+="$item "
-			if [[ $C_FLAGS == *"$item"* ]]; then
-				PIO_CC_FLAGS+="$item "
-			else
-				PIO_AS_FLAGS+="$item "
-			fi
 		fi
 	fi
 done
@@ -158,17 +143,7 @@ for item in "${@:2:${#@}-5}"; do
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			CPP_FLAGS+="$item "
-			if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
-				PIO_CXX_FLAGS+="$item "
-			fi
 		fi
-	fi
-done
-
-set -- $C_FLAGS
-for item; do
-	if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
-		PIO_C_FLAGS+="$item "
 	fi
 done
 
@@ -195,7 +170,6 @@ else
 fi
 if [ "$IDF_TARGET" = "esp32" ]; then
 	LD_SCRIPTS+="-T esp32.rom.redefined.ld "
-	PIO_LD_SCRIPTS+="esp32.rom.redefined.ld "
 fi
 set -- $str
 for item; do
@@ -230,7 +204,6 @@ for item; do
 				is_dir=0
 			elif [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:19}" != "-fdebug-prefix-map=" && "${item:0:17}" != "-Wl,--start-group" && "${item:0:15}" != "-Wl,--end-group" ]]; then
 				LD_FLAGS+="$item "
-				PIO_LD_FLAGS+="$item "
 			fi
 		fi
 	else
@@ -242,10 +215,8 @@ for item; do
 			elif [ "$is_script" = "1" ]; then
 				is_script=0
 				LD_SCRIPTS+="$item "
-				PIO_LD_SCRIPTS+="$item "
 			else
 				LD_FLAGS+="$item "
-				PIO_LD_FUNCS+="$item "
 			fi
 		else
 			if [ "${item:${#item}-2:2}" = ".a" ]; then
