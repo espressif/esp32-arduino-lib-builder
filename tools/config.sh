@@ -25,7 +25,7 @@ if [ -z $IDF_TARGET ]; then
 fi
 
 # Owner of the target ESP32 Arduino repository
-AR_USER="$GITHUB_REPOSITORY_OWNER"
+AR_USER="${GITHUB_REPOSITORY_OWNER:-espressif}"
 
 # The full name of the repository
 AR_REPO="$AR_USER/arduino-esp32"
