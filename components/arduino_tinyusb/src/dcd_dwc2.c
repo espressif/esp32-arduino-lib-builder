@@ -31,8 +31,8 @@
 
 #if CFG_TUD_ENABLED && defined(TUP_USBIP_DWC2)
 
-#if !CFG_TUD_DWC2_SLAVE_ENABLE && !CFG_TUH_DWC2_DMA_ENABLE
-#error DWC2 require either CFG_TUD_DWC2_SLAVE_ENABLE or CFG_TUH_DWC2_DMA_ENABLE to be enabled
+#if !(CFG_TUD_DWC2_SLAVE_ENABLE || CFG_TUD_DWC2_DMA_ENABLE)
+#error DWC2 require either CFG_TUD_DWC2_SLAVE_ENABLE or CFG_TUD_DWC2_DMA_ENABLE to be enabled
 #endif
 
 // Debug level for DWC2
@@ -192,8 +192,8 @@ static bool dfifo_alloc(uint8_t rhport, uint8_t ep_addr, uint16_t packet_size) {
     }
   } else {
     // Check IN endpoints concurrently active limit
-    if(_dwc2_controller->ep_in_count) {
-      TU_ASSERT(_dcd_data.allocated_epin_count < _dwc2_controller->ep_in_count);
+    if(dwc2_controller->ep_in_count) {
+      TU_ASSERT(_dcd_data.allocated_epin_count < dwc2_controller->ep_in_count);
       _dcd_data.allocated_epin_count++;
     }
 
@@ -561,7 +561,7 @@ void dcd_edpt_close_all(uint8_t rhport) {
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
   uint8_t const ep_count = _dwc2_controller[rhport].ep_count;
 
-  _dcd_data.allocated_epin_count = 1;
+  _dcd_data.allocated_epin_count = 0;
 
   // Disable non-control interrupt
   dwc2->daintmsk = (1 << DAINTMSK_OEPM_Pos) | (1 << DAINTMSK_IEPM_Pos);
@@ -641,10 +641,6 @@ bool dcd_edpt_xfer_fifo(uint8_t rhport, uint8_t ep_addr, tu_fifo_t* ff, uint16_t
   return true;
 }
 
-void dcd_edpt_close(uint8_t rhport, uint8_t ep_addr) {
-  edpt_disable(rhport, ep_addr, false);
-}
-
 void dcd_edpt_stall(uint8_t rhport, uint8_t ep_addr) {
   dwc2_regs_t* dwc2 = DWC2_REG(rhport);
   edpt_disable(rhport, ep_addr, true);
@@ -676,7 +672,7 @@ static void handle_bus_reset(uint8_t rhport) {
   tu_memclr(xfer_status, sizeof(xfer_status));
 
   _dcd_data.sof_en = false;
-  _dcd_data.allocated_epin_count = 1;
+  _dcd_data.allocated_epin_count = 0;
 
   // 1. NAK for all OUT endpoints
   for (uint8_t n = 0; n < ep_count; n++) {
