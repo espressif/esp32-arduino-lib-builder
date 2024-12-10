@@ -53,7 +53,7 @@ def main(dst_dir, version_string, commit_hash):
         json.dump(MANIFEST_DATA, fp, indent=2)
 
     print(
-        f"Generated PlatformIO manifest file '{manifest_file_path}' with '{converted_version}' version"
+        f"Generated pioarduino manifest file '{manifest_file_path}' with '{converted_version}' version"
     )
     return 0
 
