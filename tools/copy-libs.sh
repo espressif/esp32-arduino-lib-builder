@@ -44,7 +44,12 @@ mkdir -p "$AR_SDK"
 mkdir -p "$AR_SDK/lib"
 
 function get_actual_path(){
-	p="$PWD"; cd "$1"; r="$PWD"; cd "$p"; echo "$r";
+	d="$1";
+	if [ -d "$d" ]; then
+		p="$PWD"; cd "$d"; r="$PWD"; cd "$p"; echo "$r";
+	else
+		echo "";
+	fi
 }
 
 #
