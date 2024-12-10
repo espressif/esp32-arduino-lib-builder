@@ -305,14 +305,14 @@ if [ "$BUILD_TYPE" = "all" ]; then
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
-# Generate PlatformIO manifest file
+# Generate pioarduino manifest file
 if [ "$BUILD_TYPE" = "all" ]; then
-    echo "* Generating PlatformIO manifest file..."
+    echo "* Generating pioarduino manifest file..."
     pushd $IDF_PATH
     ibr=$(git describe --all 2>/dev/null)
     ic=$(git -C "$IDF_PATH" rev-parse --short HEAD)
     popd
-    python3 ./tools/gen_platformio_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
+    python3 ./tools/gen_pioarduino_manifest.py -o "$TOOLS_JSON_OUT/" -s "$ibr" -c "$ic"
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
