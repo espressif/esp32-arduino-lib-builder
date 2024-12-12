@@ -36,13 +36,20 @@ fi
 if [ -e "$AR_SDK/$MEMCONF" ]; then
 	rm -rf "$AR_SDK/$MEMCONF"
 fi
-if [ -e "$AR_SDK/platformio-build.py" ]; then
-	rm -rf "$AR_SDK/platformio-build.py"
+if [ -e "$AR_SDK/pioarduino-build.py" ]; then
+	rm -rf "$AR_SDK/pioarduino-build.py"
 fi
+
 mkdir -p "$AR_SDK"
+mkdir -p "$AR_SDK/lib"
 
 function get_actual_path(){
-	p="$PWD"; cd "$1"; r="$PWD"; cd "$p"; echo "$r";
+	d="$1";
+	if [ -d "$d" ]; then
+		p="$PWD"; cd "$d"; r="$PWD"; cd "$p"; echo "$r";
+	else
+		echo "";
+	fi
 }
 
 #
@@ -56,6 +63,8 @@ AS_FLAGS=""
 INCLUDES=""
 DEFINES=""
 
+EXCLUDE_LIBS=";"
+
 LD_FLAGS=""
 LD_LIBS=""
 LD_LIB_FILES=""
@@ -63,19 +72,30 @@ LD_LIBS_SEARCH=""
 LD_SCRIPTS=""
 LD_SCRIPT_DIRS=""
 
-PIO_CC_FLAGS=""
-PIO_C_FLAGS=""
-PIO_CXX_FLAGS=""
-PIO_AS_FLAGS=""
-PIO_LD_FLAGS=""
-PIO_LD_FUNCS=""
-PIO_LD_SCRIPTS=""
+PIOARDUINO_CC_FLAGS=""
+PIOARDUINO_C_FLAGS=""
+PIOARDUINO_CXX_FLAGS=""
+PIOARDUINO_AS_FLAGS=""
+PIOARDUINO_LD_FLAGS=""
+PIOARDUINO_LD_FUNCS=""
+PIOARDUINO_LD_SCRIPTS=""
 
 TOOLCHAIN_PREFIX=""
 if [ "$IS_XTENSA" = "y" ]; then
 	TOOLCHAIN="xtensa-$IDF_TARGET-elf"
 else
 	TOOLCHAIN="riscv32-esp-elf"
+fi
+
+# copy zigbee + zboss lib
+if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
+	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
+	EXCLUDE_LIBS+="esp_zb_api_ed;"
+fi
+
+if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
+	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
+	EXCLUDE_LIBS+="zboss_stack.ed;zboss_port.debug;"
 fi
 
 #collect includes, defines and c-flags
@@ -106,7 +126,7 @@ for item in "${@:2:${#@}-5}"; do
 			DEFINES+="$item "
 		fi
 	elif [ "$prefix" = "-O" ]; then
-		PIO_CC_FLAGS+="$item "
+		PIOARDUINO_CC_FLAGS+="$item "
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			C_FLAGS+="$item "
@@ -125,9 +145,9 @@ for item in "${@:2:${#@}-5}"; do
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			AS_FLAGS+="$item "
 			if [[ $C_FLAGS == *"$item"* ]]; then
-				PIO_CC_FLAGS+="$item "
+				PIOARDUINO_CC_FLAGS+="$item "
 			else
-				PIO_AS_FLAGS+="$item "
+				PIOARDUINO_AS_FLAGS+="$item "
 			fi
 		fi
 	fi
@@ -143,8 +163,8 @@ for item in "${@:2:${#@}-5}"; do
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			CPP_FLAGS+="$item "
-			if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
-				PIO_CXX_FLAGS+="$item "
+			if [[ $PIOARDUINO_CC_FLAGS != *"$item"* ]]; then
+				PIOARDUINO_CXX_FLAGS+="$item "
 			fi
 		fi
 	fi
@@ -152,8 +172,8 @@ done
 
 set -- $C_FLAGS
 for item; do
-	if [[ $PIO_CC_FLAGS != *"$item"* ]]; then
-		PIO_C_FLAGS+="$item "
+	if [[ $PIOARDUINO_CC_FLAGS != *"$item"* ]]; then
+		PIOARDUINO_C_FLAGS+="$item "
 	fi
 done
 
@@ -180,7 +200,7 @@ else
 fi
 if [ "$IDF_TARGET" = "esp32" ]; then
 	LD_SCRIPTS+="-T esp32.rom.redefined.ld "
-	PIO_LD_SCRIPTS+="esp32.rom.redefined.ld "
+	PIOARDUINO_LD_SCRIPTS+="esp32.rom.redefined.ld "
 fi
 set -- $str
 for item; do
@@ -200,12 +220,14 @@ for item; do
 				add_next=1
 				LD_FLAGS+="$item "
 			elif [ "${item:0:2}" = "-l" ]; then # -l[lib_name]
-				LD_LIBS+="$item "
-				exclude_libs=";m;c;gcc;stdc++;"
 				short_name="${item:2}"
-				if [[ $exclude_libs != *";$short_name;"* && $LD_LIBS_SEARCH != *"lib$short_name.a"* ]]; then
-					LD_LIBS_SEARCH+="lib$short_name.a "
-					#echo "lib add: $item"
+				if [[ $EXCLUDE_LIBS != *";$short_name;"* ]]; then
+					LD_LIBS+="$item "
+					exclude_libs=";m;c;gcc;stdc++;"
+					if [[ $exclude_libs != *";$short_name;"* && $LD_LIBS_SEARCH != *"lib$short_name.a"* ]]; then
+						LD_LIBS_SEARCH+="lib$short_name.a "
+						#echo "1. lib add: $item"
+					fi
 				fi
 			elif [ "$item" = "-o" ]; then
 				add_next=0
@@ -213,7 +235,7 @@ for item; do
 				is_dir=0
 			elif [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:19}" != "-fdebug-prefix-map=" && "${item:0:17}" != "-Wl,--start-group" && "${item:0:15}" != "-Wl,--end-group" ]]; then
 				LD_FLAGS+="$item "
-				PIO_LD_FLAGS+="$item "
+				PIOARDUINO_LD_FLAGS+="$item "
 			fi
 		fi
 	else
@@ -225,10 +247,10 @@ for item; do
 			elif [ "$is_script" = "1" ]; then
 				is_script=0
 				LD_SCRIPTS+="$item "
-				PIO_LD_SCRIPTS+="$item "
+				PIOARDUINO_LD_SCRIPTS+="$item "
 			else
 				LD_FLAGS+="$item "
-				PIO_LD_FUNCS+="$item "
+				PIOARDUINO_LD_FUNCS+="$item "
 			fi
 		else
 			if [ "${item:${#item}-2:2}" = ".a" ]; then
@@ -244,30 +266,38 @@ for item; do
 						if [[ $LD_LIB_FILES != *"$item"* ]]; then
 							# do we already have lib with the same name?
 							if [[ $LD_LIBS != *"-l$lname"* ]]; then
-								# echo "collecting lib '$lname' and file: $item"
-								LD_LIB_FILES+="$item "
-								LD_LIBS+="-l$lname "
+								if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
+									#echo "2. collecting lib '$lname' and file: $item"
+									LD_LIB_FILES+="$item "
+									LD_LIBS+="-l$lname "
+								fi
 							else 
 								# echo "!!! need to rename: '$lname'"
 								for i in {2..9}; do
 									n_item="${item:0:${#item}-2}_$i.a"
 									n_name=$lname"_$i"
 									if [ -f "$n_item" ]; then
-										# echo "renamed add: -l$n_name"
-										LD_LIBS+="-l$n_name "
+										if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
+											#echo "3. renamed add: -l$n_name"
+											LD_LIBS+="-l$n_name "
+										fi
 										break
 									elif [[ $LD_LIB_FILES != *"$n_item"* && $LD_LIBS != *"-l$n_name"* ]]; then
-										echo "Renaming '$lname' to '$n_name': $item"
-										cp -f "$item" "$n_item"
-										LD_LIB_FILES+="$n_item "
-										LD_LIBS+="-l$n_name "
+										if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
+											#echo "4. Renaming '$lname' to '$n_name': $item"
+											cp -f "$item" "$n_item"
+											LD_LIB_FILES+="$n_item "
+											LD_LIBS+="-l$n_name "
+										fi
 										break
 									fi
 								done
 							fi
 						else
-							# echo "just add: -l$lname"
-							LD_LIBS+="-l$lname "
+							if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
+								#echo "5. just add: -l$lname"
+								LD_LIBS+="-l$lname "
+							fi
 						fi
 					else
 						echo "*** Skipping $(basename $item): size too small $lsize"
@@ -288,82 +318,82 @@ done
 
 mkdir -p "$AR_SDK"
 
-# start generation of platformio-build.py
-AR_PLATFORMIO_PY="$AR_SDK/platformio-build.py"
-cat configs/pio_start.txt > "$AR_PLATFORMIO_PY"
+# start generation of pioarduino-build.py
+AR_PIOARDUINO_PY="$AR_SDK/pioarduino-build.py"
+cat configs/pioarduino_start.txt > "$AR_PIOARDUINO_PY"
 
-echo "    ASFLAGS=[" >> "$AR_PLATFORMIO_PY"
+echo "    ASFLAGS=[" >> "$AR_PIOARDUINO_PY"
 if [ "$IS_XTENSA" = "y" ]; then
-	echo "        \"-mlongcalls\"" >> "$AR_PLATFORMIO_PY"
+	echo "        \"-mlongcalls\"" >> "$AR_PIOARDUINO_PY"
 else
-	echo "        \"-march=rv32imc\"" >> "$AR_PLATFORMIO_PY"
+	echo "        \"-march=rv32imc\"" >> "$AR_PIOARDUINO_PY"
 fi
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
-echo "    ASPPFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_AS_FLAGS
+echo "    ASPPFLAGS=[" >> "$AR_PIOARDUINO_PY"
+set -- $PIOARDUINO_AS_FLAGS
 for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+	echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
 done
-echo "        \"-x\", \"assembler-with-cpp\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
+echo "        \"-x\", \"assembler-with-cpp\"" >> "$AR_PIOARDUINO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
-echo "    CFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_C_FLAGS
+echo "    CFLAGS=[" >> "$AR_PIOARDUINO_PY"
+set -- $PIOARDUINO_C_FLAGS
 last_item="${@: -1}"
 for item in "${@:0:${#@}}"; do
 	if [ "${item:0:1}" != "/" ]; then
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+		echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
 	fi
 done
-echo "        \"$last_item\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
+echo "        \"$last_item\"" >> "$AR_PIOARDUINO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
-echo "    CXXFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_CXX_FLAGS
+echo "    CXXFLAGS=[" >> "$AR_PIOARDUINO_PY"
+set -- $PIOARDUINO_CXX_FLAGS
 last_item="${@: -1}"
 for item in "${@:0:${#@}}"; do
 	if [ "${item:0:1}" != "/" ]; then
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+		echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
 	fi
 done
-echo "        \"$last_item\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
+echo "        \"$last_item\"" >> "$AR_PIOARDUINO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
-echo "    CCFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_CC_FLAGS
+echo "    CCFLAGS=[" >> "$AR_PIOARDUINO_PY"
+set -- $PIOARDUINO_CC_FLAGS
 for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+	echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
 done
-echo "        \"-MMD\"" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
+echo "        \"-MMD\"" >> "$AR_PIOARDUINO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
-echo "    LINKFLAGS=[" >> "$AR_PLATFORMIO_PY"
-set -- $PIO_LD_FLAGS
+echo "    LINKFLAGS=[" >> "$AR_PIOARDUINO_PY"
+set -- $PIOARDUINO_LD_FLAGS
 for item; do
-	echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+	echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
 done
-set -- $PIO_LD_SCRIPTS
+set -- $PIOARDUINO_LD_SCRIPTS
 for item; do
-	echo "        \"-T\", \"$item\"," >> "$AR_PLATFORMIO_PY"
+	echo "        \"-T\", \"$item\"," >> "$AR_PIOARDUINO_PY"
 done
-set -- $PIO_LD_FUNCS
+set -- $PIOARDUINO_LD_FUNCS
 for item; do
-	echo "        \"-u\", \"$item\"," >> "$AR_PLATFORMIO_PY"
+	echo "        \"-u\", \"$item\"," >> "$AR_PIOARDUINO_PY"
 done
-echo "        '-Wl,-Map=\"%s\"' % join(\"\${BUILD_DIR}\", \"\${PROGNAME}.map\")" >> "$AR_PLATFORMIO_PY"
+echo "        '-Wl,-Map=\"%s\"' % join(\"\${BUILD_DIR}\", \"\${PROGNAME}.map\")" >> "$AR_PIOARDUINO_PY"
 
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
 # include dirs
 REL_INC=""
-echo "    CPPPATH=[" >> "$AR_PLATFORMIO_PY"
+echo "    CPPPATH=[" >> "$AR_PIOARDUINO_PY"
 
 set -- $INCLUDES
 
@@ -391,11 +421,11 @@ for item; do
 		out_cpath="$AR_SDK/include/$fname$out_sub"
 		REL_INC+="-iwithprefixbefore $fname$out_sub "
 		if [ "$out_sub" = "" ]; then
-			echo "        join($PIO_SDK, \"include\", \"$fname\")," >> "$AR_PLATFORMIO_PY"
+			echo "        join($PIOARDUINO_SDK, \"include\", \"$fname\")," >> "$AR_PIOARDUINO_PY"
 		else
-			pio_sub="${out_sub:1}"
-			pio_sub=`echo $pio_sub | sed 's/\//\\", \\"/g'`
-			echo "        join($PIO_SDK, \"include\", \"$fname\", \"$pio_sub\")," >> "$AR_PLATFORMIO_PY"
+			pioarduino_sub="${out_sub:1}"
+			pioarduino_sub=`echo $pioarduino_sub | sed 's/\//\\", \\"/g'`
+			echo "        join($PIOARDUINO_SDK, \"include\", \"$fname\", \"$pioarduino_sub\")," >> "$AR_PIOARDUINO_PY"
 		fi
 		for f in `find "$item" -name '*.h'`; do
 			rel_f=${f#*$item}
@@ -422,21 +452,19 @@ for item; do
 		fi
 	fi
 done
-echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PLATFORMIO_PY"
-echo "        join(FRAMEWORK_DIR, \"cores\", board_config.get(\"build.core\"))" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
-
-mkdir -p "$AR_SDK/lib"
+echo "        join($PIOARDUINO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PIOARDUINO_PY"
+echo "        join(FRAMEWORK_DIR, \"cores\", board_config.get(\"build.core\"))" >> "$AR_PIOARDUINO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
 AR_LIBS="$LD_LIBS"
-PIO_LIBS=""
+PIOARDUINO_LIBS=""
 set -- $LD_LIBS
 for item; do
-	if [ "$PIO_LIBS" != "" ]; then
-		PIO_LIBS+=", "
+	if [ "$PIOARDUINO_LIBS" != "" ]; then
+		PIOARDUINO_LIBS+=", "
 	fi
-	PIO_LIBS+="\"$item\""
+	PIOARDUINO_LIBS+="\"$item\""
 done
 
 set -- $LD_LIB_FILES
@@ -444,19 +472,19 @@ for item; do
 	cp "$item" "$AR_SDK/lib/"
 done
 
-echo "    LIBPATH=[" >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, \"lib\")," >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, \"ld\")," >> "$AR_PLATFORMIO_PY"
-echo "        join($PIO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
+echo "    LIBPATH=[" >> "$AR_PIOARDUINO_PY"
+echo "        join($PIOARDUINO_SDK, \"lib\")," >> "$AR_PIOARDUINO_PY"
+echo "        join($PIOARDUINO_SDK, \"ld\")," >> "$AR_PIOARDUINO_PY"
+echo "        join($PIOARDUINO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")))" >> "$AR_PIOARDUINO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
-echo "    LIBS=[" >> "$AR_PLATFORMIO_PY"
-echo "        $PIO_LIBS" >> "$AR_PLATFORMIO_PY"
-echo "    ]," >> "$AR_PLATFORMIO_PY"
-echo "" >> "$AR_PLATFORMIO_PY"
+echo "    LIBS=[" >> "$AR_PIOARDUINO_PY"
+echo "        $PIOARDUINO_LIBS" >> "$AR_PIOARDUINO_PY"
+echo "    ]," >> "$AR_PIOARDUINO_PY"
+echo "" >> "$AR_PIOARDUINO_PY"
 
-echo "    CPPDEFINES=[" >> "$AR_PLATFORMIO_PY"
+echo "    CPPDEFINES=[" >> "$AR_PIOARDUINO_PY"
 set -- $DEFINES
 for item; do
 	item="${item:2}" #remove -D
@@ -464,17 +492,17 @@ for item; do
 		item=(${item//=/ })
 		re='^[+-]?[0-9]+([.][0-9]+)?$'
 		if [[ ${item[1]} =~ $re ]]; then
-			echo "        (\"${item[0]}\", ${item[1]})," >> "$AR_PLATFORMIO_PY"
+			echo "        (\"${item[0]}\", ${item[1]})," >> "$AR_PIOARDUINO_PY"
 		else
-			echo "        (\"${item[0]}\", '${item[1]}')," >> "$AR_PLATFORMIO_PY"
+			echo "        (\"${item[0]}\", '${item[1]}')," >> "$AR_PIOARDUINO_PY"
 		fi
 	else
-		echo "        \"$item\"," >> "$AR_PLATFORMIO_PY"
+		echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
 	fi
 done
 
-# end generation of platformio-build.py
-cat configs/pio_end.txt >> "$AR_PLATFORMIO_PY"
+# end generation of pioarduino-build.py
+cat configs/pioarduino_end.txt >> "$AR_PIOARDUINO_PY"
 
 # replace double backslashes with single one
 DEFINES=`echo "$DEFINES" | tr -s '\'`
@@ -501,15 +529,6 @@ CHIP_RESOLVE_DIR="$AR_SDK/include/espressif__esp_matter/connectedhomeip/connecte
 sed 's/CHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER/<lib\/address_resolve\/AddressResolve_DefaultImpl.h>/' $CHIP_RESOLVE_DIR/AddressResolve.h > $CHIP_RESOLVE_DIR/AddressResolve_temp.h
 mv $CHIP_RESOLVE_DIR/AddressResolve_temp.h $CHIP_RESOLVE_DIR/AddressResolve.h
 # End of Matter Library adjustments
-
-# copy zigbee + zboss lib
-if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
-	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-fi
-
-if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
-	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-fi
 
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
