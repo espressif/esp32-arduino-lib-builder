@@ -100,11 +100,18 @@ extern "C" {
 #   define CFG_TUSB_MEM_ALIGN       TU_ATTR_ALIGNED(4)
 #endif
 
+#if CONFIG_IDF_TARGET_ESP32P4
+#define CFG_TUD_MAX_SPEED OPT_MODE_HIGH_SPEED
+#else
+#define CFG_TUD_MAX_SPEED OPT_MODE_FULL_SPEED
+#endif
+
 /*                      */
 /* DRIVER CONFIGURATION */
 /*                      */
 
 #define CFG_TUD_MAINTASK_SIZE 		4096
+#define CFG_TUD_ENDOINT_SIZE 		(TUD_OPT_HIGH_SPEED ? 512 : 64)
 #define CFG_TUD_ENDOINT0_SIZE 		64
 
 // Enabled Drivers

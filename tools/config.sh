@@ -6,7 +6,7 @@ if [ -z $IDF_PATH ]; then
 fi
 
 if [ -z $IDF_BRANCH ]; then
-    IDF_BRANCH="release/v5.1"
+    IDF_BRANCH="release/v5.3"
 fi
 
 if [ -z $AR_PR_TARGET_BRANCH ]; then
@@ -49,7 +49,7 @@ AR_PATCHES="$AR_ROOT/patches"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
 AR_SDK="$AR_TOOLS/esp32-arduino-libs/$IDF_TARGET"
-PIO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
+PIOARDUINO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
 TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
 
 if [ -d "$IDF_PATH" ]; then

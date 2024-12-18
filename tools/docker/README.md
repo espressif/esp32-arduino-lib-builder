@@ -24,7 +24,7 @@ Multiple tags of this image are maintained:
 ## Basic Usage
 
 ```bash
-docker run --rm -it -e "TERM=xterm-256color" -v <path to arduino-esp32>:/arduino-esp32 espressif/esp32-arduino-lib-builder:latest
+docker run --rm -it -e "TERM=xterm-256color" -v <path to arduino-esp32>:/arduino-esp32 espressif/esp32-arduino-lib-builder:release-v5.3
 ```
 
 The above command explained:
@@ -35,18 +35,16 @@ The above command explained:
   - `-t`: Allocates a pseudo-TTY.
   - `-e "TERM=xterm-256color"`: Optional. Sets the terminal type to `xterm-256color` to display colors correctly.
   - `-v <path to arduino-esp32>:/arduino-esp32`: Optional. Mounts the Arduino Core for ESP32 repository at `/arduino-esp32` inside the container. Replace `<path to arduino-esp32>` with the path to the repository on the host machine. If not provided, the container will not copy the compiled libraries to the host machine.
-  - `espressif/esp32-arduino-lib-builder:latest`: The Docker image to use.
+  - `espressif/esp32-arduino-lib-builder:release-v5.3`: The Docker image to use.
 
 After running the above command, you will be inside the container and can build the libraries using the user interface.
 
 By default the docker container will run the user interface script. If you want to run a specific command, you can pass it as an argument to the docker run command. For example, to run a terminal inside the container, you can run:
 
 ```bash
-docker run -it espressif/esp32-arduino-lib-builder:latest /bin/bash
+docker run -it espressif/esp32-arduino-lib-builder:release-v5.3 /bin/bash
 ```
 
 ## Documentation
 
-<!-- Pending: Add link to the full documentation. -->
-
-For more information about this image and the detailed usage instructions, please refer to the Arduino Core for ESP32 documentation.
+For more information about this image and the detailed usage instructions, please refer to the [Arduino Core for ESP32 documentation](https://docs.espressif.com/projects/arduino-esp32/en/latest/lib_builder.html#docker-image).
