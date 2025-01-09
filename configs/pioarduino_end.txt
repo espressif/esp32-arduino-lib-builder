@@ -1,4 +1,5 @@
         "ARDUINO_ARCH_ESP32",
+        "CHIP_HAVE_CONFIG_H",
         ("ESP32", "ESP32"),
         ("F_CPU", "$BOARD_F_CPU"),
         ("ARDUINO", 10812),
