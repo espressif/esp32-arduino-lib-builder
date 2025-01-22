@@ -203,8 +203,11 @@ function github_release_asset_upload(){ # github_release_asset_upload <repo-path
 function github_release_asset_delete(){ # github_release_asset_delete <repo-path> <release-asset-id>
     local repo_path="$1"
     local release_asset_id="$2"
-    local res=$(curl -s -k -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases/assets/$release_asset_id")
-    if [ "$res" -eq 204 ]; then echo 1; else echo 0; fi
+    local res
+    local return_code
+    res=$(curl -s -k -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases/assets/$release_asset_id")
+    return_code=$?
+    if [ "$res" -eq 204 ] && [ "$return_code" -eq 0 ] ; then echo 1; else echo 0; fi
 }
 
 
