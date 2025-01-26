@@ -56,8 +56,8 @@ function get_actual_path(){
 # START OF DATA EXTRACTION FROM CMAKE
 #
 
-C_FLAGS=""
-CPP_FLAGS=""
+C_FLAGS="-flto=auto "
+CPP_FLAGS="-flto=auto "
 AS_FLAGS=""
 
 INCLUDES=""
@@ -65,18 +65,18 @@ DEFINES=""
 
 EXCLUDE_LIBS=";"
 
-LD_FLAGS=""
+LD_FLAGS="-flto "
 LD_LIBS=""
 LD_LIB_FILES=""
 LD_LIBS_SEARCH=""
 LD_SCRIPTS=""
 LD_SCRIPT_DIRS=""
 
-PIOARDUINO_CC_FLAGS=""
-PIOARDUINO_C_FLAGS=""
-PIOARDUINO_CXX_FLAGS=""
+PIOARDUINO_CC_FLAGS="-flto=auto "
+PIOARDUINO_C_FLAGS="-flto=auto "
+PIOARDUINO_CXX_FLAGS="-flto=auto "
 PIOARDUINO_AS_FLAGS=""
-PIOARDUINO_LD_FLAGS=""
+PIOARDUINO_LD_FLAGS="-flto "
 PIOARDUINO_LD_FUNCS=""
 PIOARDUINO_LD_SCRIPTS=""
 
@@ -128,7 +128,7 @@ for item in "${@:2:${#@}-5}"; do
 	elif [ "$prefix" = "-O" ]; then
 		PIOARDUINO_CC_FLAGS+="$item "
 	elif [[ "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" ]]; then
-		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
+		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" && "${item:0:8}" != "-fno-lto" ]]; then
 			C_FLAGS+="$item "
 		fi
 	fi
@@ -141,7 +141,7 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
+	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$item" != "-fno-lto" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			AS_FLAGS+="$item "
 			if [[ $C_FLAGS == *"$item"* ]]; then
@@ -160,7 +160,7 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
+	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$item" != "-fno-lto" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			CPP_FLAGS+="$item "
 			if [[ $PIOARDUINO_CC_FLAGS != *"$item"* ]]; then
@@ -233,7 +233,7 @@ for item; do
 				add_next=0
 				is_script=0
 				is_dir=0
-			elif [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:19}" != "-fdebug-prefix-map=" && "${item:0:17}" != "-Wl,--start-group" && "${item:0:15}" != "-Wl,--end-group" ]]; then
+			elif [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:19}" != "-fdebug-prefix-map=" && "${item:0:8}" != "-fno-lto" && "${item:0:17}" != "-Wl,--start-group" && "${item:0:15}" != "-Wl,--end-group" ]]; then
 				LD_FLAGS+="$item "
 				PIOARDUINO_LD_FLAGS+="$item "
 			fi
