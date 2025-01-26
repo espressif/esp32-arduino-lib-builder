@@ -29,6 +29,8 @@ def replace_if_xz(system):
 
     new_url = system['url'].replace(".tar.xz", ".tar.gz")
     new_name = system['archiveFileName'].replace(".tar.xz", ".tar.gz")
+    new_signed_url = system['url'].replace(".tar.xz", "_signed.tar.gz")
+    new_signed_name = system['archiveFileName'].replace(".tar.xz", "_signed.tar.gz")
     new_checksum = ""
     new_size = 0
 
@@ -76,6 +78,12 @@ def replace_if_xz(system):
         release_manifests.append(manifest)
 
     # find the new file in the list and get it's size and checksum
+    for file in release_manifests[manifest_index]['files']:
+        if file['name'] == new_signed_name:
+            print("Found a signed version of the file")
+            new_url = new_signed_url
+            new_name = new_signed_name
+            break
     for file in release_manifests[manifest_index]['files']:
         if file['name'] == new_name:
             system['url'] = new_url
