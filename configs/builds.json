@@ -46,7 +46,7 @@
 	"targets":[
 		{
 			"target": "esp32c5",
-			"features":[],
+			"features":["qio_ram"],
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
 				["qio","80m"],
