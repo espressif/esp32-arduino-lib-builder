@@ -37,6 +37,12 @@
 			"targets":["esp32s3"]
 		},
 		{
+			"file":"libesp_lcd.a",
+			"src":"build/esp-idf/esp_lcd/libesp_lcd.a",
+			"out":"lib/libesp_lcd.a",
+			"targets":["esp32s3"]
+		},
+		{
 			"file":"sections.ld",
 			"src":"build/esp-idf/esp_system/ld/sections.ld",
 			"out":"ld/sections.ld",
