@@ -47,16 +47,22 @@ if [ $AR_HAS_COMMIT == "0" ] || [ $LIBS_HAS_ASSET == "0" ]; then
 		fi
 	fi
 
+	sleep 5
 	echo "Creating asset '$LIBS_ZIP_FILENAME'..."
-
 	mv -f "dist/esp32-arduino-libs.zip" "dist/$LIBS_ZIP_FILENAME"
+
 	LIBS_ASSET_ID=`github_release_asset_upload "$AR_LIBS_REPO" "$LIBS_RELEASE_ID" "$LIBS_ZIP_FILENAME" "dist/$LIBS_ZIP_FILENAME"`
 	if [ -z "$LIBS_ASSET_ID" ]; then
-		echo "ERROR: Failed to upload asset '$LIBS_ZIP_FILENAME'"
-		exit 1
+		echo "ERROR: Failed to upload asset '$LIBS_ZIP_FILENAME. Retrying..."
+		LIBS_ASSET_ID=`github_release_asset_upload "$AR_LIBS_REPO" "$LIBS_RELEASE_ID" "$LIBS_ZIP_FILENAME" "dist/$LIBS_ZIP_FILENAME"`
+		if [ -z "$LIBS_ASSET_ID" ]; then
+			echo "ERROR: Failed to upload asset '$LIBS_ZIP_FILENAME'"
+			exit 1
+		fi
 	fi
 
 	echo "Finished uploading asset '$LIBS_ZIP_FILENAME'. Asset ID: $LIBS_ASSET_ID"
+	sleep 5
 
 	# Calculate the local file checksum and size
 	local_checksum=$(sha256sum "dist/$LIBS_ZIP_FILENAME" | awk '{print $1}')
@@ -108,8 +114,12 @@ if [ $AR_HAS_COMMIT == "0" ] || [ $LIBS_HAS_ASSET == "0" ]; then
 
 	JSON_ASSET_ID=`github_release_asset_upload "$AR_LIBS_REPO" "$LIBS_RELEASE_ID" "$LIBS_JSON_FILENAME" "$AR_OUT/package_esp32_index.template.json"`
 	if [ -z "$JSON_ASSET_ID" ]; then
-		echo "ERROR: Failed to upload asset '$LIBS_JSON_FILENAME'"
-		exit 1
+		echo "ERROR: Failed to upload asset '$LIBS_JSON_FILENAME'. Retrying..."
+		JSON_ASSET_ID=`github_release_asset_upload "$AR_LIBS_REPO" "$LIBS_RELEASE_ID" "$LIBS_JSON_FILENAME" "$AR_OUT/package_esp32_index.template.json"`
+		if [ -z "$JSON_ASSET_ID" ]; then
+			echo "ERROR: Failed to upload asset '$LIBS_JSON_FILENAME'"
+			exit 1
+		fi
 	fi
 fi
 
