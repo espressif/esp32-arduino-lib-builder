@@ -95,7 +95,7 @@ fi
 
 if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
 	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-	EXCLUDE_LIBS+="zboss_stack.ed;zboss_port.debug;"
+	EXCLUDE_LIBS+="zboss_stack.ed;zboss_port.native.debug;"
 fi
 
 #collect includes, defines and c-flags
