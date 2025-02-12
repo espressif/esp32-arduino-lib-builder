@@ -42,6 +42,14 @@ menu "Arduino TinyUSB"
             help
                 CDC FIFO size of TX
 
+        config TINYUSB_CDC_MAX_PORTS
+            int "Maximum enabled CDC ports"
+            range 1 2
+            default 1
+            depends on TINYUSB_CDC_ENABLED
+            help
+                Maximum enabled CDC ports
+
     endmenu
 
     menu "Mass Storage (MSC) driver"
