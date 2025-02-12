@@ -70,7 +70,7 @@ RUN echo LIBBUILDER_CHECKOUT_REF=$LIBBUILDER_CHECKOUT_REF LIBBUILDER_CLONE_BRANC
       git checkout $LIBBUILDER_CHECKOUT_REF && \
       git submodule update --init --recursive; \
     fi && \
-    pip3 install --upgrade -r $LIBBUILDER_PATH/tools/config_editor/requirements.txt
+    pip3 install --break-system-packages --upgrade -r $LIBBUILDER_PATH/tools/config_editor/requirements.txt
 
 COPY entrypoint.sh $LIBBUILDER_PATH/entrypoint.sh
 
