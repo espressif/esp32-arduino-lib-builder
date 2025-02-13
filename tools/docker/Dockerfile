@@ -1,5 +1,5 @@
 # To Do: Check if it is worth to use espressif/idf as base image (image size will be much bigger)
-FROM ubuntu:22.04
+FROM ubuntu:latest
 
 # switch to root, let the entrypoint drop back to host user
 USER root
@@ -70,7 +70,7 @@ RUN echo LIBBUILDER_CHECKOUT_REF=$LIBBUILDER_CHECKOUT_REF LIBBUILDER_CLONE_BRANC
       git checkout $LIBBUILDER_CHECKOUT_REF && \
       git submodule update --init --recursive; \
     fi && \
-    pip3 install --upgrade -r $LIBBUILDER_PATH/tools/config_editor/requirements.txt
+    pip3 install --break-system-packages --upgrade -r $LIBBUILDER_PATH/tools/config_editor/requirements.txt
 
 COPY entrypoint.sh $LIBBUILDER_PATH/entrypoint.sh
 
