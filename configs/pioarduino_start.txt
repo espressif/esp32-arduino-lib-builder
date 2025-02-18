@@ -45,28 +45,17 @@ flatten_cppdefines = env.Flatten(env['CPPDEFINES'])
 if "ZIGBEE_MODE_ZCZR" in flatten_cppdefines:
     env.Append(
         LIBS=[
-            "-lesp_zb_api_zczr",
-            "-lesp_zb_cli_command",
+            "-lesp_zb_api.zczr",
             "-lzboss_stack.zczr",
-            "-lzboss_port"
+            "-lzboss_port.native"
         ]
     )
 if "ZIGBEE_MODE_ED" in flatten_cppdefines:
     env.Append(
         LIBS=[
-            "-lesp_zb_api_ed",
-            "-lesp_zb_cli_command",
+            "-lesp_zb_api.ed",
             "-lzboss_stack.ed",
-            "-lzboss_port"
-        ]
-    )
-if "ZIGBEE_MODE_RCP" in flatten_cppdefines:
-    env.Append(
-        LIBS=[
-            "-lesp_zb_api_rcp",
-            "-lesp_zb_cli_command",
-            "-lzboss_stack.rcp",
-            "-lzboss_port"
+            "-lzboss_port.native"
         ]
     )
 
