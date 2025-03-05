@@ -8,6 +8,7 @@ components/esp32-camera/
 components/esp_littlefs/
 components/esp-rainmaker/
 components/espressif__esp-dsp/
+components/espressif__esp_matter/
 components/esp-insights/
 components/arduino_tinyusb/tinyusb/
 components/tflite-micro/
