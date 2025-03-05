@@ -1,0 +1,35 @@
+@@ -31,22 +31,19 @@
+ bool BluedroidGetChipDeviceInfo(esp_ble_gap_cb_param_t & scan_result, chip::Ble::ChipBLEDeviceIdentificationInfo & deviceInfo)
+ {
+     // Check for CHIP Service UUID
+-    if (scan_result.scan_rst.ble_adv != NULL)
++    if (scan_result.scan_rst.adv_data_len > 13 && scan_result.scan_rst.ble_adv[5] == 0xf6 &&
++        scan_result.scan_rst.ble_adv[6] == 0xff)
+     {
+-        if (scan_result.scan_rst.adv_data_len > 13 && scan_result.scan_rst.ble_adv[5] == 0xf6 &&
+-            scan_result.scan_rst.ble_adv[6] == 0xff)
+-        {
+-            deviceInfo.OpCode                              = scan_result.scan_rst.ble_adv[7];
+-            deviceInfo.DeviceDiscriminatorAndAdvVersion[0] = scan_result.scan_rst.ble_adv[8];
+-            deviceInfo.DeviceDiscriminatorAndAdvVersion[1] = scan_result.scan_rst.ble_adv[9];
+-            // vendor and product Id from adv
+-            deviceInfo.DeviceVendorId[0]  = scan_result.scan_rst.ble_adv[10];
+-            deviceInfo.DeviceVendorId[1]  = scan_result.scan_rst.ble_adv[11];
+-            deviceInfo.DeviceProductId[0] = scan_result.scan_rst.ble_adv[12];
+-            deviceInfo.DeviceProductId[1] = scan_result.scan_rst.ble_adv[13];
+-            deviceInfo.AdditionalDataFlag = scan_result.scan_rst.ble_adv[14];
+-            return true;
+-        }
++        deviceInfo.OpCode                              = scan_result.scan_rst.ble_adv[7];
++        deviceInfo.DeviceDiscriminatorAndAdvVersion[0] = scan_result.scan_rst.ble_adv[8];
++        deviceInfo.DeviceDiscriminatorAndAdvVersion[1] = scan_result.scan_rst.ble_adv[9];
++        // vendor and product Id from adv
++        deviceInfo.DeviceVendorId[0]  = scan_result.scan_rst.ble_adv[10];
++        deviceInfo.DeviceVendorId[1]  = scan_result.scan_rst.ble_adv[11];
++        deviceInfo.DeviceProductId[0] = scan_result.scan_rst.ble_adv[12];
++        deviceInfo.DeviceProductId[1] = scan_result.scan_rst.ble_adv[13];
++        deviceInfo.AdditionalDataFlag = scan_result.scan_rst.ble_adv[14];
++        return true;
+     }
+     return false;
+ }
