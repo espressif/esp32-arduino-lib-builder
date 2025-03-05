@@ -37,7 +37,7 @@ if [ -d "$CHIP_REPO_DIR" ]; then
         rm -rf "$CHIP_REPO_DIR"
         git clone --depth 1 -b "$CHIP_REPO_BRANCH" "$CHIP_REPO_URL" "$CHIP_REPO_DIR"
         if [ $? -ne 0 ]; then exit 1; fi
-        $CHIP_REPO_DIR/scripts/checkout_submodules.py --platform esp32 darwin --shallow
+        $CHIP_REPO_DIR/scripts/checkout_submodules.py --platform esp32 --shallow
         if [ $? -ne 0 ]; then exit 1; fi
         echo "Patching CHIP v1.3 repository..."
         CHIP_BAD_FILE="$CHIP_REPO_DIR/src/platform/ESP32/bluedroid/ChipDeviceScanner.cpp"
