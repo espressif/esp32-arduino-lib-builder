@@ -28,7 +28,8 @@ jobs:
         target: [esp32, esp32s2, esp32s3, esp32c2, esp32c3, esp32c6, esp32h2, esp32p4]
       fail-fast: false
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
@@ -38,13 +39,13 @@ jobs:
 
     - name: Upload build
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: build-${{ matrix.target }}
         path: build
 
     - name: Upload archive
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: artifacts-${{ matrix.target }}
         path: dist
@@ -55,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           path: dist
           pattern: artifacts-*
@@ -69,13 +70,13 @@ jobs:
           cp out/package_esp32_index.template.json dist/package_esp32_index.template.json
 
       - name: Upload full esp32-arduino-libs archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: esp32-arduino-libs
           path: dist/esp32-arduino-libs.tar.gz
 
       - name: Upload package_esp32_index.template.json
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: package-esp32-index-json
           path: dist/package_esp32_index.template.json
