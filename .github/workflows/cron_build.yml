@@ -41,7 +41,8 @@ jobs:
       deploy_needed: ${{ steps.check.outputs.deploy_needed }}
       targets_list: ${{ steps.check.outputs.targets_list }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout ${{ inputs.lib_builder_branch }}
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ inputs.lib_builder_branch }}
 
@@ -65,7 +66,8 @@ jobs:
       matrix:
         target: ${{ fromJson(needs.check-if-needed.outputs.targets_list) }}
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout ${{ inputs.lib_builder_branch }}
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         ref: ${{ inputs.lib_builder_branch }}
 
@@ -88,13 +90,13 @@ jobs:
 
     - name: Upload build
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: build-${{ env.libs_branch }}-${{ matrix.target }}
         path: build
 
     - name: Upload library files
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: libs-${{ env.libs_branch }}-${{ matrix.target }}
         path: dist
@@ -105,7 +107,8 @@ jobs:
     needs: [check-if-needed, build-libs]
     if: needs.check-if-needed.outputs.deploy_needed == '1'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout ${{ inputs.lib_builder_branch }}
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ inputs.lib_builder_branch }}
 
@@ -115,7 +118,7 @@ jobs:
           echo "libs_branch=${branch//\//_}" >> $GITHUB_ENV
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           path: dist
           pattern: libs-${{ env.libs_branch }}-*
@@ -125,7 +128,7 @@ jobs:
         run: bash ./tools/combine-artifacts.sh
 
       - name: Upload full esp32-arduino-libs archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: esp32-arduino-libs-${{ env.libs_branch }}
           path: dist/esp32-arduino-libs.zip
@@ -154,7 +157,7 @@ jobs:
           bash ./tools/push-to-arduino.sh
 
       - name: Upload package_esp32_index.template.json
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: package-esp32-index-json-${{ env.libs_branch }}
           path: out/package_esp32_index.template.json
