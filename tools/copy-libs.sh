@@ -122,7 +122,7 @@ for item in "${@:2:${#@}-5}"; do
 			INCLUDES+="$item "
 		fi
 	elif [ "$prefix" = "-D" ]; then
-		if [[ "${item:2:7}" != "ARDUINO" ]] && [[ "$item" != "-DESP32=ESP32" ]]; then #skip ARDUINO defines
+		if [[ "${item:2:7}" != "ARDUINO" ]] && [[ "$item" != "-DESP32=ESP32" ]] && [[ "$item" != "-DNDEBUG" ]]; then #skip ARDUINO defines
 			DEFINES+="$item "
 		fi
 	elif [ "$prefix" = "-O" ]; then
@@ -488,6 +488,7 @@ echo "    CPPDEFINES=[" >> "$AR_PIOARDUINO_PY"
 set -- $DEFINES
 for item; do
 	item="${item:2}" #remove -D
+        item="${item/NDEBUG}" #remove NDEBUG
 	if [[ $item == *"="* ]]; then
 		item=(${item//=/ })
 		re='^[+-]?[0-9]+([.][0-9]+)?$'
