@@ -19,11 +19,11 @@
    dwc2_regs_t* dwc2 = DWC2_REG(rhport);
    const uint8_t epnum = tu_edpt_number(p_endpoint_desc->bEndpointAddress);
 @@ -266,7 +277,18 @@
-     depctl.bm.set_data0_iso_even = 1;
+     depctl.set_data0_iso_even = 1;
    }
    if (dir == TUSB_DIR_IN) {
--    depctl.bm.tx_fifo_num = epnum;
-+    //depctl.bm.tx_fifo_num = epnum;
+-    depctl.tx_fifo_num = epnum;
++    //depctl.tx_fifo_num = epnum;
 +    uint8_t fifo_num = epnum;
 +#if TU_CHECK_MCU(OPT_MCU_ESP32S2, OPT_MCU_ESP32S3)
 +    // Special Case for EP5, which is used by CDC but not actually called by the driver
@@ -34,7 +34,7 @@
 +      fifo_num = get_free_fifo();
 +    }
 +#endif
-+    depctl.bm.tx_fifo_num = fifo_num;
++    depctl.tx_fifo_num = fifo_num;
    }
  
    dwc2_dep_t* dep = &dwc2->ep[dir == TUSB_DIR_IN ? 0 : 1][epnum];
