@@ -6,7 +6,7 @@ if [ -z $IDF_PATH ]; then
 fi
 
 if [ -z $IDF_BRANCH ]; then
-    IDF_BRANCH="master"
+    IDF_BRANCH="release/v5.5"
 fi
 
 if [ -z $AR_PR_TARGET_BRANCH ]; then
