@@ -108,7 +108,7 @@ function github_get_libs_idf(){ # github_get_libs_idf <repo-path> <branch-name> 
     local version_found=""
     local libs_version=""
 
-    while [[ "$libs_version" == "" && "$page" -le 3 ]]; do
+    while [[ "$libs_version" == "" && "$page" -le 5 ]]; do
         # Get the latest commit message that matches the prefix and extract the hash from the last commit message
         version_found=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/commits?sha=$branch_name&per_page=100&page=$page" | \
             jq -r --arg prefix "$message_prefix" '[ .[] | select(.commit.message | test($prefix + " [a-f0-9]{8}")) ][0] | .commit.message' | \
@@ -131,7 +131,7 @@ function github_commit_exists(){ #github_commit_exists <repo-path> <branch-name>
     local page=1
     local commits_found=0
 
-    while [ "$page" -le 3 ]; do
+    while [ "$page" -le 5 ]; do
         local response=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/commits?sha=$branch_name&per_page=100&page=$page"`
 
         if [[ -z "$response" || "$response" == "[]" ]]; then
@@ -178,16 +178,52 @@ function github_pr_exists(){ # github_pr_exists <repo-path> <branch-name>
 function github_release_id(){ # github_release_id <repo-path> <release-tag>
     local repo_path="$1"
     local release_tag="$2"
-    local release=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases" | jq --arg release_tag "$release_tag" -r '.[] | select(.tag_name == $release_tag) | .id'`
-    if [ ! "$release" == "" ] && [ ! "$release" == "null" ]; then echo "$release"; else echo ""; fi
+    local page=1
+    local release_id=""
+
+    while [[ "$page" -le 3 ]]; do
+        local response=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases?per_page=100&page=$page"`
+
+        if [[ -z "$response" || "$response" == "[]" ]]; then
+            break
+        fi
+
+        local release=`echo "$response" | jq --arg release_tag "$release_tag" -r '.[] | select(.tag_name == $release_tag) | .id'`
+        if [ ! "$release" == "" ] && [ ! "$release" == "null" ]; then
+            release_id=$release
+            break
+        fi
+
+        page=$((page+1))
+    done
+
+    echo "$release_id"
 }
 
 function github_release_asset_id(){ # github_release_asset_id <repo-path> <release-id> <release-file>
     local repo_path="$1"
     local release_id="$2"
     local release_file="$3"
-    local release_asset=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases/$release_id/assets" | jq --arg release_file "$release_file" -r '.[] | select(.name == $release_file) | .id'`
-    if [ ! "$release_asset" == "" ] && [ ! "$release_asset" == "null" ]; then echo "$release_asset"; else echo ""; fi
+    local page=1
+    local asset_id=""
+
+    while [[ "$page" -le 5 ]]; do
+        local response=`curl -s -k -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3.raw+json" "https://api.github.com/repos/$repo_path/releases/$release_id/assets?per_page=100&page=$page"`
+
+        if [[ -z "$response" || "$response" == "[]" ]]; then
+            break
+        fi
+
+        local release_asset=`echo "$response" | jq --arg release_file "$release_file" -r '.[] | select(.name == $release_file) | .id'`
+        if [ ! "$release_asset" == "" ] && [ ! "$release_asset" == "null" ]; then
+            asset_id=$release_asset
+            break
+        fi
+
+        page=$((page+1))
+    done
+
+    echo "$asset_id"
 }
 
 function github_release_asset_upload(){ # github_release_asset_upload <repo-path> <release-id> <release-file-name> <release-file-path>
