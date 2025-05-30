@@ -56,9 +56,9 @@
 +#if TU_CHECK_MCU(OPT_MCU_ESP32S2, OPT_MCU_ESP32S3)
 +    _allocated_fifos = 1;
 +#endif
+
+     usbd_spin_lock(true);
      handle_bus_reset(rhport);
-   }
- 
 @@ -1008,7 +1037,11 @@
  
    if (gintsts & GINTSTS_USBSUSP) {
