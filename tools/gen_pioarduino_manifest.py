@@ -23,6 +23,9 @@ def convert_version(version_string):
     'v7.7.7' becomes '7.7.7'
     """
 
+    if version_string == 'heads/master':
+        return ".".join(("5", "5", "0")) #temporary
+
     regex_pattern = (
         r"v(?P<MAJOR>0|[1-9]\d*)\.(?P<MINOR>0|[1-9]\d*)\.*(?P<PATCH>0|[1-9]\d*)*"
     )
