@@ -112,6 +112,8 @@ echo "TARGET(s): ${TARGET[@]}"
 
 mkdir -p dist
 
+source ./tools/config.sh
+
 if [ $SKIP_ENV -eq 0 ]; then
     echo "* Installing/Updating ESP-IDF and all components..."
     # update components from git
@@ -316,19 +318,19 @@ if [ "$BUILD_TYPE" = "all" ]; then
     if [ $? -ne 0 ]; then exit 1; fi
 fi
 
-# copy everything to arduino-esp32 installation
-if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
-    echo "* Copying to Arduino..."
-    ./tools/copy-to-arduino.sh
-    if [ $? -ne 0 ]; then exit 1; fi
-fi
+## copy everything to arduino-esp32 installation
+#if [ $COPY_OUT -eq 1 ] && [ -d "$ESP32_ARDUINO" ]; then
+#    echo "* Copying to Arduino..."
+#    ./tools/copy-to-arduino.sh
+#    if [ $? -ne 0 ]; then exit 1; fi
+#fi
 
-# push changes to esp32-arduino-libs and create pull request into arduino-esp32
-if [ $DEPLOY_OUT -eq 1 ]; then
-    echo "* Pushing to Arduino..."
-    ./tools/push-to-arduino.sh
-    if [ $? -ne 0 ]; then exit 1; fi
-fi
+## push changes to esp32-arduino-libs and create pull request into arduino-esp32
+#if [ $DEPLOY_OUT -eq 1 ]; then
+#    echo "* Pushing to Arduino..."
+#    ./tools/push-to-arduino.sh
+#    if [ $? -ne 0 ]; then exit 1; fi
+#fi
 
 # archive the build
 if [ $ARCHIVE_OUT -eq 1 ]; then
