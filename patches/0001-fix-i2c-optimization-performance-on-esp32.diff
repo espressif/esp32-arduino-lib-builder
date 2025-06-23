@@ -1,0 +1,124 @@
+diff --git a/components/esp_driver_i2c/i2c_master.c b/components/esp_driver_i2c/i2c_master.c
+index 8859998eb4..c2571f3d0d 100644
+--- a/components/esp_driver_i2c/i2c_master.c
++++ b/components/esp_driver_i2c/i2c_master.c
+@@ -197,22 +197,7 @@ static bool s_i2c_write_command(i2c_master_bus_handle_t i2c_master, i2c_operatio
+     i2c_ll_master_write_cmd_reg(hal->dev, hw_cmd, i2c_master->cmd_idx);
+     portEXIT_CRITICAL_SAFE(&handle->spinlock);
+     i2c_master->w_r_size = data_fill;
+-#if SOC_I2C_STOP_INDEPENDENT
+-    i2c_ll_master_write_cmd_reg(hal->dev, hw_end_cmd, i2c_master->cmd_idx + 1);
+-    i2c_master->cmd_idx = 0;
+-    if (i2c_master->i2c_trans.ops[i2c_master->trans_idx].total_bytes == i2c_master->i2c_trans.ops[i2c_master->trans_idx].bytes_used) {
+-        i2c_master->i2c_trans.cmd_count--;
+-        i2c_master->trans_idx++;
+-    }
+-    portENTER_CRITICAL_SAFE(&handle->spinlock);
+-    if (i2c_master->async_trans == false) {
+-        i2c_hal_master_trans_start(hal);
+-    } else {
+-        i2c_master->async_break = true;
+-    }
+-    portEXIT_CRITICAL_SAFE(&handle->spinlock);
+ 
+-#else
+     // If data cannot be sent in one time, send data out. Otherwise, continue configuring command.
+     if ((remaining_bytes - data_fill) != 0) {
+         portENTER_CRITICAL_SAFE(&handle->spinlock);
+@@ -252,7 +237,6 @@ static bool s_i2c_write_command(i2c_master_bus_handle_t i2c_master, i2c_operatio
+             }
+         }
+     }
+-#endif
+     *fifo_fill = data_fill;
+ 
+     return i2c_master->async_break;
+@@ -287,7 +271,6 @@ static bool s_i2c_read_command(i2c_master_bus_handle_t i2c_master, i2c_operation
+     hw_cmd.byte_num = *fifo_fill;
+ 
+     i2c_master->contains_read = true;
+-#if !SOC_I2C_STOP_INDEPENDENT
+     if (remaining_bytes < I2C_FIFO_LEN(i2c_master->base->port_num) - 1) {
+         if (i2c_operation->hw_cmd.ack_val == I2C_ACK_VAL) {
+             if (remaining_bytes != 0) {
+@@ -328,29 +311,6 @@ static bool s_i2c_read_command(i2c_master_bus_handle_t i2c_master, i2c_operation
+         }
+         portEXIT_CRITICAL_SAFE(&handle->spinlock);
+     }
+-#else
+-    portENTER_CRITICAL_SAFE(&handle->spinlock);
+-    // If the read command work with ack_val, but no bytes to read, we skip
+-    // this command, and run next command directly.
+-    if (hw_cmd.ack_val == I2C_ACK_VAL) {
+-        if (i2c_operation->total_bytes == 0) {
+-            i2c_master->trans_idx++;
+-            hw_cmd = i2c_master->i2c_trans.ops[i2c_master->trans_idx].hw_cmd;
+-            i2c_master->i2c_trans.cmd_count--;
+-        }
+-    }
+-    i2c_ll_master_write_cmd_reg(hal->dev, hw_cmd, i2c_master->cmd_idx);
+-    i2c_ll_master_write_cmd_reg(hal->dev, hw_end_cmd, i2c_master->cmd_idx + 1);
+-    portEXIT_CRITICAL_SAFE(&handle->spinlock);
+-    atomic_store(&i2c_master->status, I2C_STATUS_READ);
+-    portENTER_CRITICAL_SAFE(&handle->spinlock);
+-    if (i2c_master->async_trans == false) {
+-        i2c_hal_master_trans_start(hal);
+-    } else {
+-        i2c_master->async_break = true;
+-    }
+-    portEXIT_CRITICAL_SAFE(&handle->spinlock);
+-#endif
+ 
+     return i2c_master->async_break;
+ }
+@@ -679,9 +639,7 @@ I2C_MASTER_ISR_ATTR static void i2c_isr_receive_handler(i2c_master_bus_t *i2c_ma
+             i2c_operation->bytes_used = 0;
+         }
+         portEXIT_CRITICAL_ISR(&i2c_master->base->spinlock);
+-    }
+-#if !SOC_I2C_STOP_INDEPENDENT
+-    else {
++    } else {
+         i2c_operation_t *i2c_operation = &i2c_master->i2c_trans.ops[i2c_master->read_buf_pos];
+         portENTER_CRITICAL_ISR(&i2c_master->base->spinlock);
+         i2c_ll_read_rxfifo(hal->dev, i2c_operation->data + i2c_operation->bytes_used, i2c_master->read_len_static);
+@@ -693,7 +651,6 @@ I2C_MASTER_ISR_ATTR static void i2c_isr_receive_handler(i2c_master_bus_t *i2c_ma
+         i2c_master->contains_read = false;
+         portEXIT_CRITICAL_ISR(&i2c_master->base->spinlock);
+     }
+-#endif
+ }
+ 
+ static void i2c_master_isr_handler_default(void *arg)
+diff --git a/components/soc/esp32/include/soc/Kconfig.soc_caps.in b/components/soc/esp32/include/soc/Kconfig.soc_caps.in
+index 0ba999f747..22c2c0a407 100644
+--- a/components/soc/esp32/include/soc/Kconfig.soc_caps.in
++++ b/components/soc/esp32/include/soc/Kconfig.soc_caps.in
+@@ -391,10 +391,6 @@ config SOC_I2C_SUPPORT_10BIT_ADDR
+     bool
+     default y
+ 
+-config SOC_I2C_STOP_INDEPENDENT
+-    bool
+-    default y
+-
+ config SOC_I2S_NUM
+     int
+     default 2
+diff --git a/components/soc/esp32/include/soc/soc_caps.h b/components/soc/esp32/include/soc/soc_caps.h
+index 1937908170..f7f4c16949 100644
+--- a/components/soc/esp32/include/soc/soc_caps.h
++++ b/components/soc/esp32/include/soc/soc_caps.h
+@@ -208,9 +208,6 @@
+ #define SOC_I2C_SUPPORT_APB     (1)
+ #define SOC_I2C_SUPPORT_10BIT_ADDR (1)
+ 
+-// On ESP32, the stop bit should be independent, we can't put trans data and stop command together
+-#define SOC_I2C_STOP_INDEPENDENT (1)
+-
+ /*-------------------------- I2S CAPS ----------------------------------------*/
+ // ESP32 has 2 I2S
+ #define SOC_I2S_NUM                 (2U)
+-- 
+2.39.5 (Apple Git-154)
+
