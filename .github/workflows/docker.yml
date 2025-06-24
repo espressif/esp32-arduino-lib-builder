@@ -26,47 +26,52 @@ jobs:
     name: Build docker image and push if needed
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
       # Depending on the branch/tag, set CLONE_BRANCH_OR_TAG variable (used in the Dockerfile
-      # as a build arg) and TAG_NAME (used when tagging the image).
+      # as a build arg) and DOCKER_TAGS (used when tagging the image).
       #
       # The following 3 steps cover the alternatives (tag, release branch, master branch):
       - name: Set variables (tags)
         if: ${{ github.ref_type == 'tag' }}
         run: |
           echo "CLONE_BRANCH_OR_TAG=$GITHUB_REF_NAME" >> $GITHUB_ENV
-          echo "TAG_NAME=$GITHUB_REF_NAME" >> $GITHUB_ENV
+          echo "DOCKER_TAGS=${{ env.DOCKERHUB_REPO }}:$GITHUB_REF_NAME" >> $GITHUB_ENV
           echo "URL=${{ github.server_url }}/${{ github.repository }}.git" >> $GITHUB_ENV
 
       - name: Set variables (release branches)
         if: ${{ github.ref_type == 'branch' && startsWith(github.ref_name, 'release/') }}
         run: |
           echo "CLONE_BRANCH_OR_TAG=$GITHUB_REF_NAME" >> $GITHUB_ENV
-          echo "TAG_NAME=release-${GITHUB_REF_NAME##release/}" >> $GITHUB_ENV
+          echo "DOCKER_TAGS=${{ env.DOCKERHUB_REPO }}:release-${GITHUB_REF_NAME##release/}" >> $GITHUB_ENV
           echo "URL=${{ github.server_url }}/${{ github.repository }}.git" >> $GITHUB_ENV
 
       - name: Set variables (main branch)
         if: ${{ github.ref_type == 'branch' && github.ref_name == 'master' }}
         run: |
+          source ./tools/config.sh
           echo "CLONE_BRANCH_OR_TAG=master" >> $GITHUB_ENV
-          echo "TAG_NAME=latest" >> $GITHUB_ENV
+          echo "DOCKER_TAGS<<EOF" >> $GITHUB_ENV
+          echo "${{ env.DOCKERHUB_REPO }}:latest" >> $GITHUB_ENV
+          echo "${{ env.DOCKERHUB_REPO }}:release-${IDF_BRANCH##release/}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
           echo "URL=${{ github.server_url }}/${{ github.repository }}.git" >> $GITHUB_ENV
 
       - name: Set variables (pull requests)
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           echo "CLONE_BRANCH_OR_TAG=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
-          echo "TAG_NAME=PR_${{ github.event.number }}" >> $GITHUB_ENV
+          echo "DOCKER_TAGS=${{ env.DOCKERHUB_REPO }}:PR_${{ github.event.number }}" >> $GITHUB_ENV
           echo "URL=${{ github.server_url }}/${{ github.event.pull_request.head.repo.full_name }}.git" >> $GITHUB_ENV
 
       # Display the variables set above, just in case.
       - name: Check variables
         run: |
           echo "CLONE_BRANCH_OR_TAG: $CLONE_BRANCH_OR_TAG"
-          echo "TAG_NAME: $TAG_NAME"
           echo "URL: $URL"
-
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+          echo "DOCKER_TAGS:"
+          echo "$DOCKER_TAGS"
 
       - name: Login to Docker Hub
         if: ${{ github.event_name == 'push' }}
@@ -86,7 +91,8 @@ jobs:
         with:
           context: tools/docker
           push: ${{ github.event_name == 'push' }}
-          tags: ${{ env.DOCKERHUB_REPO }}:${{ env.TAG_NAME }}
+          tags: |
+            ${{ env.DOCKER_TAGS }}
           platforms: ${{ env.BUILD_PLATFORMS }}
           build-args: |
             LIBBUILDER_CLONE_URL=${{ env.URL }}
