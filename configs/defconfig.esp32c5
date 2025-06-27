@@ -60,6 +60,7 @@ CONFIG_OPENTHREAD_NETWORK_PSKC="104810e2315100afd6bc9215a6bfac53"
 # ESP32-C5 has both, WiFi anf OpenThread Libraries, therefore both are enabled and each must point to a different EndPointID
 CONFIG_THREAD_NETWORK_ENDPOINT_ID=2
 CONFIG_WIFI_NETWORK_ENDPOINT_ID=0
+CONFIG_BT_NIMBLE_HCI_EVT_BUF_SIZE=70
 
 #
 # Zigbee
