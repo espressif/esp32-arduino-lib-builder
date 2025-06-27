@@ -21,4 +21,4 @@ dependencies:
     git: https://github.com/espressif/esp-matter.git
     require: public
     rules:
-      - if: "target not in [esp32c2, esp32c5, esp32p4]"
+      - if: "target not in [esp32c2, esp32p4]"
