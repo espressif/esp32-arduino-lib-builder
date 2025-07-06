@@ -50,6 +50,8 @@ CONFIG_ENABLE_MATTER_OVER_THREAD=y
 # Set endpoint id for Thread and Wi-Fi, depending on the secondary network interface endpoint id.
 CONFIG_THREAD_NETWORK_ENDPOINT_ID=2
 CONFIG_WIFI_NETWORK_ENDPOINT_ID=0
+# increase the maximum number of endpoints per device
+CONFIG_ESP_MATTER_MAX_DYNAMIC_ENDPOINT_COUNT=64
 
 #
 # Zigbee
