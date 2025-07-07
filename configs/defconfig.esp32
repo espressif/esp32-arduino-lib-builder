@@ -23,3 +23,6 @@ CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096
 
 # Matter settings:
 CONFIG_ENABLE_CHIPOBLE=n
+# increase the maximum number of endpoints per device
+CONFIG_ESP_MATTER_MAX_DYNAMIC_ENDPOINT_COUNT=32
+
