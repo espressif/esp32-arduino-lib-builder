@@ -38,10 +38,11 @@ if [ ! -x $idf_was_installed ] || [ ! -x $commit_predefined ]; then
 	export IDF_COMMIT=$(git -C "$IDF_PATH" rev-parse --short HEAD)
 	export IDF_BRANCH=$(git -C "$IDF_PATH" symbolic-ref --short HEAD || git -C "$IDF_PATH" tag --points-at HEAD)
 
+	cd $IDF_PATH
 	# Temporarily patch the ESP32-S2 I2C LL driver to keep the clock source
-	#cd $IDF_PATH
 	#patch -p1 -N -i $AR_PATCHES/esp32s2_i2c_ll_master_init.diff
-	#cd -
+	patch -p1 -N -i $AR_PATCHES/0001-fix-i2c-optimization-performance-on-esp32.diff
+	cd -
 fi
 
 #
