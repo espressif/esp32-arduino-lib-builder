@@ -1,2 +1,2 @@
 #!/bin/bash
-rm -rf out build dist managed_components sdkconfig
+rm -rf build dist managed_components out sdkconfig dependencies.lock
