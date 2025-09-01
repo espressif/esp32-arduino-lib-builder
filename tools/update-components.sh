@@ -14,4 +14,7 @@ else
     git -C "$TINYUSB_REPO_DIR" fetch && \
     git -C "$TINYUSB_REPO_DIR" pull --ff-only
 fi
+cd $TINYUSB_REPO_DIR
+patch -p1 -N -i $AR_PATCHES/dwc2_esp32_h.diff
+cd -
 if [ $? -ne 0 ]; then exit 1; fi
