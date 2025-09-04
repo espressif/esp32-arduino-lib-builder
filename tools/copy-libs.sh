@@ -325,8 +325,10 @@ cat configs/pioarduino_start.txt > "$AR_PIOARDUINO_PY"
 echo "    ASFLAGS=[" >> "$AR_PIOARDUINO_PY"
 if [ "$IS_XTENSA" = "y" ]; then
 	echo "        \"-mlongcalls\"" >> "$AR_PIOARDUINO_PY"
+elif [ "$IDF_TARGET" = "esp32p4" ]; then
+	echo "        \"-march=rv32imafc_zicsr_zifencei_xesppie\"" >> "$AR_PIOARDUINO_PY"
 else
-	echo "        \"-march=rv32imc\"" >> "$AR_PIOARDUINO_PY"
+	echo "        \"-march=rv32imc_zicsr_zifencei\"" >> "$AR_PIOARDUINO_PY"
 fi
 echo "    ]," >> "$AR_PIOARDUINO_PY"
 echo "" >> "$AR_PIOARDUINO_PY"
