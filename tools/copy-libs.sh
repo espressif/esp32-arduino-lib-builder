@@ -318,16 +318,23 @@ done
 
 mkdir -p "$AR_SDK"
 
+# Keep only -march, -mabi and -mlongcalls flags for Assembler
+PIOARDUINO_AS_FLAGS=$(
+    {
+        echo "$PIOARDUINO_CXX_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
+        echo "$PIOARDUINO_CC_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
+    } | awk '!seen[$0]++' | paste -sd ' '
+)
+
 # start generation of pioarduino-build.py
 AR_PIOARDUINO_PY="$AR_SDK/pioarduino-build.py"
 cat configs/pioarduino_start.txt > "$AR_PIOARDUINO_PY"
 
 echo "    ASFLAGS=[" >> "$AR_PIOARDUINO_PY"
-if [ "$IS_XTENSA" = "y" ]; then
-	echo "        \"-mlongcalls\"" >> "$AR_PIOARDUINO_PY"
-else
-	echo "        \"-march=rv32imc\"" >> "$AR_PIOARDUINO_PY"
-fi
+set -- $PIOARDUINO_AS_FLAGS
+for item; do
+	echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
+done
 echo "    ]," >> "$AR_PIOARDUINO_PY"
 echo "" >> "$AR_PIOARDUINO_PY"
 
