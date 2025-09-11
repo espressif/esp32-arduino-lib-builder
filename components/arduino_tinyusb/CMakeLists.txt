@@ -25,10 +25,17 @@ if(CONFIG_TINYUSB_ENABLED)
 
   set(srcs
       # espressif:
-      "${COMPONENT_DIR}/src/dcd_dwc2.c"
+      #"${COMPONENT_DIR}/src/dcd_dwc2.c"
       # tusb:
-      #"${COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c"
+      "${COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2/dcd_dwc2.c"
       "${COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2/dwc2_common.c"
+      "${COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2/hcd_dwc2.c"
+      # common
+      "${COMPONENT_DIR}/tinyusb/src/tusb.c"
+      "${COMPONENT_DIR}/tinyusb/src/common/tusb_fifo.c"
+      # device
+      "${COMPONENT_DIR}/tinyusb/src/device/usbd_control.c"
+      "${COMPONENT_DIR}/tinyusb/src/device/usbd.c"
       "${COMPONENT_DIR}/tinyusb/src/class/cdc/cdc_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/hid/hid_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/midi/midi_device.c"
@@ -38,16 +45,25 @@ if(CONFIG_TINYUSB_ENABLED)
       "${COMPONENT_DIR}/tinyusb/src/class/dfu/dfu_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/vendor/vendor_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/net/ncm_device.c"
-      "${COMPONENT_DIR}/tinyusb/src/common/tusb_fifo.c"
-      "${COMPONENT_DIR}/tinyusb/src/device/usbd_control.c"
-      "${COMPONENT_DIR}/tinyusb/src/device/usbd.c"
-      "${COMPONENT_DIR}/tinyusb/src/tusb.c")
+      "${COMPONENT_DIR}/tinyusb/src/class/net/ecm_rndis_device.c"
+      "${COMPONENT_DIR}/tinyusb/src/class/usbtmc/usbtmc_device.c"
+      # host
+      "${COMPONENT_DIR}/tinyusb/src/host/usbh.c"
+      "${COMPONENT_DIR}/tinyusb/src/host/hub.c"
+      "${COMPONENT_DIR}/tinyusb/src/class/cdc/cdc_host.c"
+      "${COMPONENT_DIR}/tinyusb/src/class/hid/hid_host.c"
+      "${COMPONENT_DIR}/tinyusb/src/class/midi/midi_host.c"
+      "${COMPONENT_DIR}/tinyusb/src/class/msc/msc_host.c"
+      "${COMPONENT_DIR}/tinyusb/src/class/vendor/vendor_host.c"
+      )
 
   set(includes_private
       # tusb:
+      #"${COMPONENT_DIR}/tinyusb/lib/networking/"
       "${COMPONENT_DIR}/tinyusb/hw/bsp/"
       "${COMPONENT_DIR}/tinyusb/src/"
       "${COMPONENT_DIR}/tinyusb/src/device"
+      "${COMPONENT_DIR}/tinyusb/src/host"
       "${COMPONENT_DIR}/tinyusb/src/portable/synopsys/dwc2"
       )
 
