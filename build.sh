@@ -31,7 +31,7 @@ if [ -z $DEPLOY_OUT ]; then
 fi
 
 function print_help() {
-    echo "Usage: build.sh [-s] [-n] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant>] [config ...]"
+    echo "Usage: build.sh [-s] [-n] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant|hosted>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -n     Disable ccache"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
@@ -87,7 +87,8 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
                [ "$b" != "reconfigure" ] && 
                [ "$b" != "idf-libs" ] && 
                [ "$b" != "copy-bootloader" ] && 
-               [ "$b" != "mem-variant" ]; then
+               [ "$b" != "mem-variant" ] && 
+               [ "$b" != "hosted" ]; then
                 print_help
             fi
             BUILD_TYPE="$b"
@@ -135,6 +136,11 @@ if [ "$BUILD_TYPE" != "all" ]; then
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
         print_help
+    fi
+
+    if [ "$BUILD_TYPE" == "hosted" ]; then
+        ./tools/build-hosted.sh
+        exit $?
     fi
 
     # Target Features Configs
@@ -226,6 +232,12 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     if [ $? -ne 0 ]; then exit 1; fi
 
+    # Build ESP-Hosted slave firmwares
+    if [ "$target" == "esp32p4" ]; then
+        ./tools/build-hosted.sh
+    fi
+
+    # Build ESP-SR Models
     if [ "$target" == "esp32s3" ] || [ "$target" == "esp32p4" ]; then
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
         if [ $? -ne 0 ]; then exit 1; fi
