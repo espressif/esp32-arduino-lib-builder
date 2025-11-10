@@ -51,7 +51,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          source ./tools/check-deploy-needed.sh
+          bash ./tools/check-deploy-needed.sh
           targets_list=$(echo "${{ inputs.targets }}" | sed 's/ *, */,/g' | sed 's/^/["/' | sed 's/$/"]/' | sed 's/,/","/g')
           echo "Targets list: $targets_list"
           echo "targets_list=$targets_list" >> $GITHUB_OUTPUT

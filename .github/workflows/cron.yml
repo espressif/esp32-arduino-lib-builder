@@ -21,7 +21,7 @@ defaults:
 jobs:
   build-libs:
     name: Build with IDF ${{ matrix.idf_branch }}
-    if: github.repository_owner == 'espressif'
+    if: github.repository_owner == 'espressif' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/cron_build.yml
     with:
       idf_branch: ${{ matrix.idf_branch }}
