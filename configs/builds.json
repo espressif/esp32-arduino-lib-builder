@@ -4,7 +4,7 @@
 			"file":"libspi_flash.a",
 			"src":"build/esp-idf/spi_flash/libspi_flash.a",
 			"out":"lib/libspi_flash.a",
-			"targets":["esp32","esp32c2","esp32c3","esp32s2","esp32s3","esp32c6","esp32h2","esp32p4","esp32c5"]
+			"targets":["esp32","esp32c2","esp32c3","esp32c5","esp32c6","esp32c61","esp32h2","esp32p4","esp32s2","esp32s3"]
 		},
 		{
 			"file":"libesp_psram.a",
@@ -45,7 +45,7 @@
 	],
 	"targets":[
 		{
-			"target": "esp32c5",
+			"target": "esp32",
 			"features":["qio_ram"],
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
@@ -56,20 +56,6 @@
 			],
 			"mem_variants":[
 				["dio","80m"]
-			]
-		},
-		{
-			"target": "esp32p4",
-			"features":["qio_ram","esp_sr"],
-			"idf_libs":["qio","80m_200m"],
-			"bootloaders":[
-				["qio","80m_200m"],
-				["dio","80m_200m"],
-				["qio","40m_200m"],
-				["dio","40m_200m"]
-			],
-			"mem_variants":[
-				["dio","80m_200m"]
 			]
 		},
 		{
@@ -88,17 +74,31 @@
 			]
 		},
 		{
-			"target": "esp32h2",
+			"target": "esp32c3",
 			"features":[],
-			"idf_libs":["qio","64m"],
+			"idf_libs":["qio","80m"],
 			"bootloaders":[
-				["qio","64m"],
-				["dio","64m"],
-				["qio","16m"],
-				["dio","16m"]
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
 			],
 			"mem_variants":[
-				["dio","64m"]
+				["dio","80m"]
+			]
+		},
+		{
+			"target": "esp32c5",
+			"features":["qio_ram"],
+			"idf_libs":["qio","80m"],
+			"bootloaders":[
+				["qio","80m"],
+				["dio","80m"],
+				["qio","40m"],
+				["dio","40m"]
+			],
+			"mem_variants":[
+				["dio","80m"]
 			]
 		},
 		{
@@ -116,8 +116,9 @@
 			]
 		},
 		{
-			"target": "esp32c3",
-			"features":[],
+			"target": "esp32c61",
+			"skip": 1,
+			"features":["qio_ram"],
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
 				["qio","80m"],
@@ -130,17 +131,31 @@
 			]
 		},
 		{
-			"target": "esp32",
-			"features":["qio_ram"],
-			"idf_libs":["qio","80m"],
+			"target": "esp32h2",
+			"features":[],
+			"idf_libs":["qio","64m"],
 			"bootloaders":[
-				["qio","80m"],
-				["dio","80m"],
-				["qio","40m"],
-				["dio","40m"]
+				["qio","64m"],
+				["dio","64m"],
+				["qio","16m"],
+				["dio","16m"]
 			],
 			"mem_variants":[
-				["dio","80m"]
+				["dio","64m"]
+			]
+		},
+		{
+			"target": "esp32p4",
+			"features":["qio_ram","esp_sr"],
+			"idf_libs":["qio","80m_200m"],
+			"bootloaders":[
+				["qio","80m_200m"],
+				["dio","80m_200m"],
+				["qio","40m_200m"],
+				["dio","40m_200m"]
+			],
+			"mem_variants":[
+				["dio","80m_200m"]
 			]
 		},
 		{
