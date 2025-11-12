@@ -49,5 +49,5 @@ CONFIG_ENABLE_CHIPOBLE=y
 # Matter with WiFi + Thread - not enabled for now
 #CONFIG_ENABLE_MATTER_OVER_THREAD=y
 # Set endpoint id for Thread and Wi-Fi, depending on the secondary network interface endpoint id.
-#CONFIG_THREAD_NETWORK_ENDPOINT_ID=2
-#CONFIG_WIFI_NETWORK_ENDPOINT_ID=0
+CONFIG_THREAD_NETWORK_ENDPOINT_ID=2
+CONFIG_WIFI_NETWORK_ENDPOINT_ID=0
