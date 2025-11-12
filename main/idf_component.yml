@@ -20,4 +20,4 @@ dependencies:
     version: "1.4.1"
     require: public
     rules:
-      - if: "target not in [esp32c2, esp32p4]"
+      - if: "target not in [esp32c2, esp32p4, esp32c61]"
