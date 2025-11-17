@@ -453,10 +453,17 @@ for item; do
 			mkdir -p "$out_cpath$rel_p"
 			cp -n $f "$out_cpath$rel_p/"
 		done
-		# Temporary measure to fix issues caused by https://github.com/espressif/esp-idf/commit/dc4731101dd567cc74bbe4d0f03afe52b7db9afb#diff-1d2ce0d3989a80830fdf230bcaafb3117f32046d16cf46616ac3d55b4df2a988R17
-		if [[ "$fname" == "bt" && "$out_sub" == "/include/$IDF_TARGET/include" && -f "$ipath/controller/$IDF_TARGET/esp_bt_cfg.h" ]]; then
-			mkdir -p "$AR_SDK/include/$fname/controller/$IDF_TARGET"
-			cp -n "$ipath/controller/$IDF_TARGET/esp_bt_cfg.h" "$AR_SDK/include/$fname/controller/$IDF_TARGET/esp_bt_cfg.h"
+
+		# Copy the the files in /include/esp32*/include for the soc found in bt
+		# This is necessary as there might be cross soc dependencies in the bt component.
+		# For example, the esp32c61 requires the esp_bt_cfg.h and esp_bt.h from the esp32c6.
+		if [[ "$fname" == "bt" && "$out_sub" =~ ^/include/esp32[^/]+/include$ ]]; then
+			soc_name=$(echo "$out_sub" | sed -n 's|/include/\(esp32[^/]*\)/include$|\1|p')
+			echo "Copying bt config file for soc: $soc_name"
+			if [ -n "$soc_name" ] && [ -f "$ipath/controller/$soc_name/esp_bt_cfg.h" ]; then
+				mkdir -p "$AR_SDK/include/$fname/controller/$soc_name"
+				cp -n "$ipath/controller/$soc_name/esp_bt_cfg.h" "$AR_SDK/include/$fname/controller/$soc_name/esp_bt_cfg.h"
+			fi
 		fi
 	fi
 done
