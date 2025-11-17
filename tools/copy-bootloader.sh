@@ -1,8 +1,9 @@
 #!/bin/bash
 
 IDF_TARGET=$1
-FLASH_MODE="$2"
-FLASH_FREQ="$3"
+CHIP_VARIANT=$2
+FLASH_MODE="$3"
+FLASH_FREQ="$4"
 BOOTCONF=$FLASH_MODE"_$FLASH_FREQ"
 
 source ./tools/config.sh
