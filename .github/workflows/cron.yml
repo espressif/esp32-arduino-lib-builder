@@ -43,4 +43,4 @@ jobs:
           #   targets: "esp32,esp32s2,esp32s3,esp32c3,esp32c6,esp32h2,esp32p4"
           - idf_branch: "release/v5.5"
             lib_builder_branch: "master"
-            targets: "esp32,esp32s2,esp32s3,esp32c3,esp32c6,esp32h2,esp32p4,esp32c5"
+            targets: "esp32,esp32s2,esp32s3,esp32c3,esp32c6,esp32h2,esp32p4,esp32p4_es,esp32c5"
