@@ -582,7 +582,7 @@ mv "$PWD/build/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
 for mem_variant in `jq -c '.mem_variants_files[]' configs/builds.json`; do
 	skip_file=1
 	for file_target in $(echo "$mem_variant" | jq -c '.targets[]' | tr -d '"'); do
-		if [ "$file_target" == "$IDF_TARGET" ]; then
+		if [ "$file_target" == "$CHIP_VARIANT" ]; then
 			skip_file=0
 			break
 		fi
