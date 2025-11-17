@@ -2,11 +2,12 @@
 # config
 
 IDF_TARGET=$1
-IS_XTENSA=$4
-OCT_FLASH="$2"
+CHIP_VARIANT=$2
+IS_XTENSA=$5
+OCT_FLASH="$3"
 OCT_PSRAM=
 
-if [ "$3" = "y" ]; then
+if [ "$4" = "y" ]; then
 	OCT_PSRAM="opi"
 else
 	OCT_PSRAM="qspi"
@@ -15,7 +16,7 @@ MEMCONF=$OCT_FLASH"_$OCT_PSRAM"
 
 source ./tools/config.sh
 
-echo "IDF_TARGET: $IDF_TARGET, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
+echo "IDF_TARGET: $IDF_TARGET, CHIP_VARIANT: $CHIP_VARIANT, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
 
 # clean previous
 if [ -e "$AR_SDK/sdkconfig" ]; then

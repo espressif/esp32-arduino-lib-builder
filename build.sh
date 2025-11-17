@@ -146,11 +146,12 @@ if [ "$BUILD_TYPE" != "all" ]; then
     # Target Features Configs
     for target_json in `jq -c '.targets[]' configs/builds.json`; do
         target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
+        export CHIP_VARIANT=$(echo "$target_json" | jq -c '.chip_variant // "'$target'"' | tr -d '"')
 
-        # Check if $target is in the $TARGET array
+        # Check if $CHIP_VARIANT is in the $TARGET array
         target_in_array=false
         for item in "${TARGET[@]}"; do
-            if [ "$item" = "$target" ]; then
+            if [ "$item" = "$CHIP_VARIANT" ]; then
                 target_in_array=true
                 break
             fi
@@ -161,12 +162,12 @@ if [ "$BUILD_TYPE" != "all" ]; then
             continue
         fi
 
-        configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
+        configs="configs/defconfig.common;configs/defconfig.$CHIP_VARIANT;configs/defconfig.debug_$BUILD_DEBUG"
         for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
             configs="$configs;configs/defconfig.$defconf"
         done
 
-        echo "* Building for $target"
+        echo "* Building for target: '$target', variant: '$CHIP_VARIANT'"
 
         # Configs From Arguments
         for conf in $CONFIGS; do
@@ -187,21 +188,22 @@ mkdir -p "$AR_TOOLS/esp32-arduino-libs"
 #targets_count=`jq -c '.targets[] | length' configs/builds.json`
 for target_json in `jq -c '.targets[]' configs/builds.json`; do
     target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
+    export CHIP_VARIANT=$(echo "$target_json" | jq -c '.chip_variant // "'$target'"' | tr -d '"')
     target_skip=$(echo "$target_json" | jq -c '.skip // 0')
 
-    # Check if $target is in the $TARGET array if not "all"
+    # Check if $CHIP_VARIANT is in the $TARGET array if not "all"
     if [ "$TARGET" != "all" ]; then
         target_in_array=false
         for item in "${TARGET[@]}"; do
-            if [ "$item" = "$target" ]; then
+            if [ "$item" = "$CHIP_VARIANT" ]; then
                 target_in_array=true
                 break
             fi
         done
 
-        # If $target is not in the $TARGET array, skip processing
+        # If $CHIP_VARIANT is not in the $TARGET array, skip processing
         if [ "$target_in_array" = false ]; then
-            echo "* Skipping Target: $target"
+            echo "* Skipping Target: $CHIP_VARIANT"
             continue
         fi
     fi
@@ -209,14 +211,14 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     # Skip chips that should not be a part of the final libs
     # WARNING!!! this logic needs to be updated when cron builds are split into jobs
     if [ "$TARGET" = "all" ] && [ $target_skip -eq 1 ]; then
-        echo "* Skipping Target: $target"
+        echo "* Skipping Target: $CHIP_VARIANT"
         continue
     fi
 
-    echo "* Target: $target"
+    echo "* Target: '$target', Variant: '$CHIP_VARIANT'"
 
     # Build Main Configs List
-    main_configs="configs/defconfig.common;configs/defconfig.$target;configs/defconfig.debug_$BUILD_DEBUG"
+    main_configs="configs/defconfig.common;configs/defconfig.$CHIP_VARIANT;configs/defconfig.debug_$BUILD_DEBUG"
     for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
         main_configs="$main_configs;configs/defconfig.$defconf"
     done
@@ -233,7 +235,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     if [ $? -ne 0 ]; then exit 1; fi
 
     # Build ESP-Hosted slave firmwares
-    if [ "$target" == "esp32p4" ]; then
+    if [ "$CHIP_VARIANT" == "esp32p4" ]; then
         ./tools/build-hosted.sh
     fi
 
@@ -241,7 +243,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     if [ "$target" == "esp32s3" ] || [ "$target" == "esp32p4" ]; then
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
         if [ $? -ne 0 ]; then exit 1; fi
-        AR_SDK="$AR_TOOLS/esp32-arduino-libs/$target"
+        AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
         # sr model.bin
         if [ -f "build/srmodels/srmodels.bin" ]; then
             echo "$AR_SDK/esp_sr"

@@ -26,6 +26,10 @@ if [ -z "$IDF_TARGET" ]; then
     fi
 fi
 
+if [ -z "$CHIP_VARIANT" ]; then
+    CHIP_VARIANT="$IDF_TARGET"
+fi
+
 # Owner of the target ESP32 Arduino repository
 AR_USER="${GITHUB_REPOSITORY_OWNER:-espressif}"
 
@@ -50,8 +54,8 @@ AR_TOOLS="$AR_OUT/tools"
 AR_PATCHES="$AR_ROOT/patches"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
-AR_SDK="$AR_TOOLS/esp32-arduino-libs/$IDF_TARGET"
-PIOARDUINO_SDK="FRAMEWORK_SDK_DIR, \"$IDF_TARGET\""
+AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
+PIOARDUINO_SDK="FRAMEWORK_SDK_DIR, \"$CHIP_VARIANT\""
 TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
 
 if [ -d "$IDF_PATH" ]; then
