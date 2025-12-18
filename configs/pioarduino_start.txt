@@ -36,6 +36,7 @@ FRAMEWORK_SDK_DIR = env.PioPlatform().get_package_dir(
 )
 
 board_config = env.BoardConfig()
+build_mcu = board_config.get("build.mcu", "").lower()
 
 flatten_cppdefines = env.Flatten(env['CPPDEFINES'])
 
@@ -46,16 +47,27 @@ if "ZIGBEE_MODE_ZCZR" in flatten_cppdefines:
     env.Append(
         LIBS=[
             "-lesp_zb_api.zczr",
-            "-lzboss_stack.zczr",
+            "-lzboss_stack.zczr"
+        ]
+    )
+if "ZIGBEE_MODE_ZCZR" in flatten_cppdefines and build_mcu in ["esp32c5", "esp32c6", "esp32h2"]:
+    env.Append(
+        LIBS=[
             "-lzboss_port.native"
         ]
     )
-if "ZIGBEE_MODE_ED" in flatten_cppdefines:
+if "ZIGBEE_MODE_ED" in flatten_cppdefines and build_mcu in ["esp32c5", "esp32c6", "esp32h2"]:
     env.Append(
         LIBS=[
             "-lesp_zb_api.ed",
             "-lzboss_stack.ed",
             "-lzboss_port.native"
+        ]
+    )
+if ("ZIGBEE_MODE_ZCZR" in flatten_cppdefines or "ZIGBEE_MODE_ED" in flatten_cppdefines) and build_mcu in ["esp32", "esp32s2", "esp32s3", "esp32c3", "esp32c5", "esp32c6"]:
+    env.Append(
+        LIBS=[
+            "-libzboss_port.remote"
         ]
     )
 
