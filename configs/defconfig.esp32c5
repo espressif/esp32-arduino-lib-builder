@@ -47,15 +47,15 @@ CONFIG_OPENTHREAD_NETWORK_MASTERKEY="00112233445566778899aabbccddeeff"
 CONFIG_OPENTHREAD_NETWORK_PSKC="104810e2315100afd6bc9215a6bfac53"
 # end of OpenThread
 
-# Matter settings: WiFi + CHIPoBLE
+# Matter settings: WiFi + Thread + CHIPoBLE
 CONFIG_ENABLE_CHIPOBLE=y
-# No SRAM for Thread and WiFi together!
-CONFIG_ENABLE_MATTER_OVER_THREAD=n
+# Thread and WiFi must together!
+CONFIG_ENABLE_MATTER_OVER_THREAD=y
 # Set endpoint id for Thread and Wi-Fi, depending on the secondary network interface endpoint id.
 CONFIG_THREAD_NETWORK_ENDPOINT_ID=2
 CONFIG_WIFI_NETWORK_ENDPOINT_ID=0
-# increase the maximum number of endpoints per device
-CONFIG_ESP_MATTER_MAX_DYNAMIC_ENDPOINT_COUNT=32
+# Lack of memory will limit the maximum number of endpoints per device
+CONFIG_ESP_MATTER_MAX_DYNAMIC_ENDPOINT_COUNT=4
 
 #
 # Zigbee
