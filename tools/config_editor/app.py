@@ -169,7 +169,9 @@ def main() -> None:
                     default = False if target["skip"] else True
                 except:
                     default = True
-                target_choices.append((target["target"], default))
+                # Use chip_variant if specified, otherwise use target
+                chip_variant = target.get("chip_variant", target["target"])
+                target_choices.append((chip_variant, default))
     else:
         print("Error: configs/builds.json file not found.")
         exit(1)
