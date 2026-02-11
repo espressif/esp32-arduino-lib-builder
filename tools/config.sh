@@ -89,6 +89,7 @@ get_os() {
 AR_OS=$(get_os)
 export SED="sed"
 export SSTAT="stat -c %s"
+export REALPATH="realpath"
 
 if [[ "$AR_OS" == "macos" ]]; then
     if ! command -v gsed >/dev/null; then
@@ -99,8 +100,13 @@ if [[ "$AR_OS" == "macos" ]]; then
         echo "ERROR: gawk not installed" >&2
         exit 1
     fi
+    if ! command -v grealpath >/dev/null; then
+        echo "ERROR: grealpath not installed (try: brew install coreutils)" >&2
+        exit 1
+    fi
     export SED="gsed"
     export SSTAT="stat -f %z"
+    export REALPATH="grealpath"
 fi
 
 github_get_libs_idf() {
