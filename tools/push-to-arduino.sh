@@ -2,7 +2,7 @@
 
 source ./tools/install-arduino.sh
 
-if [ -x $GITHUB_TOKEN ]; then
+if [ -z "$GITHUB_TOKEN" ]; then
 	echo "ERROR: GITHUB_TOKEN was not defined"
 	exit 1
 fi
@@ -25,18 +25,18 @@ LIBS_JSON_FILENAME="package-$LIBS_VERSION.json"
 IDF_LIBS_ZIP_URL="https://github.com/$AR_LIBS_REPO/releases/download/$LIBS_RELEASE_TAG/$LIBS_ZIP_FILENAME"
 IDF_LIBS_JSON_URL="https://github.com/$AR_LIBS_REPO/releases/download/$LIBS_RELEASE_TAG/$LIBS_JSON_FILENAME"
 
-if [ $AR_HAS_COMMIT == "0" ] || [ $LIBS_HAS_ASSET == "0" ]; then
+if [ "$AR_HAS_COMMIT" == "0" ] || [ "$LIBS_HAS_ASSET" == "0" ]; then
 	cd "$AR_ROOT"
 	mkdir -p dist
 
 	# check if the release exists
-	if [ $LIBS_HAS_RELEASE == "0" ]; then
+	if [ "$LIBS_HAS_RELEASE" == "0" ]; then
 		echo "Release for tag \"$LIBS_RELEASE_TAG\" not found. Please create the release first."
 		exit 1
 	fi
 
 	# Delete old assets for the version
-	if [ $LIBS_HAS_ASSET == "1" ]; then
+	if [ "$LIBS_HAS_ASSET" == "1" ]; then
 		echo "Deleting existing assets for version '$LIBS_VERSION'..."
 		if [ `github_release_asset_delete "$AR_LIBS_REPO" "$LIBS_ASSET_ID"` == "0" ]; then
 			echo "ERROR: Failed to delete asset '$LIBS_ZIP_FILENAME'"
@@ -127,10 +127,10 @@ fi
 # esp32-arduino
 #
 
-if [ $AR_HAS_COMMIT == "0" ] || [ $LIBS_HAS_ASSET == "0" ]; then
+if [ "$AR_HAS_COMMIT" == "0" ] || [ "$LIBS_HAS_ASSET" == "0" ]; then
 	cd "$AR_ROOT"
 	# create or checkout the branch
-	if [ ! $AR_HAS_BRANCH == "0" ]; then
+	if [ ! "$AR_HAS_BRANCH" == "0" ]; then
 		echo "Switching to arduino branch '$AR_NEW_BRANCH_NAME'..."
 		git -C "$AR_COMPS/arduino" checkout $AR_NEW_BRANCH_NAME
 	else
@@ -158,7 +158,7 @@ if [ $AR_HAS_COMMIT == "0" ] || [ $LIBS_HAS_ASSET == "0" ]; then
 		fi
 	else
 		echo "No changes in branch '$AR_NEW_BRANCH_NAME'"
-		if [ $AR_HAS_BRANCH == "0" ]; then
+		if [ "$AR_HAS_BRANCH" == "0" ]; then
 			echo "Delete created branch '$AR_NEW_BRANCH_NAME'"
 			git branch -d $AR_NEW_BRANCH_NAME
 		fi
