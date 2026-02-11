@@ -12,7 +12,43 @@ on:
 #             │ │ │ │ │
 #             * * * * *
     - cron:  '0 */6 * * *'
-  workflow_dispatch: # For manually rebuilding the libraries
+  workflow_dispatch:
+    inputs:
+      idf_branch:
+        description: 'IDF branch to build'
+        required: false
+        default: ''
+        type: string
+      idf_tag:
+        description: 'IDF tag to build (overrides branch HEAD)'
+        required: false
+        default: ''
+        type: string
+      idf_commit:
+        description: 'IDF commit to build (overrides branch HEAD and tag)'
+        required: false
+        default: ''
+        type: string
+      lib_builder_branch:
+        description: 'Branch of the lib-builder to use'
+        required: false
+        default: ''
+        type: string
+      targets:
+        description: 'Comma-separated list of targets to build'
+        required: false
+        default: ''
+        type: string
+      arduino_branch:
+        description: 'Arduino branch to use'
+        required: false
+        default: ''
+        type: string
+      deploy:
+        description: 'Publish the libs and open a PR'
+        required: false
+        default: true
+        type: boolean
 
 defaults:
   run:
@@ -20,13 +56,17 @@ defaults:
 
 jobs:
   build-libs:
-    name: Build with IDF ${{ matrix.idf_branch }}
+    name: Build with IDF ${{ inputs.idf_branch || matrix.idf_branch }}
     if: github.repository_owner == 'espressif' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/cron_build.yml
     with:
-      idf_branch: ${{ matrix.idf_branch }}
-      lib_builder_branch: ${{ matrix.lib_builder_branch }}
-      targets: ${{ matrix.targets }}
+      idf_branch: ${{ inputs.idf_branch || matrix.idf_branch }}
+      idf_tag: ${{ inputs.idf_tag }}
+      idf_commit: ${{ inputs.idf_commit }}
+      lib_builder_branch: ${{ inputs.lib_builder_branch || matrix.lib_builder_branch }}
+      targets: ${{ inputs.targets || matrix.targets }}
+      arduino_branch: ${{ inputs.arduino_branch }}
+      deploy: ${{ github.event_name == 'schedule' || inputs.deploy }}
     secrets: inherit
     strategy:
       fail-fast: false

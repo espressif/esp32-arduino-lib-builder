@@ -2,10 +2,24 @@
 
 source ./tools/config.sh
 
-IDF_COMMIT=$(github_last_commit "$IDF_REPO" "$IDF_BRANCH")
+if [ -n "$IDF_COMMIT" ]; then
+	# Use the provided IDF commit (truncate to short hash)
+	IDF_COMMIT="${IDF_COMMIT:0:8}"
+elif [ -n "$IDF_TAG" ]; then
+	# Resolve the tag to a commit hash
+	IDF_COMMIT=$(curl -s -k -H "Authorization: token $GITHUB_TOKEN" \
+		"https://api.github.com/repos/$IDF_REPO/commits/$IDF_TAG" | jq -r '.sha')
+	if [ -z "$IDF_COMMIT" ] || [ "$IDF_COMMIT" == "null" ]; then
+		echo "Failed to resolve IDF tag $IDF_TAG to a commit"
+		exit 1
+	fi
+	IDF_COMMIT="${IDF_COMMIT:0:8}"
+else
+	IDF_COMMIT=$(github_last_commit "$IDF_REPO" "$IDF_BRANCH")
+fi
 
 if [ -z "$IDF_COMMIT" ]; then
-	echo "Failed to get IDF commit for branch $IDF_BRANCH"
+	echo "Failed to get IDF commit"
 	exit 1
 fi
 
@@ -15,18 +29,20 @@ else
 	current_branch="$GITHUB_HEAD_REF"
 fi
 
-AR_BRANCH="master"
-if [[ "$current_branch" != "master" && $(github_branch_exists "$AR_REPO" "$current_branch") == "1" ]]; then
-	AR_BRANCH="$current_branch"
-else
-	AR_BRANCH_NAME="idf-$IDF_BRANCH"
-	has_ar_branch=$(github_branch_exists "$AR_REPO" "$AR_BRANCH_NAME")
-	if [ "$has_ar_branch" == "1" ]; then
-		AR_BRANCH="$AR_BRANCH_NAME"
+if [ -z "$AR_BRANCH" ]; then
+	AR_BRANCH="master"
+	if [[ "$current_branch" != "master" && $(github_branch_exists "$AR_REPO" "$current_branch") == "1" ]]; then
+		AR_BRANCH="$current_branch"
 	else
-		has_ar_branch=$(github_branch_exists "$AR_REPO" "$AR_PR_TARGET_BRANCH")
+		AR_BRANCH_NAME="idf-$IDF_BRANCH"
+		has_ar_branch=$(github_branch_exists "$AR_REPO" "$AR_BRANCH_NAME")
 		if [ "$has_ar_branch" == "1" ]; then
-			AR_BRANCH="$AR_PR_TARGET_BRANCH"
+			AR_BRANCH="$AR_BRANCH_NAME"
+		else
+			has_ar_branch=$(github_branch_exists "$AR_REPO" "$AR_PR_TARGET_BRANCH")
+			if [ "$has_ar_branch" == "1" ]; then
+				AR_BRANCH="$AR_PR_TARGET_BRANCH"
+			fi
 		fi
 	fi
 fi
