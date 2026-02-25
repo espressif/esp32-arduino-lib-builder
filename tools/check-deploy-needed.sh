@@ -5,6 +5,7 @@ source ./tools/config.sh
 if [ -n "$IDF_COMMIT" ]; then
 	# Use the provided IDF commit (truncate to short hash)
 	IDF_COMMIT="${IDF_COMMIT:0:8}"
+	IDF_REF="$IDF_COMMIT"
 elif [ -n "$IDF_TAG" ]; then
 	# Resolve the tag to a commit hash
 	IDF_COMMIT=$(curl -s -k -H "Authorization: token $GITHUB_TOKEN" \
@@ -14,8 +15,10 @@ elif [ -n "$IDF_TAG" ]; then
 		exit 1
 	fi
 	IDF_COMMIT="${IDF_COMMIT:0:8}"
+	IDF_REF="$IDF_TAG"
 else
 	IDF_COMMIT=$(github_last_commit "$IDF_REPO" "$IDF_BRANCH")
+	IDF_REF="$IDF_BRANCH"
 fi
 
 if [ -z "$IDF_COMMIT" ]; then
@@ -52,10 +55,14 @@ echo "AR_BRANCH_NAME: $AR_BRANCH_NAME"
 echo "AR_PR_TARGET_BRANCH: $AR_PR_TARGET_BRANCH"
 echo "has_ar_branch: $has_ar_branch"
 
-# format new branch name and pr title
-AR_NEW_BRANCH_NAME="idf-$IDF_BRANCH"
-AR_NEW_COMMIT_MESSAGE="IDF $IDF_BRANCH $IDF_COMMIT"
-AR_NEW_PR_TITLE="IDF $IDF_BRANCH"
+# format new branch name and pr title based on IDF_REF (tag, commit, or branch)
+AR_NEW_BRANCH_NAME="idf-$IDF_REF"
+AR_NEW_PR_TITLE="IDF $IDF_REF"
+if [ "$IDF_REF" == "$IDF_COMMIT" ]; then
+	AR_NEW_COMMIT_MESSAGE="IDF $IDF_COMMIT"
+else
+	AR_NEW_COMMIT_MESSAGE="IDF $IDF_REF $IDF_COMMIT"
+fi
 
 LIBS_RELEASE_TAG="idf-${IDF_BRANCH//\//_}"
 LIBS_VERSION_PREFIX="$LIBS_RELEASE_TAG-$IDF_COMMIT-v"
