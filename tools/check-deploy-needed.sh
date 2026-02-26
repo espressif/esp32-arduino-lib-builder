@@ -26,71 +26,47 @@ if [ -z "$IDF_COMMIT" ]; then
 	exit 1
 fi
 
-if [ -z "$GITHUB_HEAD_REF" ]; then
-	current_branch=$(git branch --show-current)
-else
-	current_branch="$GITHUB_HEAD_REF"
-fi
+set_ar_source_branch "github_branch_exists" "$AR_REPO" "$IDF_REF"
 
-if [ -z "$AR_BRANCH" ]; then
-	AR_BRANCH="master"
-	if [[ "$current_branch" != "master" && $(github_branch_exists "$AR_REPO" "$current_branch") == "1" ]]; then
-		AR_BRANCH="$current_branch"
-	else
-		AR_BRANCH_NAME="idf-$IDF_BRANCH"
-		has_ar_branch=$(github_branch_exists "$AR_REPO" "$AR_BRANCH_NAME")
-		if [ "$has_ar_branch" == "1" ]; then
-			AR_BRANCH="$AR_BRANCH_NAME"
-		else
-			has_ar_branch=$(github_branch_exists "$AR_REPO" "$AR_PR_TARGET_BRANCH")
-			if [ "$has_ar_branch" == "1" ]; then
-				AR_BRANCH="$AR_PR_TARGET_BRANCH"
-			fi
-		fi
-	fi
-fi
-
-echo "AR_BRANCH: $AR_BRANCH"
-echo "AR_BRANCH_NAME: $AR_BRANCH_NAME"
 echo "AR_PR_TARGET_BRANCH: $AR_PR_TARGET_BRANCH"
-echo "has_ar_branch: $has_ar_branch"
+echo "AR_SOURCE_BRANCH: $AR_SOURCE_BRANCH"
 
 # format new branch name and pr title based on IDF_REF (tag, commit, or branch)
-AR_NEW_BRANCH_NAME="idf-$IDF_REF"
-AR_NEW_PR_TITLE="IDF $IDF_REF"
+AR_PR_BRANCH="idf-$IDF_REF"
+AR_PR_TITLE="IDF $IDF_REF"
 if [ "$IDF_REF" == "$IDF_COMMIT" ]; then
-	AR_NEW_COMMIT_MESSAGE="IDF $IDF_COMMIT"
+	AR_PR_COMMIT_MESSAGE="IDF $IDF_COMMIT"
 else
-	AR_NEW_COMMIT_MESSAGE="IDF $IDF_REF $IDF_COMMIT"
+	AR_PR_COMMIT_MESSAGE="IDF $IDF_REF $IDF_COMMIT"
 fi
 
 LIBS_RELEASE_TAG="idf-${IDF_BRANCH//\//_}"
 LIBS_VERSION_PREFIX="$LIBS_RELEASE_TAG-$IDF_COMMIT-v"
 VERSION_COUNTER=1
 
-AR_HAS_BRANCH=$(github_branch_exists "$AR_REPO" "$AR_NEW_BRANCH_NAME")
-if [ "$AR_HAS_BRANCH" == "1" ]; then
-	LATEST_LIBS_IDF=$(github_get_libs_idf "$AR_REPO" "$AR_NEW_BRANCH_NAME" "$AR_NEW_PR_TITLE")
+AR_HAS_PR_BRANCH=$(github_branch_exists "$AR_REPO" "$AR_PR_BRANCH")
+if [ "$AR_HAS_PR_BRANCH" == "1" ]; then
+	LATEST_LIBS_IDF=$(github_get_libs_idf "$AR_REPO" "$AR_PR_BRANCH" "$AR_PR_TITLE")
 else
-	LATEST_LIBS_IDF=$(github_get_libs_idf "$AR_REPO" "$AR_BRANCH" "$AR_NEW_PR_TITLE")
+	LATEST_LIBS_IDF=$(github_get_libs_idf "$AR_REPO" "$AR_SOURCE_BRANCH" "$AR_PR_TITLE")
 fi
 
-echo "AR_NEW_BRANCH_NAME: $AR_NEW_BRANCH_NAME"
-echo "AR_NEW_COMMIT_MESSAGE: $AR_NEW_COMMIT_MESSAGE"
-echo "AR_NEW_PR_TITLE: $AR_NEW_PR_TITLE"
+echo "AR_PR_BRANCH: $AR_PR_BRANCH"
+echo "AR_PR_COMMIT_MESSAGE: $AR_PR_COMMIT_MESSAGE"
+echo "AR_PR_TITLE: $AR_PR_TITLE"
 
 echo "LIBS_RELEASE_TAG: $LIBS_RELEASE_TAG"
 echo "LIBS_VERSION_PREFIX: $LIBS_VERSION_PREFIX"
 echo "VERSION_COUNTER: $VERSION_COUNTER"
 
-echo "AR_HAS_BRANCH: $AR_HAS_BRANCH"
+echo "AR_HAS_PR_BRANCH: $AR_HAS_PR_BRANCH"
 echo "LATEST_LIBS_IDF: $LATEST_LIBS_IDF"
 
 echo "Current IDF commit: $IDF_COMMIT"
-echo "Latest IDF commit in $AR_BRANCH of $AR_REPO: $LATEST_LIBS_IDF"
+echo "Latest IDF commit in $AR_SOURCE_BRANCH of $AR_REPO: $LATEST_LIBS_IDF"
 
 AR_HAS_COMMIT=$(if [ "$LATEST_LIBS_IDF" == "$IDF_COMMIT" ]; then echo "1"; else echo "0"; fi)
-AR_HAS_PR=$(github_pr_exists "$AR_REPO" "$AR_NEW_BRANCH_NAME")
+AR_HAS_PR=$(github_pr_exists "$AR_REPO" "$AR_PR_BRANCH")
 
 echo "AR_HAS_COMMIT: $AR_HAS_COMMIT"
 echo "AR_HAS_PR: $AR_HAS_PR"
@@ -125,12 +101,12 @@ echo "LIBS_HAS_ASSET: $LIBS_HAS_ASSET"
 
 export IDF_COMMIT
 
-export AR_NEW_BRANCH_NAME
-export AR_NEW_COMMIT_MESSAGE
-export AR_NEW_PR_TITLE
+export AR_PR_BRANCH
+export AR_PR_COMMIT_MESSAGE
+export AR_PR_TITLE
 
 export AR_HAS_COMMIT
-export AR_HAS_BRANCH
+export AR_HAS_PR_BRANCH
 export AR_HAS_PR
 
 export LIBS_RELEASE_TAG
@@ -158,12 +134,12 @@ echo "DEPLOY_NEEDED: $DEPLOY_NEEDED"
 if [ -n "$GITHUB_OUTPUT" ]; then
 	{
 		echo "idf_commit=$IDF_COMMIT"
-		echo "ar_branch=$AR_BRANCH"
-		echo "ar_new_commit_message=$AR_NEW_COMMIT_MESSAGE"
-		echo "ar_new_branch_name=$AR_NEW_BRANCH_NAME"
-		echo "ar_new_pr_title=$AR_NEW_PR_TITLE"
+		echo "ar_source_branch=$AR_SOURCE_BRANCH"
+		echo "ar_pr_commit_message=$AR_PR_COMMIT_MESSAGE"
+		echo "ar_pr_branch=$AR_PR_BRANCH"
+		echo "ar_pr_title=$AR_PR_TITLE"
 		echo "ar_has_commit=$AR_HAS_COMMIT"
-		echo "ar_has_branch=$AR_HAS_BRANCH"
+		echo "ar_has_pr_branch=$AR_HAS_PR_BRANCH"
 		echo "ar_has_pr=$AR_HAS_PR"
 		echo "libs_release_tag=$LIBS_RELEASE_TAG"
 		echo "libs_version=$LIBS_VERSION"

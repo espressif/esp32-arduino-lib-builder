@@ -65,7 +65,7 @@ jobs:
       idf_commit: ${{ inputs.idf_commit }}
       lib_builder_branch: ${{ inputs.lib_builder_branch || matrix.lib_builder_branch }}
       targets: ${{ inputs.targets || matrix.targets }}
-      arduino_branch: ${{ inputs.arduino_branch }}
+      arduino_source_branch: ${{ inputs.arduino_branch }}
       deploy: ${{ github.event_name == 'schedule' || inputs.deploy }}
     secrets: inherit
     strategy:
