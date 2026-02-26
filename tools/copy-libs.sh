@@ -623,6 +623,11 @@ done
 # end generation of pioarduino-build.py
 cat configs/pioarduino_end.txt >> "$AR_PIOARDUINO_PY"
 
+# Matter Library adjustments
+echo "Fixing $AR_PIOARDUINO_PY"
+sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $AR_PIOARDUINO_PY > $AR_PIOARDUINO_PY.temp
+mv $AR_PIOARDUINO_PY.temp $AR_PIOARDUINO_PY
+
 # replace double backslashes with single one
 DEFINES=`echo "$DEFINES" | tr -s '\'`
 
