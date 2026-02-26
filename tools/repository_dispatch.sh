@@ -39,7 +39,7 @@ if [ ! "$builder" == "" ] && [ ! "$builder" == "null" ]; then
 fi
 
 if [ ! "$arduino" == "" ] && [ ! "$arduino" == "null" ]; then
-    export AR_BRANCH="$arduino"
+    export AR_SOURCE_BRANCH="$arduino"
 fi
 
 if [ "$action" == "deploy" ]; then

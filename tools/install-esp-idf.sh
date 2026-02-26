@@ -13,7 +13,13 @@ fi
 
 if [ ! -d "$IDF_PATH" ]; then
 	echo "ESP-IDF is not installed! Installing local copy"
-	git clone $IDF_REPO_URL -b $IDF_BRANCH
+	if ! git clone $IDF_REPO_URL -b $IDF_BRANCH; then
+		echo "Failed to clone from $IDF_REPO_URL. Falling back to espressif/esp-idf..."
+		if ! git clone "https://github.com/espressif/esp-idf.git" -b $IDF_BRANCH; then
+			echo "ERROR: Failed to clone ESP-IDF branch $IDF_BRANCH"
+			exit 1
+		fi
+	fi
 	idf_was_installed="1"
 fi
 

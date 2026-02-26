@@ -130,51 +130,51 @@ fi
 if [ "$AR_HAS_COMMIT" == "0" ] || [ "$LIBS_HAS_ASSET" == "0" ]; then
 	cd "$AR_ROOT"
 	# create or checkout the branch
-	if [ ! "$AR_HAS_BRANCH" == "0" ]; then
-		echo "Switching to arduino branch '$AR_NEW_BRANCH_NAME'..."
-		git -C "$AR_COMPS/arduino" checkout $AR_NEW_BRANCH_NAME
+	if [ ! "$AR_HAS_PR_BRANCH" == "0" ]; then
+		echo "Switching to arduino branch '$AR_PR_BRANCH'..."
+		git -C "$AR_COMPS/arduino" checkout $AR_PR_BRANCH
 	else
-		echo "Creating arduino branch '$AR_NEW_BRANCH_NAME'..."
-		git -C "$AR_COMPS/arduino" checkout -b $AR_NEW_BRANCH_NAME
+		echo "Creating arduino branch '$AR_PR_BRANCH'..."
+		git -C "$AR_COMPS/arduino" checkout -b $AR_PR_BRANCH
 	fi
 	if [ $? -ne 0 ]; then
-		echo "ERROR: Checkout of branch '$AR_NEW_BRANCH_NAME' failed"
+		echo "ERROR: Checkout of branch '$AR_PR_BRANCH' failed"
 		exit 1
 	fi
 
 	# make changes to the files
-	echo "Patching files in branch '$AR_NEW_BRANCH_NAME'..."
+	echo "Patching files in branch '$AR_PR_BRANCH'..."
 	rm -rf "$AR_COMPS/arduino/package/package_esp32_index.template.json" && cp -f "$AR_OUT/package_esp32_index.template.json" "$AR_COMPS/arduino/package/package_esp32_index.template.json"
 
 	cd $AR_COMPS/arduino
 
 	# did any of the files change?
 	if [ -n "$(git status --porcelain)" ]; then
-		echo "Pushing changes to branch '$AR_NEW_BRANCH_NAME'..."
-		git add . && git commit --message "$AR_NEW_COMMIT_MESSAGE" && git push -u origin $AR_NEW_BRANCH_NAME
+		echo "Pushing changes to branch '$AR_PR_BRANCH'..."
+		git add . && git commit --message "$AR_PR_COMMIT_MESSAGE" && git push -u origin $AR_PR_BRANCH
 		if [ $? -ne 0 ]; then
-			echo "ERROR: Pushing to branch '$AR_NEW_BRANCH_NAME' failed"
+			echo "ERROR: Pushing to branch '$AR_PR_BRANCH' failed"
 			exit 1
 		fi
 	else
-		echo "No changes in branch '$AR_NEW_BRANCH_NAME'"
-		if [ "$AR_HAS_BRANCH" == "0" ]; then
-			echo "Delete created branch '$AR_NEW_BRANCH_NAME'"
-			git branch -d $AR_NEW_BRANCH_NAME
+		echo "No changes in branch '$AR_PR_BRANCH'"
+		if [ "$AR_HAS_PR_BRANCH" == "0" ]; then
+			echo "Delete created branch '$AR_PR_BRANCH'"
+			git branch -d $AR_PR_BRANCH
 		fi
 		exit 0
 	fi
 
 	# CREATE PULL REQUEST
 	if [ "$AR_HAS_PR" == "0" ]; then
-		echo "Creating PR '$AR_NEW_PR_TITLE'..."
-		pr_created=`git_create_pr "$AR_NEW_BRANCH_NAME" "$AR_NEW_PR_TITLE" "$AR_PR_TARGET_BRANCH"`
+		echo "Creating PR '$AR_PR_TITLE'..."
+		pr_created=`git_create_pr "$AR_PR_BRANCH" "$AR_PR_TITLE" "$AR_PR_TARGET_BRANCH"`
 		if [ $pr_created == "0" ]; then
-			echo "ERROR: Failed to create PR '$AR_NEW_PR_TITLE': "`echo "$git_create_pr_res" | jq -r '.message'`": "`echo "$git_create_pr_res" | jq -r '.errors[].message'`
+			echo "ERROR: Failed to create PR '$AR_PR_TITLE': "`echo "$git_create_pr_res" | jq -r '.message'`": "`echo "$git_create_pr_res" | jq -r '.errors[].message'`
 			exit 1
 		fi
 	else
-		echo "PR '$AR_NEW_PR_TITLE' Already Exists"
+		echo "PR '$AR_PR_TITLE' Already Exists"
 	fi
 fi
 

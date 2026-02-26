@@ -66,7 +66,7 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
             COPY_OUT=1
             ;;
         A )
-            export AR_BRANCH="$OPTARG"
+            export AR_SOURCE_BRANCH="$OPTARG"
             ;;
         I )
             export IDF_BRANCH="$OPTARG"
