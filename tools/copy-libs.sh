@@ -88,6 +88,18 @@ else
 	TOOLCHAIN="riscv32-esp-elf"
 fi
 
+# Resolve GCC response file (@"path") to its contained flags
+resolve_response_file() {
+	local token="$1"
+	# Strip leading @ and surrounding quotes
+	local rfile="${token#@}"
+	rfile="${rfile#\"}"
+	rfile="${rfile%\"}"
+	if [ -f "$rfile" ]; then
+		cat "$rfile"
+	fi
+}
+
 # copy zigbee + zboss lib
 if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
 	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
@@ -103,6 +115,17 @@ fi
 str=`cat build/compile_commands.json | grep arduino-lib-builder-gcc.c | grep command | cut -d':' -f2 | cut -d',' -f1`
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
+# Expand response files inline
+expanded_str=""
+set -- $str
+for item; do
+	if [ "${item:0:1}" = "@" ]; then
+		expanded_str+="$(resolve_response_file "$item") "
+	else
+		expanded_str+="$item "
+	fi
+done
+str="$expanded_str"
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
@@ -139,6 +162,17 @@ done
 str=`cat build/compile_commands.json | grep arduino-lib-builder-as.S | grep command | cut -d':' -f2 | cut -d',' -f1`
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
+# Expand response files inline
+expanded_str=""
+set -- $str
+for item; do
+	if [ "${item:0:1}" = "@" ]; then
+		expanded_str+="$(resolve_response_file "$item") "
+	else
+		expanded_str+="$item "
+	fi
+done
+str="$expanded_str"
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
@@ -158,6 +192,17 @@ done
 str=`cat build/compile_commands.json | grep arduino-lib-builder-cpp.cpp | grep command | cut -d':' -f2 | cut -d',' -f1`
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
+# Expand response files inline
+expanded_str=""
+set -- $str
+for item; do
+	if [ "${item:0:1}" = "@" ]; then
+		expanded_str+="$(resolve_response_file "$item") "
+	else
+		expanded_str+="$item "
+	fi
+done
+str="$expanded_str"
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
@@ -317,15 +362,80 @@ done
 # END OF DATA EXTRACTION FROM CMAKE
 #
 
+# IDF 5.5+ stores compiler flags in toolchain response files.
+# Read them directly to ensure -march, -mabi and other flags are captured.
+IDF_TOOLCHAIN_DIR="build/toolchain"
+if [ -d "$IDF_TOOLCHAIN_DIR" ]; then
+	for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/cflags" 2>/dev/null); do
+		if [[ $C_FLAGS != *"$rf_item"* && $PIOARDUINO_CC_FLAGS != *"$rf_item"* && $PIOARDUINO_C_FLAGS != *"$rf_item"* ]]; then
+			C_FLAGS+="$rf_item "
+		fi
+	done
+	for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/cxxflags" 2>/dev/null); do
+		if [[ $CPP_FLAGS != *"$rf_item"* && $PIOARDUINO_CC_FLAGS != *"$rf_item"* && $PIOARDUINO_CXX_FLAGS != *"$rf_item"* ]]; then
+			CPP_FLAGS+="$rf_item "
+		fi
+	done
+
+	# Read linker flags from ldflags response file (includes --specs=nano.specs, etc.)
+	for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/ldflags" 2>/dev/null); do
+		if [[ $LD_FLAGS != *"$rf_item"* && $PIOARDUINO_LD_FLAGS != *"$rf_item"* ]]; then
+			LD_FLAGS+="$rf_item "
+			PIOARDUINO_LD_FLAGS+="$rf_item "
+		fi
+	done
+
+	# Determine which flags are shared (in both C and C++) → PIOARDUINO_CC_FLAGS
+	# and which are language-specific → PIOARDUINO_C_FLAGS / PIOARDUINO_CXX_FLAGS
+	if [ -f "$IDF_TOOLCHAIN_DIR/cflags" ] && [ -f "$IDF_TOOLCHAIN_DIR/cxxflags" ]; then
+		for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/cflags"); do
+			if grep -qxF "$rf_item" "$IDF_TOOLCHAIN_DIR/cxxflags" 2>/dev/null; then
+				if [[ $PIOARDUINO_CC_FLAGS != *"$rf_item"* ]]; then
+					PIOARDUINO_CC_FLAGS+="$rf_item "
+				fi
+			else
+				if [[ $PIOARDUINO_C_FLAGS != *"$rf_item"* ]]; then
+					PIOARDUINO_C_FLAGS+="$rf_item "
+				fi
+			fi
+		done
+		for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/cxxflags"); do
+			if ! grep -qxF "$rf_item" "$IDF_TOOLCHAIN_DIR/cflags" 2>/dev/null; then
+				if [[ $PIOARDUINO_CXX_FLAGS != *"$rf_item"* ]]; then
+					PIOARDUINO_CXX_FLAGS+="$rf_item "
+				fi
+			fi
+		done
+	fi
+fi
+
 mkdir -p "$AR_SDK"
+
+# Deduplicate flags preserving order
+dedup_flags() {
+    echo "$1" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | tr '\n' ' ' | sed 's/ $//'
+}
+
+PIOARDUINO_CC_FLAGS=$(dedup_flags "$PIOARDUINO_CC_FLAGS")
+PIOARDUINO_C_FLAGS=$(dedup_flags "$PIOARDUINO_C_FLAGS")
+PIOARDUINO_CXX_FLAGS=$(dedup_flags "$PIOARDUINO_CXX_FLAGS")
+PIOARDUINO_LD_FLAGS=$(dedup_flags "$PIOARDUINO_LD_FLAGS")
 
 # Keep only -march, -mabi and -mlongcalls flags for Assembler
 PIOARDUINO_AS_FLAGS=$(
     {
+        echo "$PIOARDUINO_C_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
         echo "$PIOARDUINO_CXX_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
         echo "$PIOARDUINO_CC_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
     } | awk '!seen[$0]++' | paste -sd ' '
 )
+
+# Add -march, -mabi and -specs flags to linker flags
+for flag in $(echo "$PIOARDUINO_CC_FLAGS $PIOARDUINO_C_FLAGS $PIOARDUINO_CXX_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-specs=[^[:space:]]*' | awk '!seen[$0]++'); do
+    if [[ $PIOARDUINO_LD_FLAGS != *"$flag"* ]]; then
+        PIOARDUINO_LD_FLAGS+=" $flag"
+    fi
+done
 
 # start generation of pioarduino-build.py
 AR_PIOARDUINO_PY="$AR_SDK/pioarduino-build.py"
@@ -352,7 +462,7 @@ echo "    CFLAGS=[" >> "$AR_PIOARDUINO_PY"
 set -- $PIOARDUINO_C_FLAGS
 last_item="${@: -1}"
 for item in "${@:0:${#@}}"; do
-	if [ "${item:0:1}" != "/" ]; then
+	if [[ "${item:0:1}" != "/" && "${item:0:1}" != "@" ]]; then
 		echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
 	fi
 done
@@ -364,7 +474,7 @@ echo "    CXXFLAGS=[" >> "$AR_PIOARDUINO_PY"
 set -- $PIOARDUINO_CXX_FLAGS
 last_item="${@: -1}"
 for item in "${@:0:${#@}}"; do
-	if [ "${item:0:1}" != "/" ]; then
+	if [[ "${item:0:1}" != "/" && "${item:0:1}" != "@" ]]; then
 		echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
 	fi
 done
@@ -375,7 +485,9 @@ echo "" >> "$AR_PIOARDUINO_PY"
 echo "    CCFLAGS=[" >> "$AR_PIOARDUINO_PY"
 set -- $PIOARDUINO_CC_FLAGS
 for item; do
-	echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
+	if [ "${item:0:1}" != "@" ]; then
+		echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
+	fi
 done
 echo "        \"-MMD\"" >> "$AR_PIOARDUINO_PY"
 echo "    ]," >> "$AR_PIOARDUINO_PY"
@@ -384,7 +496,9 @@ echo "" >> "$AR_PIOARDUINO_PY"
 echo "    LINKFLAGS=[" >> "$AR_PIOARDUINO_PY"
 set -- $PIOARDUINO_LD_FLAGS
 for item; do
-	echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
+	if [ "${item:0:1}" != "@" ]; then
+		echo "        \"$item\"," >> "$AR_PIOARDUINO_PY"
+	fi
 done
 set -- $PIOARDUINO_LD_SCRIPTS
 for item; do
