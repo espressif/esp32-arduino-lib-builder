@@ -102,17 +102,25 @@ import sys, shlex, os
 build_dir = os.environ.get("BUILD_DIR", "build")
 cmd_str   = os.environ.get("CMD_STR", "")
 
-def expand(tokens):
+def expand(tokens, visited=None, depth=0):
+	if visited is None:
+		visited = frozenset()
+	if depth > 32:
+		sys.stderr.write("WARNING: response file expansion depth limit (32) reached; stopping recursion\n")
+		return list(tokens)
 	result = []
 	for tok in tokens:
 		if tok.startswith('@'):
 			rfile = tok[1:].strip('"\'')
 			if not os.path.isabs(rfile):
 				rfile = os.path.join(build_dir, rfile)
+			if rfile in visited:
+				sys.stderr.write("WARNING: cycle detected in response file expansion: " + rfile + " (skipping)\n")
+				continue
 			if os.path.isfile(rfile):
 				with open(rfile) as fh:
 					inner = shlex.split(fh.read())
-				result.extend(expand(inner))
+				result.extend(expand(inner, visited | frozenset([rfile]), depth + 1))
 			else:
 				sys.stderr.write("WARNING: response file not found: " + rfile +
 				                 " (keeping original token: " + tok + ")\n")
@@ -148,8 +156,12 @@ str=`cat build/compile_commands.json | grep arduino-lib-builder-gcc.c | grep com
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
 # Expand response files with shlex-aware tokenizer; keep results in an array
-mapfile -t _cmd_tokens < <(expand_response_files "$str" "build")
-for item in "${_cmd_tokens[@]:1:${#_cmd_tokens[@]}-5}"; do
+# (bash 3.2 compatible: avoid mapfile which requires bash 4+)
+_cmd_tokens=()
+while IFS= read -r _ct_line; do _cmd_tokens+=("$_ct_line"); done < <(expand_response_files "$str" "build")
+_ct_count=${#_cmd_tokens[@]}
+_ct_end=$(( _ct_count > 5 ? _ct_count - 5 : 0 ))
+for item in "${_cmd_tokens[@]:1:$_ct_end}"; do
 	prefix="${item:0:2}"
 	if [ "$prefix" = "-I" ]; then
 		item="${item:2}"
@@ -185,8 +197,12 @@ str=`cat build/compile_commands.json | grep arduino-lib-builder-as.S | grep comm
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
 # Expand response files with shlex-aware tokenizer; keep results in an array
-mapfile -t _cmd_tokens < <(expand_response_files "$str" "build")
-for item in "${_cmd_tokens[@]:1:${#_cmd_tokens[@]}-5}"; do
+# (bash 3.2 compatible: avoid mapfile which requires bash 4+)
+_cmd_tokens=()
+while IFS= read -r _ct_line; do _cmd_tokens+=("$_ct_line"); done < <(expand_response_files "$str" "build")
+_ct_count=${#_cmd_tokens[@]}
+_ct_end=$(( _ct_count > 5 ? _ct_count - 5 : 0 ))
+for item in "${_cmd_tokens[@]:1:$_ct_end}"; do
 	prefix="${item:0:2}"
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
@@ -205,8 +221,12 @@ str=`cat build/compile_commands.json | grep arduino-lib-builder-cpp.cpp | grep c
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
 # Expand response files with shlex-aware tokenizer; keep results in an array
-mapfile -t _cmd_tokens < <(expand_response_files "$str" "build")
-for item in "${_cmd_tokens[@]:1:${#_cmd_tokens[@]}-5}"; do
+# (bash 3.2 compatible: avoid mapfile which requires bash 4+)
+_cmd_tokens=()
+while IFS= read -r _ct_line; do _cmd_tokens+=("$_ct_line"); done < <(expand_response_files "$str" "build")
+_ct_count=${#_cmd_tokens[@]}
+_ct_end=$(( _ct_count > 5 ? _ct_count - 5 : 0 ))
+for item in "${_cmd_tokens[@]:1:$_ct_end}"; do
 	prefix="${item:0:2}"
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
@@ -371,70 +391,75 @@ done
 # correctly handle files that contain multiple whitespace-separated tokens per line.
 IDF_TOOLCHAIN_DIR="build/toolchain"
 if [ -d "$IDF_TOOLCHAIN_DIR" ]; then
-	# Normalise each response file to one token per line
-	mapfile -t _cflags   < <(cat "$IDF_TOOLCHAIN_DIR/cflags"   2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
-	mapfile -t _cxxflags < <(cat "$IDF_TOOLCHAIN_DIR/cxxflags" 2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
-	mapfile -t _ldflags  < <(cat "$IDF_TOOLCHAIN_DIR/ldflags"  2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
+	# Normalise each response file to one token per line.
+	# Uses while-read instead of mapfile for bash 3.2 (macOS) compatibility.
+	_cflags=(); _cxxflags=(); _ldflags=()
+	while IFS= read -r _tok; do _cflags+=("$_tok");   done < <(cat "$IDF_TOOLCHAIN_DIR/cflags"   2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
+	while IFS= read -r _tok; do _cxxflags+=("$_tok"); done < <(cat "$IDF_TOOLCHAIN_DIR/cxxflags" 2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
+	while IFS= read -r _tok; do _ldflags+=("$_tok");  done < <(cat "$IDF_TOOLCHAIN_DIR/ldflags"  2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
 
-	# Build associative-array lookup sets from existing string variables for O(1) exact matching
-	declare -A _c_flags_set _cpp_flags_set _ld_flags_set
-	declare -A _pio_cc_set _pio_c_set _pio_cxx_set _pio_ld_set
-	declare -A _cflags_set _cxxflags_set
-	for _f in $C_FLAGS;              do _c_flags_set["$_f"]=1;   done
-	for _f in $CPP_FLAGS;            do _cpp_flags_set["$_f"]=1; done
-	for _f in $LD_FLAGS;             do _ld_flags_set["$_f"]=1;  done
-	for _f in $PIOARDUINO_CC_FLAGS;  do _pio_cc_set["$_f"]=1;   done
-	for _f in $PIOARDUINO_C_FLAGS;   do _pio_c_set["$_f"]=1;    done
-	for _f in $PIOARDUINO_CXX_FLAGS; do _pio_cxx_set["$_f"]=1;  done
-	for _f in $PIOARDUINO_LD_FLAGS;  do _pio_ld_set["$_f"]=1;   done
-	for _f in "${_cflags[@]}";       do _cflags_set["$_f"]=1;   done
-	for _f in "${_cxxflags[@]}";     do _cxxflags_set["$_f"]=1; done
+	# Build newline-delimited "sets" from existing flag strings for exact token membership.
+	# Uses grep -qxF for O(n) exact whole-line matching (bash 3.2 compatible; no declare -A needed).
+	_c_flags_set="";    for _f in $C_FLAGS;              do _c_flags_set+="$_f"$'\n';   done
+	_cpp_flags_set="";  for _f in $CPP_FLAGS;            do _cpp_flags_set+="$_f"$'\n'; done
+	_ld_flags_set="";   for _f in $LD_FLAGS;             do _ld_flags_set+="$_f"$'\n';  done
+	_pio_cc_set="";     for _f in $PIOARDUINO_CC_FLAGS;  do _pio_cc_set+="$_f"$'\n';    done
+	_pio_c_set="";      for _f in $PIOARDUINO_C_FLAGS;   do _pio_c_set+="$_f"$'\n';     done
+	_pio_cxx_set="";    for _f in $PIOARDUINO_CXX_FLAGS; do _pio_cxx_set+="$_f"$'\n';   done
+	_pio_ld_set="";     for _f in $PIOARDUINO_LD_FLAGS;  do _pio_ld_set+="$_f"$'\n';    done
+	_cflags_set="";     for _f in "${_cflags[@]}";       do _cflags_set+="$_f"$'\n';    done
+	_cxxflags_set="";   for _f in "${_cxxflags[@]}";     do _cxxflags_set+="$_f"$'\n';  done
 
 	for rf_item in "${_cflags[@]}"; do
-		if [[ -z "${_c_flags_set[$rf_item]+x}" && -z "${_pio_cc_set[$rf_item]+x}" && -z "${_pio_c_set[$rf_item]+x}" ]]; then
+		if ! printf '%s' "$_c_flags_set"  | grep -qxF "$rf_item" && \
+		   ! printf '%s' "$_pio_cc_set"   | grep -qxF "$rf_item" && \
+		   ! printf '%s' "$_pio_c_set"    | grep -qxF "$rf_item"; then
 			C_FLAGS+="$rf_item "
-			_c_flags_set["$rf_item"]=1
+			_c_flags_set+="$rf_item"$'\n'
 		fi
 	done
 	for rf_item in "${_cxxflags[@]}"; do
-		if [[ -z "${_cpp_flags_set[$rf_item]+x}" && -z "${_pio_cc_set[$rf_item]+x}" && -z "${_pio_cxx_set[$rf_item]+x}" ]]; then
+		if ! printf '%s' "$_cpp_flags_set" | grep -qxF "$rf_item" && \
+		   ! printf '%s' "$_pio_cc_set"    | grep -qxF "$rf_item" && \
+		   ! printf '%s' "$_pio_cxx_set"   | grep -qxF "$rf_item"; then
 			CPP_FLAGS+="$rf_item "
-			_cpp_flags_set["$rf_item"]=1
+			_cpp_flags_set+="$rf_item"$'\n'
 		fi
 	done
 
 	# Read linker flags from ldflags response file (includes --specs=nano.specs, etc.)
 	for rf_item in "${_ldflags[@]}"; do
-		if [[ -z "${_ld_flags_set[$rf_item]+x}" && -z "${_pio_ld_set[$rf_item]+x}" ]]; then
+		if ! printf '%s' "$_ld_flags_set" | grep -qxF "$rf_item" && \
+		   ! printf '%s' "$_pio_ld_set"   | grep -qxF "$rf_item"; then
 			LD_FLAGS+="$rf_item "
 			PIOARDUINO_LD_FLAGS+="$rf_item "
-			_ld_flags_set["$rf_item"]=1
-			_pio_ld_set["$rf_item"]=1
+			_ld_flags_set+="$rf_item"$'\n'
+			_pio_ld_set+="$rf_item"$'\n'
 		fi
 	done
 
 	# Determine which flags are shared (in both C and C++) → PIOARDUINO_CC_FLAGS
 	# and which are language-specific → PIOARDUINO_C_FLAGS / PIOARDUINO_CXX_FLAGS.
-	# Intersection is tested via associative arrays for exact per-token matching.
+	# Intersection is tested via grep -qxF for exact per-token matching.
 	if [ ${#_cflags[@]} -gt 0 ] && [ ${#_cxxflags[@]} -gt 0 ]; then
 		for rf_item in "${_cflags[@]}"; do
-			if [[ -n "${_cxxflags_set[$rf_item]+x}" ]]; then
-				if [[ -z "${_pio_cc_set[$rf_item]+x}" ]]; then
+			if printf '%s' "$_cxxflags_set" | grep -qxF "$rf_item"; then
+				if ! printf '%s' "$_pio_cc_set" | grep -qxF "$rf_item"; then
 					PIOARDUINO_CC_FLAGS+="$rf_item "
-					_pio_cc_set["$rf_item"]=1
+					_pio_cc_set+="$rf_item"$'\n'
 				fi
 			else
-				if [[ -z "${_pio_c_set[$rf_item]+x}" ]]; then
+				if ! printf '%s' "$_pio_c_set" | grep -qxF "$rf_item"; then
 					PIOARDUINO_C_FLAGS+="$rf_item "
-					_pio_c_set["$rf_item"]=1
+					_pio_c_set+="$rf_item"$'\n'
 				fi
 			fi
 		done
 		for rf_item in "${_cxxflags[@]}"; do
-			if [[ -z "${_cflags_set[$rf_item]+x}" ]]; then
-				if [[ -z "${_pio_cxx_set[$rf_item]+x}" ]]; then
+			if ! printf '%s' "$_cflags_set" | grep -qxF "$rf_item"; then
+				if ! printf '%s' "$_pio_cxx_set" | grep -qxF "$rf_item"; then
 					PIOARDUINO_CXX_FLAGS+="$rf_item "
-					_pio_cxx_set["$rf_item"]=1
+					_pio_cxx_set+="$rf_item"$'\n'
 				fi
 			fi
 		done
@@ -462,10 +487,15 @@ PIOARDUINO_AS_FLAGS=$(
     } | awk '!seen[$0]++' | paste -sd ' '
 )
 
-# Add -march, -mabi and -specs flags to linker flags
+# Add -march, -mabi and -specs flags to linker flags.
+# Use word-boundary grep for exact token matching to avoid false positives
+# (e.g. -march=rv32 matching -march=rv32imc).
+_pio_ld_exact=""
+for _f in $PIOARDUINO_LD_FLAGS; do _pio_ld_exact+="$_f"$'\n'; done
 for flag in $(echo "$PIOARDUINO_CC_FLAGS $PIOARDUINO_C_FLAGS $PIOARDUINO_CXX_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-specs=[^[:space:]]*' | awk '!seen[$0]++'); do
-    if [[ $PIOARDUINO_LD_FLAGS != *"$flag"* ]]; then
+    if ! printf '%s' "$_pio_ld_exact" | grep -qxF "$flag"; then
         PIOARDUINO_LD_FLAGS+=" $flag"
+        _pio_ld_exact+="$flag"$'\n'
     fi
 done
 # Re-deduplicate after the loop that may have reintroduced duplicate flags
