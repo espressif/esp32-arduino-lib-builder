@@ -88,16 +88,48 @@ else
 	TOOLCHAIN="riscv32-esp-elf"
 fi
 
-# Resolve GCC response file (@"path") to its contained flags
-resolve_response_file() {
-	local token="$1"
-	# Strip leading @ and surrounding quotes
-	local rfile="${token#@}"
-	rfile="${rfile#\"}"
-	rfile="${rfile%\"}"
-	if [ -f "$rfile" ]; then
-		cat "$rfile"
-	fi
+# Expand GCC response files (@file) in a command string using a shlex-aware
+# tokenizer (python3).  Outputs one expanded token per line.
+# Non-absolute response file paths are resolved relative to BUILD_DIR (default: build/).
+# Missing files emit a warning and the original @token is preserved so no flag is
+# silently dropped.
+expand_response_files() {
+	local cmd_str="$1"
+	local build_dir="${2:-build}"
+	CMD_STR="$cmd_str" BUILD_DIR="$build_dir" python3 - <<'EXPANDEOF'
+import sys, shlex, os
+
+build_dir = os.environ.get("BUILD_DIR", "build")
+cmd_str   = os.environ.get("CMD_STR", "")
+
+def expand(tokens):
+	result = []
+	for tok in tokens:
+		if tok.startswith('@'):
+			rfile = tok[1:].strip('"\'')
+			if not os.path.isabs(rfile):
+				rfile = os.path.join(build_dir, rfile)
+			if os.path.isfile(rfile):
+				with open(rfile) as fh:
+					inner = shlex.split(fh.read())
+				result.extend(expand(inner))
+			else:
+				sys.stderr.write("WARNING: response file not found: " + rfile +
+				                 " (keeping original token: " + tok + ")\n")
+				result.append(tok)
+		else:
+			result.append(tok)
+	return result
+
+try:
+	tokens = shlex.split(cmd_str)
+except ValueError as e:
+	sys.stderr.write("WARNING: shlex parse error: " + str(e) + " -- falling back to split()\n")
+	tokens = cmd_str.split()
+
+for t in expand(tokens):
+	print(t)
+EXPANDEOF
 }
 
 # copy zigbee + zboss lib
@@ -115,19 +147,9 @@ fi
 str=`cat build/compile_commands.json | grep arduino-lib-builder-gcc.c | grep command | cut -d':' -f2 | cut -d',' -f1`
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
-# Expand response files inline
-expanded_str=""
-set -- $str
-for item; do
-	if [ "${item:0:1}" = "@" ]; then
-		expanded_str+="$(resolve_response_file "$item") "
-	else
-		expanded_str+="$item "
-	fi
-done
-str="$expanded_str"
-set -- $str
-for item in "${@:2:${#@}-5}"; do
+# Expand response files with shlex-aware tokenizer; keep results in an array
+mapfile -t _cmd_tokens < <(expand_response_files "$str" "build")
+for item in "${_cmd_tokens[@]:1:${#_cmd_tokens[@]}-5}"; do
 	prefix="${item:0:2}"
 	if [ "$prefix" = "-I" ]; then
 		item="${item:2}"
@@ -162,19 +184,9 @@ done
 str=`cat build/compile_commands.json | grep arduino-lib-builder-as.S | grep command | cut -d':' -f2 | cut -d',' -f1`
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
-# Expand response files inline
-expanded_str=""
-set -- $str
-for item; do
-	if [ "${item:0:1}" = "@" ]; then
-		expanded_str+="$(resolve_response_file "$item") "
-	else
-		expanded_str+="$item "
-	fi
-done
-str="$expanded_str"
-set -- $str
-for item in "${@:2:${#@}-5}"; do
+# Expand response files with shlex-aware tokenizer; keep results in an array
+mapfile -t _cmd_tokens < <(expand_response_files "$str" "build")
+for item in "${_cmd_tokens[@]:1:${#_cmd_tokens[@]}-5}"; do
 	prefix="${item:0:2}"
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
@@ -192,19 +204,9 @@ done
 str=`cat build/compile_commands.json | grep arduino-lib-builder-cpp.cpp | grep command | cut -d':' -f2 | cut -d',' -f1`
 str="${str:2:${#str}-1}" #remove leading space and quotes
 str=`printf '%b' "$str"` #unescape the string
-# Expand response files inline
-expanded_str=""
-set -- $str
-for item; do
-	if [ "${item:0:1}" = "@" ]; then
-		expanded_str+="$(resolve_response_file "$item") "
-	else
-		expanded_str+="$item "
-	fi
-done
-str="$expanded_str"
-set -- $str
-for item in "${@:2:${#@}-5}"; do
+# Expand response files with shlex-aware tokenizer; keep results in an array
+mapfile -t _cmd_tokens < <(expand_response_files "$str" "build")
+for item in "${_cmd_tokens[@]:1:${#_cmd_tokens[@]}-5}"; do
 	prefix="${item:0:2}"
 	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
@@ -364,45 +366,75 @@ done
 
 # IDF 5.5+ stores compiler flags in toolchain response files.
 # Read them directly to ensure -march, -mabi and other flags are captured.
+# Flags are normalised to one-token-per-line; exact membership is tested via
+# associative arrays to avoid false matches (e.g. -O2 matching -O20) and to
+# correctly handle files that contain multiple whitespace-separated tokens per line.
 IDF_TOOLCHAIN_DIR="build/toolchain"
 if [ -d "$IDF_TOOLCHAIN_DIR" ]; then
-	for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/cflags" 2>/dev/null); do
-		if [[ $C_FLAGS != *"$rf_item"* && $PIOARDUINO_CC_FLAGS != *"$rf_item"* && $PIOARDUINO_C_FLAGS != *"$rf_item"* ]]; then
+	# Normalise each response file to one token per line
+	mapfile -t _cflags   < <(cat "$IDF_TOOLCHAIN_DIR/cflags"   2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
+	mapfile -t _cxxflags < <(cat "$IDF_TOOLCHAIN_DIR/cxxflags" 2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
+	mapfile -t _ldflags  < <(cat "$IDF_TOOLCHAIN_DIR/ldflags"  2>/dev/null | tr '[:space:]' '\n' | grep -v '^$')
+
+	# Build associative-array lookup sets from existing string variables for O(1) exact matching
+	declare -A _c_flags_set _cpp_flags_set _ld_flags_set
+	declare -A _pio_cc_set _pio_c_set _pio_cxx_set _pio_ld_set
+	declare -A _cflags_set _cxxflags_set
+	for _f in $C_FLAGS;              do _c_flags_set["$_f"]=1;   done
+	for _f in $CPP_FLAGS;            do _cpp_flags_set["$_f"]=1; done
+	for _f in $LD_FLAGS;             do _ld_flags_set["$_f"]=1;  done
+	for _f in $PIOARDUINO_CC_FLAGS;  do _pio_cc_set["$_f"]=1;   done
+	for _f in $PIOARDUINO_C_FLAGS;   do _pio_c_set["$_f"]=1;    done
+	for _f in $PIOARDUINO_CXX_FLAGS; do _pio_cxx_set["$_f"]=1;  done
+	for _f in $PIOARDUINO_LD_FLAGS;  do _pio_ld_set["$_f"]=1;   done
+	for _f in "${_cflags[@]}";       do _cflags_set["$_f"]=1;   done
+	for _f in "${_cxxflags[@]}";     do _cxxflags_set["$_f"]=1; done
+
+	for rf_item in "${_cflags[@]}"; do
+		if [[ -z "${_c_flags_set[$rf_item]+x}" && -z "${_pio_cc_set[$rf_item]+x}" && -z "${_pio_c_set[$rf_item]+x}" ]]; then
 			C_FLAGS+="$rf_item "
+			_c_flags_set["$rf_item"]=1
 		fi
 	done
-	for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/cxxflags" 2>/dev/null); do
-		if [[ $CPP_FLAGS != *"$rf_item"* && $PIOARDUINO_CC_FLAGS != *"$rf_item"* && $PIOARDUINO_CXX_FLAGS != *"$rf_item"* ]]; then
+	for rf_item in "${_cxxflags[@]}"; do
+		if [[ -z "${_cpp_flags_set[$rf_item]+x}" && -z "${_pio_cc_set[$rf_item]+x}" && -z "${_pio_cxx_set[$rf_item]+x}" ]]; then
 			CPP_FLAGS+="$rf_item "
+			_cpp_flags_set["$rf_item"]=1
 		fi
 	done
 
 	# Read linker flags from ldflags response file (includes --specs=nano.specs, etc.)
-	for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/ldflags" 2>/dev/null); do
-		if [[ $LD_FLAGS != *"$rf_item"* && $PIOARDUINO_LD_FLAGS != *"$rf_item"* ]]; then
+	for rf_item in "${_ldflags[@]}"; do
+		if [[ -z "${_ld_flags_set[$rf_item]+x}" && -z "${_pio_ld_set[$rf_item]+x}" ]]; then
 			LD_FLAGS+="$rf_item "
 			PIOARDUINO_LD_FLAGS+="$rf_item "
+			_ld_flags_set["$rf_item"]=1
+			_pio_ld_set["$rf_item"]=1
 		fi
 	done
 
 	# Determine which flags are shared (in both C and C++) → PIOARDUINO_CC_FLAGS
-	# and which are language-specific → PIOARDUINO_C_FLAGS / PIOARDUINO_CXX_FLAGS
-	if [ -f "$IDF_TOOLCHAIN_DIR/cflags" ] && [ -f "$IDF_TOOLCHAIN_DIR/cxxflags" ]; then
-		for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/cflags"); do
-			if grep -qxF "$rf_item" "$IDF_TOOLCHAIN_DIR/cxxflags" 2>/dev/null; then
-				if [[ $PIOARDUINO_CC_FLAGS != *"$rf_item"* ]]; then
+	# and which are language-specific → PIOARDUINO_C_FLAGS / PIOARDUINO_CXX_FLAGS.
+	# Intersection is tested via associative arrays for exact per-token matching.
+	if [ ${#_cflags[@]} -gt 0 ] && [ ${#_cxxflags[@]} -gt 0 ]; then
+		for rf_item in "${_cflags[@]}"; do
+			if [[ -n "${_cxxflags_set[$rf_item]+x}" ]]; then
+				if [[ -z "${_pio_cc_set[$rf_item]+x}" ]]; then
 					PIOARDUINO_CC_FLAGS+="$rf_item "
+					_pio_cc_set["$rf_item"]=1
 				fi
 			else
-				if [[ $PIOARDUINO_C_FLAGS != *"$rf_item"* ]]; then
+				if [[ -z "${_pio_c_set[$rf_item]+x}" ]]; then
 					PIOARDUINO_C_FLAGS+="$rf_item "
+					_pio_c_set["$rf_item"]=1
 				fi
 			fi
 		done
-		for rf_item in $(cat "$IDF_TOOLCHAIN_DIR/cxxflags"); do
-			if ! grep -qxF "$rf_item" "$IDF_TOOLCHAIN_DIR/cflags" 2>/dev/null; then
-				if [[ $PIOARDUINO_CXX_FLAGS != *"$rf_item"* ]]; then
+		for rf_item in "${_cxxflags[@]}"; do
+			if [[ -z "${_cflags_set[$rf_item]+x}" ]]; then
+				if [[ -z "${_pio_cxx_set[$rf_item]+x}" ]]; then
 					PIOARDUINO_CXX_FLAGS+="$rf_item "
+					_pio_cxx_set["$rf_item"]=1
 				fi
 			fi
 		done
@@ -413,7 +445,7 @@ mkdir -p "$AR_SDK"
 
 # Deduplicate flags preserving order
 dedup_flags() {
-    echo "$1" | tr ' ' '\n' | awk 'NF && !seen[$0]++' | tr '\n' ' ' | sed 's/ $//'
+    echo "$1" | tr '[:space:]' '\n' | awk 'NF && !seen[$0]++' | tr '\n' ' ' | sed 's/ $//'
 }
 
 PIOARDUINO_CC_FLAGS=$(dedup_flags "$PIOARDUINO_CC_FLAGS")
@@ -436,6 +468,8 @@ for flag in $(echo "$PIOARDUINO_CC_FLAGS $PIOARDUINO_C_FLAGS $PIOARDUINO_CXX_FLA
         PIOARDUINO_LD_FLAGS+=" $flag"
     fi
 done
+# Re-deduplicate after the loop that may have reintroduced duplicate flags
+PIOARDUINO_LD_FLAGS=$(dedup_flags "$PIOARDUINO_LD_FLAGS")
 
 # start generation of pioarduino-build.py
 AR_PIOARDUINO_PY="$AR_SDK/pioarduino-build.py"
