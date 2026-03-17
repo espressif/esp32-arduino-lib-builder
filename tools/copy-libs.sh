@@ -113,6 +113,7 @@ for item in "${@:2:${#@}-5}"; do
 			echo "Add CC flag '$xitem'"
 			C_FLAGS+="$xitem "
 			PIOARDUINO_CC_FLAGS+="$xitem "
+			PIOARDUINO_LD_FLAGS+="$xitem "
 		done
 	elif [ "$prefix" = "-I" ]; then
 		item="${item:2}"
