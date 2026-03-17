@@ -156,15 +156,19 @@ for item in "${@:2:${#@}-5}"; do
 		for xitem in `cat "$xfile"`; do
 			echo "Add AS flag '$xitem'"
 			AS_FLAGS+="$xitem "
-			PIOARDUINO_AS_FLAGS+="$xitem "
+			if [[ "${xitem:0:6}" != "-mtune" && "${xitem:0:6}" != "-specs" ]]; then
+				PIOARDUINO_AS_FLAGS+="$xitem "
+			fi
 		done
 	elif [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			AS_FLAGS+="$item "
-			if [[ $C_FLAGS == *"$item"* ]]; then
-				PIOARDUINO_CC_FLAGS+="$item "
-			else
-				PIOARDUINO_AS_FLAGS+="$item "
+			if [[ "${item:0:6}" != "-mtune" && "${item:0:6}" != "-specs" ]]; then
+				if [[ $C_FLAGS == *"$item"* ]]; then
+					PIOARDUINO_CC_FLAGS+="$item "
+				else
+					PIOARDUINO_AS_FLAGS+="$item "
+				fi
 			fi
 		fi
 	fi
