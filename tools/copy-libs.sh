@@ -106,7 +106,15 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [ "$prefix" = "-I" ]; then
+	if [ "${item:0:1}" = "@" ]; then
+		xfile="${item:3:${#item}-5}"
+		echo "Parse CC file '$xfile'"
+		for xitem in `cat "$xfile"`; do
+			echo "Add CC flag '$xitem'"
+			C_FLAGS+="$xitem "
+			PIOARDUINO_CC_FLAGS+="$xitem "
+		done
+	elif [ "$prefix" = "-I" ]; then
 		item="${item:2}"
 		if [ "${item:0:1}" = "/" ]; then
 			item=`get_actual_path $item`
@@ -142,7 +150,15 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
+	if [ "${item:0:1}" = "@" ]; then
+		xfile="${item:3:${#item}-5}"
+		echo "Parse AS file '$xfile'"
+		for xitem in `cat "$xfile"`; do
+			echo "Add AS flag '$xitem'"
+			AS_FLAGS+="$xitem "
+			PIOARDUINO_AS_FLAGS+="$xitem "
+		done
+	elif [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			AS_FLAGS+="$item "
 			if [[ $C_FLAGS == *"$item"* ]]; then
@@ -161,7 +177,15 @@ str=`printf '%b' "$str"` #unescape the string
 set -- $str
 for item in "${@:2:${#@}-5}"; do
 	prefix="${item:0:2}"
-	if [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
+	if [ "${item:0:1}" = "@" ]; then
+		xfile="${item:3:${#item}-5}"
+		echo "Parse CXX file '$xfile'"
+		for xitem in `cat "$xfile"`; do
+			echo "Add CXX flag '$xitem'"
+			CPP_FLAGS+="$xitem "
+			PIOARDUINO_CXX_FLAGS+="$xitem "
+		done
+	elif [[ "$prefix" != "-I" && "$prefix" != "-D" && "$item" != "-Wall" && "$item" != "-Werror=all"  && "$item" != "-Wextra" && "$prefix" != "-O" ]]; then
 		if [[ "${item:0:23}" != "-mfix-esp32-psram-cache" && "${item:0:18}" != "-fmacro-prefix-map" && "${item:0:20}" != "-fdiagnostics-color=" && "${item:0:19}" != "-fdebug-prefix-map=" ]]; then
 			CPP_FLAGS+="$item "
 			if [[ $PIOARDUINO_CC_FLAGS != *"$item"* ]]; then
@@ -306,6 +330,14 @@ for item; do
 				fi
 			elif [[ "${item:${#item}-4:4}" = ".obj" || "${item:${#item}-4:4}" = ".elf" || "${item:${#item}-4:4}" = "-g++" ]]; then
 				item="$item"
+			elif [ "${item:0:1}" = "@" ]; then
+				xfile="${item:2:${#item}-3}"
+				echo "Parse LD file '$xfile'"
+				for xitem in `cat "$xfile"`; do
+					echo "Add LD flag '$xitem'"
+					LD_FLAGS+="$xitem "
+					PIOARDUINO_LD_FLAGS+="$xitem "
+				done
 			else
 				echo "*** BAD LD ITEM: $item ${item:${#item}-2:2}"
 			fi
@@ -320,12 +352,12 @@ done
 mkdir -p "$AR_SDK"
 
 # Keep only -march, -mabi and -mlongcalls flags for Assembler
-PIOARDUINO_AS_FLAGS=$(
-    {
-        echo "$PIOARDUINO_CXX_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
-        echo "$PIOARDUINO_CC_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
-    } | awk '!seen[$0]++' | paste -sd ' '
-)
+# PIOARDUINO_AS_FLAGS=$(
+#     {
+#         echo "$PIOARDUINO_CXX_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
+#         echo "$PIOARDUINO_CC_FLAGS" | grep -oE '\-march=[^[:space:]]*|\-mabi=[^[:space:]]*|\-mlongcalls'
+#     } | awk '!seen[$0]++' | paste -sd ' '
+# )
 
 # start generation of pioarduino-build.py
 AR_PIOARDUINO_PY="$AR_SDK/pioarduino-build.py"
