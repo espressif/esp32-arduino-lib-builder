@@ -60,10 +60,15 @@ jobs:
 
       - name: Set variables (pull requests)
         if: ${{ github.event_name == 'pull_request' }}
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.number }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          SERVER_URL: ${{ github.server_url }}
         run: |
-          echo "CLONE_BRANCH_OR_TAG=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
-          echo "DOCKER_TAGS=${{ env.DOCKERHUB_REPO }}:PR_${{ github.event.number }}" >> $GITHUB_ENV
-          echo "URL=${{ github.server_url }}/${{ github.event.pull_request.head.repo.full_name }}.git" >> $GITHUB_ENV
+          echo "CLONE_BRANCH_OR_TAG=$PR_HEAD_REF" >> $GITHUB_ENV
+          echo "DOCKER_TAGS=$DOCKERHUB_REPO:PR_$PR_NUMBER" >> $GITHUB_ENV
+          echo "URL=$SERVER_URL/$PR_HEAD_REPO.git" >> $GITHUB_ENV
 
       # Display the variables set above, just in case.
       - name: Check variables
