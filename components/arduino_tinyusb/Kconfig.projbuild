@@ -138,6 +138,23 @@ menu "Arduino TinyUSB"
 
     endmenu
 
+    menu "AUDIO driver"
+        depends on TINYUSB_ENABLED
+
+        config TINYUSB_AUDIO_ENABLED
+            bool "Enable USB AUDIO TinyUSB driver"
+            default y
+            help
+                Enable USB AUDIO TinyUSB driver.
+
+        config TINYUSB_DESC_AUDIO_STRING
+            string "AUDIO Device String"
+            default "Espressif AUDIO Device"
+            depends on TINYUSB_AUDIO_ENABLED
+            help
+                Specify name of the AUDIO device
+    endmenu
+
     menu "VIDEO driver"
         depends on TINYUSB_ENABLED
 
