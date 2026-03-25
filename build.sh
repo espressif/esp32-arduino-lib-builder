@@ -31,7 +31,7 @@ if [ -z $DEPLOY_OUT ]; then
 fi
 
 function print_help() {
-    echo "Usage: build.sh [-s] [-n] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant|hosted|srmodels_bin>] [config ...]"
+    echo "Usage: build.sh [-s] [-n] [-A <arduino_branch>] [-I <idf_branch>] [-D <debug_level>] [-i <idf_commit>] [-c <path>] [-t <target>] [-b <build|menuconfig|reconfigure|idf-libs|copy-bootloader|mem-variant|hosted>] [config ...]"
     echo "       -s     Skip installing/updating of ESP-IDF and all components"
     echo "       -n     Disable ccache"
     echo "       -A     Set which branch of arduino-esp32 to be used for compilation"
@@ -88,8 +88,7 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
                [ "$b" != "idf-libs" ] && 
                [ "$b" != "copy-bootloader" ] && 
                [ "$b" != "mem-variant" ] && 
-               [ "$b" != "hosted" ] && 
-               [ "$b" != "srmodels_bin" ]; then
+               [ "$b" != "hosted" ]; then
                 print_help
             fi
             BUILD_TYPE="$b"
@@ -180,15 +179,6 @@ if [ "$BUILD_TYPE" != "all" ]; then
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
         if [ $? -ne 0 ]; then exit 1; fi
 
-        if [ "$BUILD_TYPE" == "srmodels_bin" ]; then
-            AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
-            if [ -f "build/srmodels/srmodels.bin" ]; then
-                echo "$AR_SDK/esp_sr"
-                mkdir -p "$AR_SDK/esp_sr"
-                cp -f "build/srmodels/srmodels.bin" "$AR_SDK/esp_sr/"
-                cp -f "partitions.csv" "$AR_SDK/esp_sr/"
-            fi
-        fi
     done
     exit 0
 fi
@@ -248,20 +238,6 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     # Build ESP-Hosted slave firmwares
     if [ "$CHIP_VARIANT" == "esp32p4" ]; then
         ./tools/build-hosted.sh
-    fi
-
-    # Build ESP-SR Models
-    if [ "$target" == "esp32s3" ] || [ "$target" == "esp32p4" ]; then
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
-        if [ $? -ne 0 ]; then exit 1; fi
-        AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
-        # sr model.bin
-        if [ -f "build/srmodels/srmodels.bin" ]; then
-            echo "$AR_SDK/esp_sr"
-            mkdir -p "$AR_SDK/esp_sr"
-            cp -f "build/srmodels/srmodels.bin" "$AR_SDK/esp_sr/"
-            cp -f "partitions.csv" "$AR_SDK/esp_sr/"
-        fi
     fi
 
     # Build Bootloaders
