@@ -12,8 +12,8 @@ if [ -z "$IDF_BRANCH" ]; then
 fi
 
 # Arduino branch to use
-if [ -z $AR_BRANCH ]; then
-    AR_BRANCH="release/v4.0.x"
+if [ -z $AR_SOURCE_BRANCH ]; then
+    AR_SOURCE_BRANCH="release/v4.0.x"
 fi
 
 if [ -z "$AR_PR_TARGET_BRANCH" ]; then
