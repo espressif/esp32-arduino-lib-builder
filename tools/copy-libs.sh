@@ -672,10 +672,10 @@ done
 # end generation of pioarduino-build.py
 cat configs/pioarduino_end.txt >> "$AR_PIOARDUINO_PY"
 
-# Matter Library adjustments
-echo "Fixing $AR_PIOARDUINO_PY"
-sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $AR_PIOARDUINO_PY > $AR_PIOARDUINO_PY.temp
-mv $AR_PIOARDUINO_PY.temp $AR_PIOARDUINO_PY
+## Matter Library adjustments
+#echo "Fixing $AR_PIOARDUINO_PY"
+#sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $AR_PIOARDUINO_PY > $AR_PIOARDUINO_PY.temp
+#mv $AR_PIOARDUINO_PY.temp $AR_PIOARDUINO_PY
 
 # replace double backslashes with single one
 DEFINES=`echo "$DEFINES" | tr -s '\'`
@@ -692,17 +692,12 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
-# Matter Library adjustments
-for flag_file in "c_flags" "cpp_flags" "S_flags"; do
-	echo "Fixing $FLAGS_DIR/$flag_file"
- 	sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $FLAGS_DIR/$flag_file > $FLAGS_DIR/$flag_file.temp
-	mv $FLAGS_DIR/$flag_file.temp $FLAGS_DIR/$flag_file
-done
-# this is not necessary for Matter 1.4, but it is for Matter 1.3
-#CHIP_RESOLVE_DIR="$AR_SDK/include/espressif__esp_matter/connectedhomeip/connectedhomeip/src/lib/address_resolve"
-#sed 's/CHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER/<lib\/address_resolve\/AddressResolve_DefaultImpl.h>/' $CHIP_RESOLVE_DIR/AddressResolve.h > $CHIP_RESOLVE_DIR/AddressResolve_temp.h
-#mv $CHIP_RESOLVE_DIR/AddressResolve_temp.h $CHIP_RESOLVE_DIR/AddressResolve.h
-# End of Matter Library adjustments
+## Matter Library adjustments
+#for flag_file in "c_flags" "cpp_flags" "S_flags"; do
+#	echo "Fixing $FLAGS_DIR/$flag_file"
+# 	sed 's/\\\"-DCHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER=<lib\/address_resolve\/AddressResolve_DefaultImpl.h>\\\"/-DCHIP_HAVE_CONFIG_H/' $FLAGS_DIR/$flag_file > $FLAGS_DIR/$flag_file.temp
+#	mv $FLAGS_DIR/$flag_file.temp $FLAGS_DIR/$flag_file
+#done
 
 # sdkconfig
 cp -f "sdkconfig" "$AR_SDK/sdkconfig"
