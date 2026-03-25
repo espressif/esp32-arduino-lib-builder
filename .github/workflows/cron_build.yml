@@ -160,17 +160,9 @@ jobs:
       - name: Push changes
         if: inputs.deploy
         env:
-          GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
-          GIT_AUTHOR_EMAIL: ${{ secrets.PUSH_EMAIL }}
-          GIT_COMMITTER_EMAIL: ${{ secrets.PUSH_EMAIL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IDF_COMMIT: ${{ needs.check-if-needed.outputs.idf_commit }}
-          AR_SOURCE_BRANCH: ${{ needs.check-if-needed.outputs.ar_source_branch }}
-          AR_PR_COMMIT_MESSAGE: ${{ needs.check-if-needed.outputs.ar_pr_commit_message }}
-          AR_PR_BRANCH: ${{ needs.check-if-needed.outputs.ar_pr_branch }}
-          AR_PR_TITLE: ${{ needs.check-if-needed.outputs.ar_pr_title }}
           AR_HAS_COMMIT: ${{ needs.check-if-needed.outputs.ar_has_commit }}
-          AR_HAS_PR_BRANCH: ${{ needs.check-if-needed.outputs.ar_has_pr_branch }}
-          AR_HAS_PR: ${{ needs.check-if-needed.outputs.ar_has_pr }}
           LIBS_RELEASE_TAG: ${{ needs.check-if-needed.outputs.libs_release_tag }}
           LIBS_VERSION: ${{ needs.check-if-needed.outputs.libs_version }}
           LIBS_RELEASE_ID: ${{ needs.check-if-needed.outputs.libs_release_id }}
