@@ -57,7 +57,7 @@ defaults:
 jobs:
   build-libs:
     name: Build with IDF ${{ inputs.idf_branch || matrix.idf_branch }}
-    if: github.repository_owner == 'espressif' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/cron_build.yml
     with:
       idf_branch: ${{ inputs.idf_branch || matrix.idf_branch }}
@@ -81,6 +81,6 @@ jobs:
           # - idf_branch: "release/v5.4"
           #   lib_builder_branch: "release/v5.4"
           #   targets: "esp32,esp32s2,esp32s3,esp32c3,esp32c6,esp32h2,esp32p4"
-          - idf_branch: "release/v5.5"
-            lib_builder_branch: "master"
-            targets: "esp32,esp32s2,esp32s3,esp32c3,esp32c6,esp32h2,esp32p4,esp32p4_es,esp32c5"
+          - idf_branch: "release/v6.0"
+            lib_builder_branch: "release/v6.0"
+            targets: "esp32,esp32s2,esp32s3,esp32c2,esp32c3,esp32c6,esp32c61,esp32h2,esp32p4,esp32p4_es,esp32c5"

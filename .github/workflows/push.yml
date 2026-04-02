@@ -1,9 +1,8 @@
 name: ESP32 Arduino Libs CI
 
 on:
+  workflow_dispatch:  # Manually start a workflow
   push:
-    branches:
-    - master
   pull_request:
     paths:
       - "**"
