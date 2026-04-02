@@ -126,8 +126,8 @@ extern "C" {
 /*                      */
 
 #define CFG_TUD_MAINTASK_SIZE 4096
-#define CFG_TUD_ENDOINT_SIZE  (TUD_OPT_HIGH_SPEED ? 512 : 64)
-#define CFG_TUD_ENDOINT0_SIZE 64
+#define CFG_TUD_ENDPOINT_SIZE  (TUD_OPT_HIGH_SPEED ? 512 : 64)
+#define CFG_TUD_ENDPOINT0_SIZE 64
 
 // Enabled Drivers
 #ifdef CONFIG_TINYUSB_CDC_MAX_PORTS
