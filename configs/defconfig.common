@@ -149,3 +149,8 @@ CONFIG_TINYUSB_CDC_MAX_PORTS=2
 
 # Zigbee Config
 CONFIG_ZB_ENABLED=y
+
+# esp-dsp and other things fail to build with picolibc
+CONFIG_LIBC_NEWLIB=y
+# required for tinyusb and some IDF components to build properly
+CONFIG_COMPILER_DISABLE_DEFAULT_ERRORS=y
