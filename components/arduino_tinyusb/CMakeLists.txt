@@ -32,7 +32,6 @@ if(CONFIG_TINYUSB_ENABLED)
       "${COMPONENT_DIR}/tinyusb/src/tusb.c"
       "${COMPONENT_DIR}/tinyusb/src/common/tusb_fifo.c"
       # device
-      "${COMPONENT_DIR}/tinyusb/src/device/usbd_control.c"
       "${COMPONENT_DIR}/tinyusb/src/device/usbd.c"
       "${COMPONENT_DIR}/tinyusb/src/class/cdc/cdc_device.c"
       "${COMPONENT_DIR}/tinyusb/src/class/hid/hid_device.c"
