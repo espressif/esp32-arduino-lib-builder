@@ -33,6 +33,17 @@ CONFIG_ENABLE_CHIPOBLE=y
 # NO->RAM issue :: increase the maximum number of endpoints per device
 # CONFIG_ESP_MATTER_MAX_DYNAMIC_ENDPOINT_COUNT=32
 
+# --- Wi-Fi: lean, internal-RAM-friendly config (matches C3/C6) ---
+# Required so esp_wifi_init() does not front-load internal DRAM when PSRAM is
+# disabled in the Arduino IDE menu, which otherwise starves the NimBLE host
+# allocation (ble_store_config_init) during Matter.begin().
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER=y
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=32
+CONFIG_ESP_WIFI_CACHE_TX_BUFFER_NUM=0
+CONFIG_ESP_WIFI_RX_BA_WIN=6
+# Keep Wi-Fi/lwIP buffers out of the PSRAM-bridging path (no internal cache TX)
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n
+
 CONFIG_USB_HOST_HUBS_SUPPORTED=y
 CONFIG_USB_HOST_HUB_MULTI_LEVEL=y
 CONFIG_USB_HOST_HW_BUFFER_BIAS_PERIODIC_OUT=y
