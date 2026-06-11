@@ -47,12 +47,39 @@ CONFIG_OPENTHREAD_NETWORK_MASTERKEY="00112233445566778899aabbccddeeff"
 CONFIG_OPENTHREAD_NETWORK_PSKC="104810e2315100afd6bc9215a6bfac53"
 # end of OpenThread
 
-# Matter settings: OpenThread + CHIPoBLE
-CONFIG_ENABLE_CHIPOBLE=y
+# Matter settings: OpenThread + No CHIPoBLE
+# CONFIG_ENABLE_CHIPOBLE=n
+
 CONFIG_ENABLE_MATTER_OVER_THREAD=y
-# Disable Matter over WiFi
-CONFIG_ENABLE_WIFI_AP=n
-CONFIG_ENABLE_WIFI_STATION=n
+
+# Set endpoint id for Thread and Wi-Fi, depending on the secondary network interface endpoint id.
+CONFIG_THREAD_NETWORK_ENDPOINT_ID=2
+CONFIG_WIFI_NETWORK_ENDPOINT_ID=0
+
+# Attempt to enable WiFi with 5GHz mode - default is WiFi enabled
+# CONFIG_ENABLE_WIFI_AP=n
+# CONFIG_ENABLE_WIFI_STATION=n
+
+# Last attempt to make it run with Matter over WiFi due to RAM restrictions
+CONFIG_ENABLE_CHIPOBLE=y
+
+# --- Wi-Fi buffers: balanced for general use + PSRAM-disabled Matter S3/C5 lack of HEAP issue ---
+# Enables a free TX-buffer choice, removes the internal cache-TX pool
+# (~25 KB wasted when PSRAM is off), and drops RX_BA_WIN back to its lean default
+# We then re-assert a STATIC TX pool for TX reliability.
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n
+
+# Keep STATIC TX buffers (robust under bursty UDP/TCP load), modest count
+CONFIG_ESP_WIFI_STATIC_TX_BUFFER=y
+CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM=8
+
+# RX: a static floor (DMA) plus dynamic headroom for bursts
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=8
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+
+# Middle-ground RX block-ack window (8), between lean 6 and RAM-heavy 16.
+# Keep STATIC_RX_BUFFER_NUM >= RX_BA_WIN for AMPDU throughput.
+CONFIG_ESP_WIFI_RX_BA_WIN=8
 
 #
 # Zigbee
