@@ -1,1 +1,5 @@
-register_component()
+set(min_supported_idf_version "6.0.0")
+set(idf_version "${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}.${IDF_VERSION_PATCH}")
+if (idf_version VERSION_GREATER_EQUAL min_supported_idf_version)
+	register_component()
+endif()
