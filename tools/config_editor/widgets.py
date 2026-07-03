@@ -76,7 +76,7 @@ class LabelledSelect(Widget):
                  *,
                  prompt="Select",
                  allow_blank=True,
-                 value=Select.BLANK,
+                 value=Select.NULL,
                  name=None,
                  id=None,
                  classes=None,

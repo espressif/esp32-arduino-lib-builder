@@ -30,8 +30,8 @@ CONFIG_LCD_RGB_RESTART_IN_VSYNC=y
 
 # Matter settings:
 CONFIG_ENABLE_CHIPOBLE=y
-# NO->RAM issue :: increase the maximum number of endpoints per device
-# CONFIG_ESP_MATTER_MAX_DYNAMIC_ENDPOINT_COUNT=32
+# increase the maximum number of endpoints per device
+CONFIG_ESP_MATTER_MAX_DYNAMIC_ENDPOINT_COUNT=32
 
 # --- Wi-Fi buffers: balanced for general use + PSRAM-disabled Matter S3/C5 lack of HEAP issue ---
 # Enables a free TX-buffer choice, removes the internal cache-TX pool
@@ -70,3 +70,5 @@ CONFIG_CAMERA_OV5640=y
 CONFIG_CAMERA_OV5647=y
 CONFIG_CAMERA_SC030IOT=y
 CONFIG_CAMERA_SC101IOT=y
+CONFIG_CAMERA_SENSOR_MOTOR_DETECT_METHOD_STATIC_STORE=y
+

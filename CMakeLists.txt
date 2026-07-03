@@ -40,3 +40,14 @@ idf_build_set_property(COMPILE_DEFINITIONS "-DESP32_ARDUINO_LIB_BUILDER" APPEND)
 ### ESP Matter ###
 ##################
 idf_build_set_property(CXX_COMPILE_OPTIONS "-std=gnu++2a;-DCHIP_HAVE_CONFIG_H" APPEND)
+
+# esp_matter is not pulled in for all targets (see main/idf_component.yml rules).
+idf_build_get_property(build_components BUILD_COMPONENTS)
+if("espressif__esp_matter" IN_LIST build_components)
+  # GCC 14 + C++20: ClosureControl structs need same-type operator== for std::optional.
+  file(TO_CMAKE_PATH "${CMAKE_SOURCE_DIR}/patches/matter_closure_patch.h" MATTER_CLOSURE_PATCH_H)
+  string(REPLACE "\\" "/" MATTER_CLOSURE_PATCH_H "${MATTER_CLOSURE_PATCH_H}")
+  idf_component_get_property(esp_matter_lib espressif__esp_matter COMPONENT_LIB)
+  target_compile_options(${esp_matter_lib} PRIVATE
+      "SHELL:-include \"${MATTER_CLOSURE_PATCH_H}\"")
+endif()
