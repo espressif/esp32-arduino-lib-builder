@@ -251,18 +251,18 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     fi
 
     # Build ESP-SR Models
-    if [ "$target" == "esp32s3" ] || [ "$target" == "esp32p4" ]; then
-        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
-        if [ $? -ne 0 ]; then exit 1; fi
-        AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
-        # sr model.bin
-        if [ -f "build/srmodels/srmodels.bin" ]; then
-            echo "$AR_SDK/esp_sr"
-            mkdir -p "$AR_SDK/esp_sr"
-            cp -f "build/srmodels/srmodels.bin" "$AR_SDK/esp_sr/"
-            cp -f "partitions.csv" "$AR_SDK/esp_sr/"
-        fi
-    fi
+    # if [ "$target" == "esp32s3" ] || [ "$target" == "esp32p4" ]; then
+    #     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
+    #     if [ $? -ne 0 ]; then exit 1; fi
+    #     AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
+    #     # sr model.bin
+    #     if [ -f "build/srmodels/srmodels.bin" ]; then
+    #         echo "$AR_SDK/esp_sr"
+    #         mkdir -p "$AR_SDK/esp_sr"
+    #         cp -f "build/srmodels/srmodels.bin" "$AR_SDK/esp_sr/"
+    #         cp -f "partitions.csv" "$AR_SDK/esp_sr/"
+    #     fi
+    # fi
 
     # Build Bootloaders
     for boot_conf in `echo "$target_json" | jq -c '.bootloaders[]'`; do
