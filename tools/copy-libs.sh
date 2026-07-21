@@ -448,178 +448,19 @@ echo "        '-Wl,-Map=\"%s\"' % join(\"\${BUILD_DIR}\", \"\${PROGNAME}.map\")"
 echo "    ]," >> "$AR_PIOARDUINO_PY"
 echo "" >> "$AR_PIOARDUINO_PY"
 
-# include dirs
-REL_INC=""
+# include dirs. The mapping (IDF include dir -> SDK location), header copy, relative
+# "../" include resolution, the flags/includes search path (-iwithprefixbefore) and the
+# pioarduino CPPPATH entries are all produced by tools/sdk_includes.py, which is shared
+# with tools/copy-bt-variant.sh so the Arduino and PlatformIO include paths never drift.
+# It reads the aggregate public include path from build/compile_commands.json, writes
+# flags/includes, copies the headers into $AR_SDK/include, and prints the CPPPATH lines
+# (captured here into pioarduino-build.py). Progress/auto-resolve logs go to stderr.
 echo "    CPPPATH=[" >> "$AR_PIOARDUINO_PY"
-
-set -- $INCLUDES
-
-for item; do
-	if [[ "$item" != $PWD ]]; then
-		ipath="$item"
-		fname=`basename "$ipath"`
-		dname=`basename $(dirname "$ipath")`
-		if [[ "$fname" == "main" && "$dname" == $(basename "$PWD") ]]; then
-			continue
-		fi
-		while [[ "$dname" != "components" && "$dname" != "managed_components" && "$dname" != "build" ]]; do
-			ipath=`dirname "$ipath"`
-			fname=`basename "$ipath"`
-			dname=`basename $(dirname "$ipath")`
-		done
-		if [[ "$fname" == "arduino" ]]; then
-			continue
-		fi
-		if [[ "$fname" == "config" ]]; then
-			continue
-		fi
-
-		out_sub="${item#*$ipath}"
-		out_cpath="$AR_SDK/include/$fname$out_sub"
-		REL_INC+="-iwithprefixbefore $fname$out_sub "
-		if [ "$out_sub" = "" ]; then
-			echo "        join($PIOARDUINO_SDK, \"include\", \"$fname\")," >> "$AR_PIOARDUINO_PY"
-		else
-			pioarduino_sub="${out_sub:1}"
-			pioarduino_sub=`echo $pioarduino_sub | sed 's/\//\\", \\"/g'`
-			echo "        join($PIOARDUINO_SDK, \"include\", \"$fname\", \"$pioarduino_sub\")," >> "$AR_PIOARDUINO_PY"
-		fi
-		for f in `find "$item" -name '*.h'`; do
-			rel_f=${f#*$item}
-			rel_p=${rel_f%/*}
-			mkdir -p "$out_cpath$rel_p"
-			cp -n $f "$out_cpath$rel_p/"
-		done
-		for f in `find "$item" -name '*.hpp'`; do
-			rel_f=${f#*$item}
-			rel_p=${rel_f%/*}
-			mkdir -p "$out_cpath$rel_p"
-			cp -n $f "$out_cpath$rel_p/"
-		done
-		for f in `find "$item" -name '*.inc'`; do
-			rel_f=${f#*$item}
-			rel_p=${rel_f%/*}
-			mkdir -p "$out_cpath$rel_p"
-			cp -n $f "$out_cpath$rel_p/"
-		done
-
-		# ---------------------------------------------------------------
-		# Auto-resolve relative #include paths
-		# ---------------------------------------------------------------
-		# Some copied headers use relative paths with "../" to reference
-		# files that live elsewhere in the component source tree and were
-		# not part of any include directory (so they were never copied).
-		#
-		# Example from the bt component:
-		#   esp_bt.h contains:
-		#     #include "../../../../controller/esp32/esp_bredr_cfg.h"
-		#
-		# This block scans the just-copied headers, extracts every
-		# #include ".../.../path" directive, resolves where the compiler
-		# would expect the file in the output SDK, locates the actual
-		# source file in the IDF tree, and copies it over.
-		#
-		# It loops to handle transitive dependencies (a newly copied
-		# header may itself contain relative includes). Circular deps
-		# are safe: already-existing files are skipped, so the loop
-		# naturally terminates.
-		#
-		# Key variables coming from the outer loop:
-		#   $item     - the IDF include directory currently being processed
-		#   $out_cpath - corresponding output directory in the SDK
-		#   $ipath    - root of the IDF component (e.g. esp-idf/components/bt)
-		#   $fname    - component name (e.g. "bt")
-		# ---------------------------------------------------------------
-
-		# Canonicalize the SDK path so string comparisons work even when
-		# the OS has symlinks (e.g. macOS: /var -> /private/var).
-		_canonical_sdk=$($REALPATH -m "$AR_SDK" 2>/dev/null)
-
-		# Seed the scan lists with headers we just copied into $out_cpath.
-		# _scan_out  - output file paths (in the SDK) to scan
-		# _scan_srcdir - matching source directories (in the IDF tree)
-		_scan_out=()
-		_scan_srcdir=()
-		while IFS= read -r -d '' _f; do
-			_fdir=$(dirname "$_f")
-			_scan_out+=("$_f")
-			# Map the output dir back to the source dir:
-			# strip the $out_cpath prefix, then prepend $item.
-			_scan_srcdir+=("$item${_fdir#$out_cpath}")
-		done < <(find "$out_cpath" \( -name '*.h' -o -name '*.hpp' -o -name '*.inc' \) -print0 2>/dev/null)
-
-		while [ ${#_scan_out[@]} -gt 0 ]; do
-			_next_out=()
-			_next_srcdir=()
-
-			for _idx in "${!_scan_out[@]}"; do
-				_f="${_scan_out[$_idx]}"
-				_srcdir="${_scan_srcdir[$_idx]}"
-				_outdir=$(dirname "$_f")
-
-				# Extract relative include paths (containing "../") from
-				# the header. The grep matches #include "path", the sed
-				# strips the #include " prefix and trailing ".
-				while IFS= read -r _rel_include; do
-
-					# Resolve where the compiler would look for this file
-					# relative to the header's location in the output SDK.
-					_resolved_out=$($REALPATH -m "$_outdir/$_rel_include" 2>/dev/null)
-
-					# Skip if: resolution failed, target is outside the
-					# SDK (safety), or the file already exists (handles
-					# duplicates and circular dependencies).
-					if [ -z "$_resolved_out" ] || [[ "$_resolved_out" != "$_canonical_sdk/"* ]] || [ -f "$_resolved_out" ]; then
-						continue
-					fi
-
-					# Locate the actual source file in the IDF tree.
-					# Method 1: resolve the same relative path from the
-					# header's original source directory. This works well
-					# for transitive deps whose source location is known.
-					_resolved_src=$($REALPATH -m "$_srcdir/$_rel_include" 2>/dev/null)
-
-					# Method 2 (fallback): when the "../" chain escapes
-					# above the include subdir, method 1 resolves to a
-					# path that doesn't exist. In that case, strip the
-					# leading "../" segments to get the tail (e.g.
-					# "controller/esp32/file.h") and look for it under
-					# the component root ($ipath).
-					if [ -z "$_resolved_src" ] || [ ! -f "$_resolved_src" ]; then
-						_tail=$(echo "$_rel_include" | sed 's|^\(\.\./\)*||')
-						_resolved_src="$ipath/$_tail"
-					fi
-
-					if [ -f "$_resolved_src" ]; then
-						# Only copy header/include files, skip source
-						# files (.c, .cpp, .S, etc.) that happen to be
-						# referenced via relative includes.
-						case "$_resolved_src" in
-							*.h|*.hpp|*.inc) ;;
-							*) continue ;;
-						esac
-						mkdir -p "$(dirname "$_resolved_out")"
-						cp -n "$_resolved_src" "$_resolved_out"
-						echo "Auto-copied missing relative include: $_rel_include (from $(basename "$_f"))"
-						# Queue the newly copied file for scanning in the
-						# next iteration (transitive dependency resolution).
-						_next_out+=("$_resolved_out")
-						_next_srcdir+=("$(dirname "$_resolved_src")")
-					fi
-
-				done < <(grep -o '#include *"[^"]*\.\./[^"]*"' "$_f" 2>/dev/null | sed 's/#include *"//;s/"$//')
-			done
-
-			# If nothing new was copied this iteration, all transitive
-			# dependencies have been resolved -- we're done.
-			if [ ${#_next_out[@]} -eq 0 ]; then
-				break
-			fi
-			_scan_out=("${_next_out[@]}")
-			_scan_srcdir=("${_next_srcdir[@]}")
-		done
-	fi
-done
+python3 "$AR_ROOT/tools/sdk_includes.py" base \
+	--compile-commands "build/compile_commands.json" \
+	--sdk-include "$AR_SDK/include" \
+	--flags-includes "$AR_SDK/flags/includes" \
+	--pio-prefix "$PIOARDUINO_SDK" >> "$AR_PIOARDUINO_PY"
 echo "        join($PIOARDUINO_SDK, board_config.get(\"build.arduino.memory_type\", (board_config.get(\"build.flash_mode\", \"dio\") + \"_$OCT_PSRAM\")), \"include\")," >> "$AR_PIOARDUINO_PY"
 echo "        join(FRAMEWORK_DIR, \"cores\", board_config.get(\"build.core\"))" >> "$AR_PIOARDUINO_PY"
 echo "    ]," >> "$AR_PIOARDUINO_PY"
@@ -684,13 +525,38 @@ DEFINES=`echo "$DEFINES" | tr -s '\'`
 FLAGS_DIR="$AR_SDK/flags"
 mkdir -p "$FLAGS_DIR"
 echo -n "$DEFINES" > "$FLAGS_DIR/defines"
-echo -n "$REL_INC" > "$FLAGS_DIR/includes"
+# flags/includes is written by tools/sdk_includes.py (base mode) during CPPPATH generation.
 echo -n "$C_FLAGS" > "$FLAGS_DIR/c_flags"
 echo -n "$CPP_FLAGS" > "$FLAGS_DIR/cpp_flags"
 echo -n "$AS_FLAGS" > "$FLAGS_DIR/S_flags"
 echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
+
+# --- Selectable BT stack support -------------------------------------------
+# Empty default BT libs file. platform.txt links "@flags/{build.bt_libs_file}"
+# with build.bt_libs_file defaulting to "ld_libs_bt". On targets/boards without
+# the "BLE Stack" menu this is a harmless no-op; on flavored targets
+# tools/copy-bt-variant.sh overwrites it with the default (NimBLE) BT lib list so
+# that every board of that chip links a working BT stack even without touching
+# the menu.
+: > "$FLAGS_DIR/ld_libs_bt"
+# The swappable BT library set itself is discovered later by tools/copy-bt-variant.sh
+# straight from the flavor build's dependency graph, so the default pass needs no
+# manifest. It does, however, record the reference content signatures of those archives
+# for THIS default (NimBLE) build, so each memory-variant pass (copy-mem-variant.sh)
+# can verify they stay flash-mode/PSRAM independent -- a swapped BT archive is shipped
+# once and shared across all memory configs, which is only valid if it is memory
+# agnostic. Discovery, signature and guard all live in config.sh. Only done for targets
+# that actually build BT stack variants, to avoid the nm cost elsewhere.
+BT_HAS_VARIANTS=$(jq -r --arg t "$CHIP_VARIANT" '[.targets[] | select(.target==$t or .chip_variant==$t) | (.bt_variants // [])] | add // [] | length' configs/builds.json 2>/dev/null)
+if [ -n "$BT_HAS_VARIANTS" ] && [ "$BT_HAS_VARIANTS" != "0" ]; then
+	BT_META_DIR="$AR_ROOT/.bt_meta/$CHIP_VARIANT"
+	rm -rf "$BT_META_DIR"
+	mkdir -p "$BT_META_DIR"
+	bt_swappable_sigs > "$BT_META_DIR/sig_nimble"
+fi
+# --------------------------------------------------------------------------
 
 # Matter Library adjustments
 for flag_file in "c_flags" "cpp_flags" "S_flags"; do
@@ -703,9 +569,6 @@ done
 #sed 's/CHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER/<lib\/address_resolve\/AddressResolve_DefaultImpl.h>/' $CHIP_RESOLVE_DIR/AddressResolve.h > $CHIP_RESOLVE_DIR/AddressResolve_temp.h
 #mv $CHIP_RESOLVE_DIR/AddressResolve_temp.h $CHIP_RESOLVE_DIR/AddressResolve.h
 # End of Matter Library adjustments
-
-# sdkconfig
-cp -f "sdkconfig" "$AR_SDK/sdkconfig"
 
 # dependencies.lock
 cp -f "dependencies.lock" "$AR_SDK/dependencies.lock"

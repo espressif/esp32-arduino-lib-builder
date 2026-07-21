@@ -88,6 +88,7 @@ while getopts ":A:I:i:c:t:b:D:sde" opt; do
                [ "$b" != "idf-libs" ] && 
                [ "$b" != "copy-bootloader" ] && 
                [ "$b" != "mem-variant" ] && 
+               [ "$b" != "bt-variant" ] && 
                [ "$b" != "hosted" ] && 
                [ "$b" != "srmodels_bin" ]; then
                 print_help
@@ -245,6 +246,30 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     if [ $? -ne 0 ]; then exit 1; fi
 
+    # Build alternative BT stack flavors (primary memory config).
+    # Each flavor reuses the EXACT same defconfig layer stack as the default
+    # (NimBLE) build above and appends only configs/defconfig.bt_<flavor>, so the
+    # two builds differ solely in BT configuration. copy-bt-variant.sh (invoked by
+    # the bt-variant target) discovers the swappable archives from the build's
+    # dependency graph, ships the flavor ones, writes flags/ld_libs_bt_*, and
+    # enforces the sdkconfig.h diff gate.
+    for bt_variant in `echo "$target_json" | jq -c '.bt_variants[]?' | tr -d '"'`; do
+        bt_variant_configs="$idf_libs_configs;configs/defconfig.bt_$bt_variant"
+        # Optional per-chip flavor override (e.g. disable BLE Mesh on BLE-5.0 silicon).
+        if [ -f "configs/defconfig.bt_$bt_variant.$CHIP_VARIANT" ]; then
+            bt_variant_configs="$bt_variant_configs;configs/defconfig.bt_$bt_variant.$CHIP_VARIANT"
+        fi
+        echo "* Build BT Variant (primary) '$bt_variant': $bt_variant_configs"
+        rm -rf build sdkconfig
+        export AR_BT_VARIANT="$bt_variant"
+        export AR_BT_PRIMARY=1
+        idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bt_variant_configs" bt-variant
+        bt_rc=$?
+        unset AR_BT_PRIMARY
+        unset AR_BT_VARIANT
+        if [ $bt_rc -ne 0 ]; then exit 1; fi
+    done
+
     # Build ESP-Hosted slave firmwares
     if [ "$CHIP_VARIANT" == "esp32p4" ]; then
         ./tools/build-hosted.sh
@@ -288,6 +313,32 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         rm -rf build sdkconfig
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
         if [ $? -ne 0 ]; then exit 1; fi
+    done
+
+    # Build alternative BT stack flavors for each memory variant. The shared flavor
+    # archives were already shipped once by the primary flavor pass above, so these
+    # passes only regenerate the per-memconf flavor sdkconfig.h (stashed under
+    # <memconf>/<flavor>/include), re-run the sdkconfig.h diff gate, and run the
+    # memory-agnostic guard that verifies the swapped archives did not become
+    # flash-mode/PSRAM dependent (which would break shipping them as one shared file).
+    for bt_variant in `echo "$target_json" | jq -c '.bt_variants[]?' | tr -d '"'`; do
+        export AR_BT_VARIANT="$bt_variant"
+        for mem_conf in `echo "$target_json" | jq -c '.mem_variants[]'`; do
+            bt_mem_configs="$main_configs"
+            for defconf in `echo "$mem_conf" | jq -c '.[]' | tr -d '"'`; do
+                bt_mem_configs="$bt_mem_configs;configs/defconfig.$defconf";
+            done
+            bt_mem_configs="$bt_mem_configs;configs/defconfig.bt_$bt_variant"
+            # Optional per-chip flavor override (must match the primary pass above).
+            if [ -f "configs/defconfig.bt_$bt_variant.$CHIP_VARIANT" ]; then
+                bt_mem_configs="$bt_mem_configs;configs/defconfig.bt_$bt_variant.$CHIP_VARIANT"
+            fi
+            echo "* Build BT Variant (mem) '$bt_variant': $bt_mem_configs"
+            rm -rf build sdkconfig
+            idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bt_mem_configs" bt-variant
+            if [ $? -ne 0 ]; then unset AR_BT_VARIANT; exit 1; fi
+        done
+        unset AR_BT_VARIANT
     done
 done
 

@@ -1,0 +1,37 @@
+# Bluedroid + BT Classic flavor (opt-in via the "BLE Stack" board menu).
+#
+# This fragment is merged ON TOP of the exact same defconfig layer stack used by
+# the default NimBLE build (defconfig.common + defconfig.<chip> + debug + features
+# + idf_libs), appending ONLY these overrides. That keeps every non-BT setting
+# identical between the two flavors so only BT config differs (enforced by the
+# sdkconfig.h diff gate in tools/copy-bt-variant.sh).
+#
+# The BLE version stays governed by the per-chip defconfig:
+#   esp32     -> BLE 4.2 only (no BLE 5.0 silicon; see defconfig.esp32)
+#   esp32s31  -> BLE 5.0 (inherited from defconfig.common)
+#
+# Switch the controller from BLE-only (NimBLE default) to dual-mode (BR/EDR + BLE).
+CONFIG_BTDM_CTRL_MODE_BLE_ONLY=n
+CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY=n
+CONFIG_BTDM_CTRL_MODE_BTDM=y
+CONFIG_BTDM_CTRL_BR_EDR_MAX_SYNC_CONN=1
+
+# Select the Bluedroid host (with BLE) instead of NimBLE.
+CONFIG_BT_BLUEDROID_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=n
+
+# BT Classic profiles (available on this flavor).
+CONFIG_BT_CLASSIC_ENABLED=y
+# BLE Mesh is OFF by default (over BLE 5.0 it is still experimental). It is turned
+# back on only for esp32 (BLE 4.2, where it is stable) via the per-chip override
+# configs/defconfig.bt_bluedroid.esp32.
+CONFIG_BLE_MESH=n
+CONFIG_BT_A2DP_ENABLE=y
+CONFIG_BT_SPP_ENABLED=y
+CONFIG_BT_HFP_ENABLE=y
+CONFIG_BT_HFP_AUDIO_DATA_PATH_HCI=y
+CONFIG_BTDM_CTRL_BR_EDR_SCO_DATA_PATH_HCI=y
+
+# Bluedroid footprint/behavior tuning carried over from the original esp32 config.
+CONFIG_BT_STACK_NO_LOG=y
+CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY=y

@@ -65,6 +65,153 @@ if [ -d "$IDF_PATH" ]; then
     export IDF_BRANCH
 fi
 
+# ===========================================================================
+# Selectable BT stack helpers (shared by copy-libs.sh, copy-mem-variant.sh and
+# copy-bt-variant.sh). See tools/copy-bt-variant.sh for the full design notes.
+# ===========================================================================
+
+# List "<component>\t<archive>" for every component whose library depends
+# (transitively) on IDF's "bt" component -- i.e. every library whose compiled code
+# can change with the selected BT host, which is exactly the set that must be swapped
+# between BT stacks. Read straight from the build's own dependency graph, so there is
+# no maintained allow/deny list and new BT-dependent components are picked up
+# automatically. 'bt' itself is included; the core/sketch libs (main, arduino) are
+# excluded because they are compiled from source in the user's build, not shipped.
+#   $1 = project_description.json path (default: build/project_description.json)
+bt_swappable_libs() {
+    local pd="${1:-build/project_description.json}"
+    [ -f "$pd" ] || return 0
+    jq -r '
+        .build_component_info as $ci
+        | ($ci | to_entries
+           | map({k:.key, deps:((.value.reqs//[])+(.value.priv_reqs//[])+(.value.managed_reqs//[]))})) as $e
+        | def grow($s):
+            ($e | map(select(.deps | any(. as $d | $s | index($d))) | .k)) as $n
+            | ($s + $n | unique) as $s2
+            | if ($s2|length) == ($s|length) then $s2 else grow($s2) end;
+          grow(["bt"]) | sort[] as $c
+          | select($c != "main" and $c != "arduino")
+          | ($ci[$c].file // "") as $f
+          | select($f != "") | "\($c)\t\($f)"
+    ' "$pd"
+}
+
+# Deterministic signature of a static library archive, used to tell whether a BT
+# archive's linker-relevant content changed between two builds (e.g. because a
+# flash-mode/PSRAM option leaked into its compilation).
+#
+# WHY NOT A BYTE HASH: it would require byte-for-byte reproducible builds, which we do
+# NOT have -- ar member timestamps and other packaging metadata differ even between two
+# builds of identical source, so a raw byte hash false-positives constantly.
+#
+# WHAT WE HASH INSTEAD (all derived from the compiled objects, so identical source +
+# flags always produce the same result, while any real code change is detected):
+#   1. the sorted symbol table -- name, type and size (nm -P): catches symbols added,
+#      removed, renamed or resized;
+#   2. the disassembly WITH relocations (objdump -dr): catches instruction and
+#      immediate-operand changes even when the code size is unchanged (e.g. a config
+#      value compiled into an instruction) and changed call/relocation targets (e.g.
+#      routing an allocation to PSRAM). Volatile header/path lines are stripped so the
+#      only inputs are the deterministic instruction stream and relocation symbols.
+# It is also independent of the debug level: the archive is --strip-debug'd (on a copy)
+# before fingerprinting, so -g / -g3 / -ggdb / no-debug all produce the same signature.
+# This is false-positive free without byte reproducibility and closes the false-
+# negative gap a symbol-only signature has. The only theoretical miss is a constant
+# that lives purely in a data section (never as an instruction operand) and changes
+# value without changing size -- not a pattern that occurs in the BT archives.
+#
+# TOOLING: the archive is inspected with the IDF toolchain (${TOOLCHAIN}-strip/nm/
+# objdump) -- the exact same GNU binutils the build and Arduino use -- so the output is
+# identical on macOS and Linux build hosts. Only host-side text munging uses $SED (GNU
+# sed, enforced for macOS in the block below) and sha256sum/shasum. Requires $TOOLCHAIN.
+bt_lib_sig() {
+    local f="$1" t rmt=1
+    # Fingerprint a debug-stripped COPY so the result is independent of the debug level
+    # (--strip-debug removes all .debug_* sections and debug symbols, so -g / -g3 / -ggdb
+    # / no-debug all normalize to the same thing). We never modify the real archive; if a
+    # temp cannot be made we fall back to the original (debug level is fixed per build
+    # anyway, so this only loses cross-debug-level normalization).
+    t=$(mktemp "${TMPDIR:-/tmp}/btsig.XXXXXX" 2>/dev/null)
+    if [ -n "$t" ]; then
+        cp "$f" "$t" 2>/dev/null
+        "${TOOLCHAIN}-strip" --strip-debug "$t" 2>/dev/null
+    else
+        t="$f"; rmt=0
+    fi
+    {
+        # name, type and size of every symbol (nm -P, ELF: "name type value size").
+        # The size column (st_size) catches .bss/.data buffer resizes; the value column
+        # is intentionally omitted so it stays a pure content signature.
+        "${TOOLCHAIN}-nm" -P "$t" 2>/dev/null | awk 'NF>=2{print $1, $2, $4}' | LC_ALL=C sort
+        # instruction stream + relocations. Dropped: the volatile "file format"/"In
+        # archive" path headers, blank separators, and compiler-local label headers
+        # (e.g. "00000006 <.LM4>:" line markers objdump still annotates from residual
+        # -g symbols). What remains is the deterministic instruction lines and their
+        # relocation operands; real symbol names are already covered by the nm pass.
+        "${TOOLCHAIN}-objdump" -dr "$t" 2>/dev/null \
+            | $SED -e '/file format/d' -e '/^In archive/d' -e '/^[0-9a-fA-F]* <\.L/d' -e '/^$/d'
+    } | if command -v sha256sum >/dev/null 2>&1; then sha256sum; else shasum -a 256; fi | cut -d' ' -f1
+    [ "$rmt" = 1 ] && rm -f "$t"
+}
+
+# Emit "<libname> <sig>" for every swappable BT archive in the CURRENT build tree.
+# Used to record a reference on the primary pass and to re-check it on each memory
+# variant pass. Requires $TOOLCHAIN.
+#   $1 = project_description.json path (default: build/project_description.json)
+bt_swappable_sigs() {
+    local pd="${1:-build/project_description.json}" comp file name
+    bt_swappable_libs "$pd" | while IFS=$'\t' read -r comp file; do
+        [ -f "$file" ] || continue
+        name=$(basename "$file"); name="${name#lib}"; name="${name%.a}"
+        echo "$name $(bt_lib_sig "$file")"
+    done
+}
+
+# Memory-agnostic guard. A swappable BT archive is shipped ONCE (from the primary
+# pass) and shared across every memory config, mirroring how copy-libs.sh ships the
+# default BT archives once into lib/. That is only valid if the archive is
+# flash-mode/PSRAM independent. This compares the current memory config's build of
+# every swappable archive against the reference written by the primary pass and fails
+# if any signature differs (became memory-dependent) or the swappable set changed.
+#   $1 = reference sig file (from the primary pass)  $2 = stack label  $3 = memconf
+# A missing reference means the target has no BT variants -> nothing to check.
+bt_check_mem_agnostic() {
+    local ref="$1" label="$2" memconf="$3"
+    [ -f "$ref" ] || return 0
+    local tmp bad
+    tmp=$(mktemp "${TMPDIR:-/tmp}/btmem.XXXXXX")
+    bt_swappable_sigs > "$tmp"
+    bad=$(diff <(LC_ALL=C sort "$ref") <(LC_ALL=C sort "$tmp") | grep -E '^[<>]')
+    rm -f "$tmp"
+    if [ -n "$bad" ]; then
+        echo "ERROR: BT '$label' swappable archive(s) changed for memory config $memconf vs the primary build:"
+        echo "$bad" | $SED 's/^< /  primary only : /; s/^> /  this memconf : /'
+        echo "       A swapped BT archive is shipped ONCE and shared across all memory configs, so it"
+        echo "       MUST be flash-mode/PSRAM independent -- this one is not, which breaks that assumption."
+        echo "       Ship it per-memconf via mem_variants_files in configs/builds.json before continuing."
+        return 1
+    fi
+    return 0
+}
+
+# True (return 0) if the base build already provides an archive named lib<name>.a on the
+# linker's -L search path, so copy-bt-variant.sh must NOT re-ship it as a "flavor-only"
+# blob. Two cases are covered:
+#   * $sdk/lib/lib<name>.a        -- a shared archive (flags/ld_libs, -L .../lib).
+#   * $sdk/<memconf>/lib<name>.a  -- a memory-variant archive shipped per memconf by
+#     copy-libs.sh (mem_variants_files, e.g. libspi_flash.a). These are flash-mode/PSRAM
+#     dependent, so duplicating one into lib/<flavor>/ (shipped once, shared across every
+#     memconf) would BOTH break memory-agnosticism AND shadow the correct per-memconf copy
+#     via build.bt_lib_search. Such libs do not depend on the BT host, so the base's
+#     per-memconf archive already serves every stack -- the flavor must reuse it.
+#   $1 = stripped lib name (e.g. "spi_flash")  $2 = AR_SDK  $3 = MEMCONF
+bt_base_provides_lib() {
+    local name="$1" sdk="$2" memconf="$3"
+    [ -f "$sdk/lib/lib$name.a" ] && return 0
+    [ -n "$memconf" ] && [ -f "$sdk/$memconf/lib$name.a" ] && return 0
+    return 1
+}
+
 get_os() {
     DEBUG "get_os()"
     OSBITS=$(uname -m)

@@ -1,0 +1,9 @@
+# esp32 (BLE 4.2) Bluedroid overrides.
+#
+# Layered on top of configs/defconfig.bt_bluedroid ONLY for esp32 (see the
+# per-chip override hook in build.sh). Keeps every other Bluedroid setting shared
+# with the other chips.
+#
+# BLE Mesh is stable on esp32's BLE 4.2 stack, so re-enable it here (it is OFF by
+# default in the shared fragment because it is experimental over BLE 5.0).
+CONFIG_BLE_MESH=y

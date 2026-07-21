@@ -47,6 +47,7 @@
 		{
 			"target": "esp32s31",
 			"features":[],
+			"bt_variants":["bluedroid"],
 			"idf_libs":["qio","80m_250m","opi_ram"],
 			"bootloaders":[
 				["qio","80m_250m","opi_ram"]
@@ -171,6 +172,7 @@
 		{
 			"target": "esp32",
 			"features":["qio_ram"],
+			"bt_variants":["bluedroid"],
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
 				["qio","80m"],

@@ -1,5 +1,7 @@
 .DS_Store
 .vscode
+__pycache__/
+
 managed_components/
 components/arduino/
 components/esp-dl/
@@ -14,6 +16,7 @@ components/tflite-micro/
 esp-idf/
 out/
 build/
+.bt_meta/
 dist/
 env.sh
 sdkconfig
