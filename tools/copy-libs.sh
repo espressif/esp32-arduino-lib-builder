@@ -614,15 +614,37 @@ for item; do
 					# for transitive deps whose source location is known.
 					_resolved_src=$($REALPATH -m "$_srcdir/$_rel_include" 2>/dev/null)
 
-					# Method 2 (fallback): when the "../" chain escapes
-					# above the include subdir, method 1 resolves to a
-					# path that doesn't exist. In that case, strip the
-					# leading "../" segments to get the tail (e.g.
-					# "controller/esp32/file.h") and look for it under
-					# the component root ($ipath).
+					# Method 2: resolve relative to the include directory
+					# ($item) itself. For quoted includes GCC also searches
+					# the -I include directories, so a "../" chain is often
+					# anchored at the include dir rather than the header's
+					# own location. Example from the bt component:
+					#   host/common/include/common/init.h contains
+					#     #include "../../../lib/include/audio.h"
+					#   which only resolves when "../../../" is applied to
+					#   the include dir (host/common/include), yielding
+					#   esp_ble_audio/lib/include/audio.h.
+					if [ -z "$_resolved_src" ] || [ ! -f "$_resolved_src" ]; then
+						_resolved_src=$($REALPATH -m "$item/$_rel_include" 2>/dev/null)
+					fi
+
+					# Method 3 (fallback): when the "../" chain escapes
+					# above the known directories, the methods above
+					# resolve to paths that don't exist. In that case,
+					# strip the leading "../" segments to get the tail
+					# (e.g. "controller/esp32/file.h") and look for it
+					# under the component root ($ipath), first directly
+					# and then via a recursive search so nested source
+					# layouts are still found.
 					if [ -z "$_resolved_src" ] || [ ! -f "$_resolved_src" ]; then
 						_tail=$(echo "$_rel_include" | sed 's|^\(\.\./\)*||')
 						_resolved_src="$ipath/$_tail"
+						if [ ! -f "$_resolved_src" ]; then
+							_found=$(find "$ipath" -path "*/$_tail" -print 2>/dev/null | head -n 1)
+							if [ -n "$_found" ]; then
+								_resolved_src="$_found"
+							fi
+						fi
 					fi
 
 					if [ -f "$_resolved_src" ]; then
