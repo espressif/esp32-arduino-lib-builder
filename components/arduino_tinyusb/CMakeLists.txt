@@ -58,7 +58,6 @@ if(CONFIG_TINYUSB_ENABLED)
       "${COMPONENT_DIR}/tinyusb/src/class/hid/hid_host.c"
       "${COMPONENT_DIR}/tinyusb/src/class/midi/midi_host.c"
       "${COMPONENT_DIR}/tinyusb/src/class/msc/msc_host.c"
-      "${COMPONENT_DIR}/tinyusb/src/class/vendor/vendor_host.c"
       )
 
   set(includes_private
