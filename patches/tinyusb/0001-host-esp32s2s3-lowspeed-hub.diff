@@ -1,5 +1,5 @@
 diff --git a/src/host/hub.c b/src/host/hub.c
-index 4d2c30893..6b0567470 100644
+index 4d2c30893..b1a993bbd 100644
 --- a/src/host/hub.c
 +++ b/src/host/hub.c
 @@ -246,6 +246,43 @@ void hub_close(uint8_t dev_addr) {
@@ -33,9 +33,9 @@ index 4d2c30893..6b0567470 100644
 +// controller has wedged, so nothing periodic can tell them apart while it stays claimed. The one
 +// moment we know the endpoint has to be listening is right after a device below the hub was torn
 +// down: usbh closes channels there, and a status transfer pending across that teardown can be lost,
-+// leaving the hub deaf for good (BJ, BM). Drop it and let hub_status_watchdog() start a fresh one.
++// leaving the hub deaf for good. Drop it and let hub_status_watchdog() start a fresh one.
 +// Re-arming here instead would submit onto a channel that is still being disabled — hcd only
-+// requests the halt, the channel is released later from the interrupt (BN).
++// requests the halt, the channel is released later from the interrupt.
 +// No event is lost: the hub holds its change bits until they are cleared.
 +void hub_status_abort_pending(uint8_t daddr) {
 +  hub_interface_t* p_hub = get_hub_itf(daddr);
@@ -47,7 +47,7 @@ index 4d2c30893..6b0567470 100644
    hub_interface_t* p_hub = get_hub_itf(daddr);
    hub_epbuf_t* p_epbuf = get_hub_epbuf(daddr);
 diff --git a/src/host/hub.h b/src/host/hub.h
-index 595b8b645..c99b2c85c 100644
+index 595b8b645..74ac58a75 100644
 --- a/src/host/hub.h
 +++ b/src/host/hub.h
 @@ -168,6 +168,16 @@ bool hub_port_get_status_local(uint8_t hub_addr, uint8_t hub_port, hub_port_stat
@@ -55,7 +55,7 @@ index 595b8b645..c99b2c85c 100644
  bool hub_edpt_status_xfer(uint8_t daddr);
  
 +#ifndef HUB_STATUS_REARM_MS
-+#define HUB_STATUS_REARM_MS 100
++  #define HUB_STATUS_REARM_MS 100
 +#endif
 +
 +// Re-arm the status endpoint of hubs that have none pending. Called from the host task.
@@ -68,7 +68,7 @@ index 595b8b645..c99b2c85c 100644
  TU_ATTR_ALWAYS_INLINE static inline
  bool hub_port_reset(uint8_t hub_addr, uint8_t hub_port, tuh_xfer_cb_t complete_cb, uintptr_t user_data) {
 diff --git a/src/host/usbh.c b/src/host/usbh.c
-index e307bb5e5..87e939080 100644
+index 44819b016..089093a16 100644
 --- a/src/host/usbh.c
 +++ b/src/host/usbh.c
 @@ -35,6 +35,7 @@
@@ -79,14 +79,14 @@ index e307bb5e5..87e939080 100644
  };
  
  //--------------------------------------------------------------------+
-@@ -747,6 +748,16 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+@@ -736,6 +737,16 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
      hcd_event_t event;
  
    #if CFG_TUH_HUB
 +    // Only on a quiet bus. A status transfer answered while a device is enumerating makes the hub
 +    // start its own port-status control chain, which then fights the enumeration for the shared
 +    // control buffer — including during the hub's own set_config, where it kills every device
-+    // behind it (BK). Deafness is what this recovers from and it is never urgent.
++    // behind it. Deafness is what this recovers from and it is never urgent.
 +    if (_usbh_data.enumerating_daddr == TUSB_INDEX_INVALID_8 &&
 +        _usbh_data.ctrl_xfer_info.stage == CONTROL_STAGE_IDLE &&
 +        tu_fifo_empty(&_usbh_pending_ctrl_q)) {
@@ -96,7 +96,7 @@ index e307bb5e5..87e939080 100644
      // Get deferred device attachments if none is enumerating
      bool has_deferred_attach = false;
      if (_usbh_data.enumerating_daddr == TUSB_INDEX_INVALID_8) {
-@@ -787,6 +798,15 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+@@ -776,6 +787,15 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
        case HCD_EVENT_DEVICE_REMOVE:
          TU_LOG_USBH("[%u:%u:%u] USBH Device Removed\r\n", event.rhport, event.connection.hub_addr, event.connection.hub_port);
          process_remove_event(&event);
@@ -112,7 +112,7 @@ index e307bb5e5..87e939080 100644
          break;
  
        case HCD_EVENT_XFER_COMPLETE: {
-@@ -1588,15 +1608,24 @@ bool tuh_interface_set(uint8_t daddr, uint8_t itf_num, uint8_t itf_alt,
+@@ -1577,15 +1597,24 @@ bool tuh_interface_set(uint8_t daddr, uint8_t itf_num, uint8_t itf_alt,
  
  // process detach event from rhport:hub_addr:hub_port
  static void process_remove_event(hcd_event_t *event) {
@@ -132,42 +132,49 @@ index e307bb5e5..87e939080 100644
 -    remove_device_tree(event->rhport, event->connection.hub_addr, event->connection.hub_port);
 +    usbh_device_close(dev0_bus->rhport, 0);
 +    return;
-+  }
+   }
 +
 +  // hub_addr = 0 is the whole roothub port: dev0 goes with it even if it sits behind a downstream
 +  // hub. Without this, enumerating_daddr stays 0 forever and every later attach is deferred.
 +  if (dev0_enumerating && event->connection.hub_addr == 0 && event->connection.hub_port == 0) {
 +    usbh_device_close(dev0_bus->rhport, 0);
-   }
++  }
 +
 +  remove_device_tree(event->rhport, event->connection.hub_addr, event->connection.hub_port);
  }
  
  // remove a device at rhport:hub_addr:hub_port and all of its downstream
-@@ -2210,7 +2239,7 @@ void usbh_driver_set_config_complete(uint8_t dev_addr, uint8_t itf_num) {
+@@ -2199,7 +2228,8 @@ void usbh_driver_set_config_complete(uint8_t dev_addr, uint8_t itf_num) {
  }
  
  static void enum_full_complete(bool success) {
 -  (void)success;
 +  static uint8_t root_retry_count = 0;
++  static uint8_t root_retry_rhport = TUSB_INDEX_INVALID_8; // the port root_retry_count belongs to
    TU_LOG_USBH("Enumeration complete: success = %u\r\n", success);
  
    _usbh_data.enumerating_daddr = TUSB_INDEX_INVALID_8; // mark enumeration as complete
-@@ -2222,6 +2251,21 @@ static void enum_full_complete(bool success) {
+@@ -2211,6 +2241,27 @@ static void enum_full_complete(bool success) {
      hub_edpt_status_xfer(_usbh_data.dev0_bus.hub_addr);
    }
    #endif
 +
++  const uint8_t rhport = _usbh_data.dev0_bus.rhport;
++  if (rhport != root_retry_rhport) {
++    root_retry_rhport = rhport; // the budget is per port, and only one port enumerates at a time
++    root_retry_count = 0;
++  }
++
 +  if (success) {
 +    root_retry_count = 0;
-+  } else if (_usbh_data.dev0_bus.hub_addr == 0 && hcd_port_connect_status(_usbh_data.dev0_bus.rhport)) {
++  } else if (_usbh_data.dev0_bus.hub_addr == 0 && hcd_port_connect_status(rhport)) {
 +    // A device behind a hub gets another chance from the next port status change, but nothing ever
 +    // retries the root port: the host stays dead until reboot. Re-post the attach so the port is
 +    // reset and enumerated again, e.g. after the controller dropped it on a bus error.
 +    if (root_retry_count < USBH_ENUM_ROOT_RETRY_MAX) {
 +      root_retry_count++;
 +      TU_LOG_USBH("Retry root port enumeration %u/%u\r\n", root_retry_count, USBH_ENUM_ROOT_RETRY_MAX);
-+      hcd_event_device_attach(_usbh_data.dev0_bus.rhport, false);
++      hcd_event_device_attach(rhport, false);
 +    } else {
 +      root_retry_count = 0; // give up on this attach, but allow a later one to retry again
 +    }
