@@ -91,7 +91,7 @@ index 595b8b645..a1552d0cf 100644
  TU_ATTR_ALWAYS_INLINE static inline
  bool hub_port_reset(uint8_t hub_addr, uint8_t hub_port, tuh_xfer_cb_t complete_cb, uintptr_t user_data) {
 diff --git a/src/host/usbh.c b/src/host/usbh.c
-index 44819b016..36897fe91 100644
+index 44819b016..56a6c8755 100644
 --- a/src/host/usbh.c
 +++ b/src/host/usbh.c
 @@ -35,6 +35,7 @@
@@ -102,7 +102,15 @@ index 44819b016..36897fe91 100644
  };
  
  //--------------------------------------------------------------------+
-@@ -734,6 +735,7 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+@@ -205,6 +206,7 @@ TU_FIFO_DEF(_usbh_pending_ctrl_q, CFG_TUH_CONTROL_PENDING_QUEUE_SZ * sizeof(usbh
+ typedef struct {
+   uint8_t enumerating_daddr;  // device address of the device being enumerated
+   uint8_t attach_debouncing_bm;  // bitmask for roothub port attach debouncing
++  uint8_t attach_teardown;    // an attach event is tearing down what was on its port
+   tuh_bus_info_t dev0_bus;    // bus info for dev0 in enumeration
+   usbh_ctrl_xfer_info_t ctrl_xfer_info; // control transfer
+   usbh_call_after_t call_after;
+@@ -734,6 +736,7 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
      }
  
      hcd_event_t event;
@@ -110,7 +118,7 @@ index 44819b016..36897fe91 100644
  
    #if CFG_TUH_HUB
      // Get deferred device attachments if none is enumerating
-@@ -746,7 +748,21 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+@@ -746,7 +749,24 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
      if (!has_deferred_attach) // skip event queue to process deferred attach
    #endif
      {
@@ -125,15 +133,30 @@ index 44819b016..36897fe91 100644
 +          _usbh_data.ctrl_xfer_info.stage == CONTROL_STAGE_IDLE &&
 +          tu_fifo_empty(&_usbh_pending_ctrl_q)) {
 +        hub_status_watchdog();
++        // tuh_task() waits forever, which a hub with no status transfer pending would never
++        // survive. Capped only here, where the watchdog has just moved its deadline: outside the
++        // gate the deadline stays expired for as long as the bus is busy, so the cap would be 0
++        // every pass and the task would spin instead of waiting for the next event.
++        wait_ms = tu_min32(wait_ms, hub_status_watchdog_wait_ms());
 +      }
-+      // tuh_task() waits forever, which a hub with no status transfer pending would never survive
-+      wait_ms = tu_min32(wait_ms, hub_status_watchdog_wait_ms());
 +  #endif
 +      if (!osal_queue_receive(_usbh_q, &event, wait_ms)) {
          return;
        }
      }
-@@ -776,6 +792,15 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+@@ -756,7 +776,11 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+         // Should we miss the hub detach event due to high traffic, Or due to physical debouncing, some devices can
+         // cause multiple attaches (actually reset) without a detached event.
+         // Force remove currently mounted with the same bus info (rhport, hub addr, hub port) if exists
++        // Flagged because this teardown fails any in-flight enumeration, and its completion would
++        // otherwise ask for a roothub retry of the very attach being handled here.
++        _usbh_data.attach_teardown = 1;
+         process_remove_event(&event);
++        _usbh_data.attach_teardown = 0;
+ 
+         // due to the shared control buffer, we must fully complete enumerating one device first.
+         if (_usbh_data.enumerating_daddr == TUSB_INDEX_INVALID_8) {
+@@ -776,6 +800,15 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
        case HCD_EVENT_DEVICE_REMOVE:
          TU_LOG_USBH("[%u:%u:%u] USBH Device Removed\r\n", event.rhport, event.connection.hub_addr, event.connection.hub_port);
          process_remove_event(&event);
@@ -149,7 +172,7 @@ index 44819b016..36897fe91 100644
          break;
  
        case HCD_EVENT_XFER_COMPLETE: {
-@@ -1577,15 +1602,24 @@ bool tuh_interface_set(uint8_t daddr, uint8_t itf_num, uint8_t itf_alt,
+@@ -1577,15 +1610,24 @@ bool tuh_interface_set(uint8_t daddr, uint8_t itf_num, uint8_t itf_alt,
  
  // process detach event from rhport:hub_addr:hub_port
  static void process_remove_event(hcd_event_t *event) {
@@ -181,7 +204,7 @@ index 44819b016..36897fe91 100644
  }
  
  // remove a device at rhport:hub_addr:hub_port and all of its downstream
-@@ -1612,8 +1646,11 @@ static void remove_device_tree(uint8_t rhport, uint8_t hub_addr, uint8_t hub_por
+@@ -1612,8 +1654,11 @@ static void remove_device_tree(uint8_t rhport, uint8_t hub_addr, uint8_t hub_por
            removing_hubs[dev_id - CFG_TUH_DEVICE_MAX] = 1;
          } else
          #endif
@@ -195,7 +218,7 @@ index 44819b016..36897fe91 100644
            tuh_umount_cb(daddr);
          }
  
-@@ -2199,7 +2236,9 @@ void usbh_driver_set_config_complete(uint8_t dev_addr, uint8_t itf_num) {
+@@ -2199,7 +2244,9 @@ void usbh_driver_set_config_complete(uint8_t dev_addr, uint8_t itf_num) {
  }
  
  static void enum_full_complete(bool success) {
@@ -206,7 +229,7 @@ index 44819b016..36897fe91 100644
    TU_LOG_USBH("Enumeration complete: success = %u\r\n", success);
  
    _usbh_data.enumerating_daddr = TUSB_INDEX_INVALID_8; // mark enumeration as complete
-@@ -2211,6 +2250,37 @@ static void enum_full_complete(bool success) {
+@@ -2211,6 +2258,40 @@ static void enum_full_complete(bool success) {
      hub_edpt_status_xfer(_usbh_data.dev0_bus.hub_addr);
    }
    #endif
@@ -217,10 +240,13 @@ index 44819b016..36897fe91 100644
 +    root_retry_count = 0;
 +  }
 +
-+  if (success || _usbh_data.dev0_bus.hub_addr != 0 || !hcd_port_connect_status(rhport)) {
++  if (success || _usbh_data.attach_teardown || _usbh_data.dev0_bus.hub_addr != 0 ||
++      !hcd_port_connect_status(rhport)) {
 +    // The budget covers one attachment, so it has to be given back when that attachment ends,
 +    // whether it succeeded or the device was unplugged part-way through. Carrying a spent count
-+    // into the next device would deny it the retries it has not used.
++    // into the next device would deny it the retries it has not used. An attach event that tore
++    // down this enumeration is such a fresh start, and needs no retry of its own: the handler that
++    // set the flag goes on to enumerate the device that has just arrived.
 +    root_retry_count = 0;
 +  } else {
 +    // A device behind a hub gets another chance from the next port status change, but nothing ever

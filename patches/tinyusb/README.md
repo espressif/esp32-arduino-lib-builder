@@ -28,7 +28,7 @@ mouse and keyboard, say — sit behind one full-speed hub. Written against `64d9
 (v0.21.0-289), upstream at hathach/tinyusb#3864, where it is four commits in this order.
 Only the first is specific to these chips; the rest are missing recovery paths that leave
 any host deaf after one failed transfer. This file also carries the fixes that came out of
-review on that PR, which are not yet folded into its commits. Five changes:
+review on that PR, which are not yet folded into its commits. Six changes:
 
 - **`hcd_dwc2.c`** — the core cannot run two preamble transactions in the same 1 ms
   frame; it clears `HPRT.PENA` and the whole bus goes down. Low-speed channel starts are
@@ -37,6 +37,10 @@ review on that PR, which are not yet folded into its commits. Five changes:
   those parts have no host DMA. Periodic INs armed from the SOF interrupt are deferred
   a frame rather than spun on. ESP-IDF's own DWC host driver handles the same limit by
   applying an extra delay for low-speed devices from the ISR (espressif/esp-idf#15683).
+  A port the core disables on its own — a babble or other port error — stops SOF, so no
+  transfer on that bus can ever complete again; that case reached a commented-out
+  `TU_ASSERT(false, )` and was silently ignored. It now posts an attach if something is
+  still connected, so the port is reset and enumerated again, and a remove if not.
 - **`usbh.c`** — nothing retries enumeration of the root port, so one failed attach left
   the host dead until reboot. Re-post the attach up to three times while the port still
   reports a connection, with the retry budget belonging to one port at a time and handed
@@ -61,3 +65,10 @@ review on that PR, which are not yet folded into its commits. Five changes:
   `tuh_mounted()`. Enumeration marks a device connected as soon as it has an address, so
   a failure after that point — or a retry of one — reported an unmount for a device the
   application had never been told about.
+- **`usbh.c`** — an attach event tears down whatever was on its port first, which fails
+  any in-flight enumeration, and that failure asked for a retry of the attach being
+  handled right then: the retry later restarted a healthy enumeration and spent a budget
+  entry. The teardown is flagged so it is treated as a fresh start instead. The host task
+  also caps its wait only while the watchdog is allowed to run, since the deadline stays
+  expired while the watchdog is gated and the cap would otherwise be zero every pass,
+  spinning the task for as long as the bus stays busy.
