@@ -143,9 +143,9 @@ CONFIG_ENABLE_ESP_INSIGHTS_TRACE=n
 CONFIG_ESP_MATTER_NVS_USE_COMPACT_ATTR_STORAGE=y
 # Do not use minimal mDNS within Matter Core
 CONFIG_USE_MINIMAL_MDNS=n
-# Only allocates memory from DRAM - Matter doesn't deal well with PSRAM enabled and Arduino disabling it
-# CONFIG_ESP_MATTER_MEM_ALLOC_MODE_INTERNAL is not set
-# CONFIG_ESP_MATTER_MEM_ALLOC_MODE_EXTERNAL is not set
+# Matter data model: libc calloc(). Safe if PSRAM is off or failed; can use
+# SPIRAM when Arduino has added it to the heap (SPIRAM_USE_MALLOC).
+# Do not use EXTERNAL (hard-fails without PSRAM).
 CONFIG_ESP_MATTER_MEM_ALLOC_MODE_DEFAULT=y
 
 #
