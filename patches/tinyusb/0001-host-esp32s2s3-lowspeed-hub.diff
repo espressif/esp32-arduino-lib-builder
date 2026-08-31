@@ -1,32 +1,52 @@
 diff --git a/src/host/hub.c b/src/host/hub.c
-index 4d2c30893..b1a993bbd 100644
+index 4d2c30893..63409d8e3 100644
 --- a/src/host/hub.c
 +++ b/src/host/hub.c
-@@ -246,6 +246,43 @@ void hub_close(uint8_t dev_addr) {
+@@ -246,6 +246,63 @@ void hub_close(uint8_t dev_addr) {
    }
  }
  
++static uint32_t _status_next_ms = 0;
++
++// bNbrPorts is only set once the hub descriptor has been read, so it also rules out a hub that is
++// still being configured — ep_in alone is set from hub_open(), much earlier.
++TU_ATTR_ALWAYS_INLINE static inline bool hub_status_configured(const hub_interface_t* p_hub) {
++  return p_hub->ep_in != 0 && p_hub->bNbrPorts != 0;
++}
++
 +// The status chain re-arms itself after every event it handles, but each of those calls is a
 +// one-shot: should hub_edpt_status_xfer() fail — endpoint still claimed, transfer rejected by the
 +// controller — nothing ever tries again and the hub is deaf for good. Attach and detach are then
 +// simply never reported, while already-mounted devices keep working, which is indistinguishable
 +// from a dead port. Re-arm idle hubs periodically so deafness is bounded by HUB_STATUS_REARM_MS.
 +void hub_status_watchdog(void) {
-+  static uint32_t next_ms = 0;
 +  const uint32_t now_ms = tusb_time_millis_api();
-+  if ((int32_t)(now_ms - next_ms) < 0) {
++  if ((int32_t)(now_ms - _status_next_ms) < 0) {
 +    return;
 +  }
-+  next_ms = now_ms + HUB_STATUS_REARM_MS;
++  _status_next_ms = now_ms + HUB_STATUS_REARM_MS;
 +
 +  for (uint8_t i = 0; i < CFG_TUH_HUB; i++) {
-+    // bNbrPorts is only set once the hub descriptor has been read, so it also rules out a hub that
-+    // is still being configured — ep_in alone is set from hub_open(), much earlier
-+    if (hub_itfs[i].ep_in != 0 && hub_itfs[i].bNbrPorts != 0) {
++    if (hub_status_configured(&hub_itfs[i])) {
 +      // no-op while a status transfer is genuinely in flight: the claim fails and we try again later
 +      hub_edpt_status_xfer((uint8_t)(i + 1 + CFG_TUH_DEVICE_MAX));
 +    }
 +  }
++}
++
++// The host task blocks on its event queue, and a deaf hub is exactly the case where no event will
++// arrive to wake it, so the watchdog would never get a second chance to run. Report how long the
++// task may sleep for. Only a hub whose status endpoint is idle asks for a bounded sleep: while every
++// hub has a transfer in flight, which is the normal state, nothing here needs waking up at all.
++uint32_t hub_status_watchdog_wait_ms(void) {
++  for (uint8_t i = 0; i < CFG_TUH_HUB; i++) {
++    const uint8_t daddr = (uint8_t)(i + 1 + CFG_TUH_DEVICE_MAX);
++    if (hub_status_configured(&hub_itfs[i]) && !usbh_edpt_busy(daddr, hub_itfs[i].ep_in)) {
++      const int32_t left_ms = (int32_t)(_status_next_ms - tusb_time_millis_api());
++      return left_ms > 0 ? (uint32_t)left_ms : 0;
++    }
++  }
++  return UINT32_MAX;
 +}
 +
 +// A status transfer that is simply waiting for a change is indistinguishable from one the
@@ -47,10 +67,10 @@ index 4d2c30893..b1a993bbd 100644
    hub_interface_t* p_hub = get_hub_itf(daddr);
    hub_epbuf_t* p_epbuf = get_hub_epbuf(daddr);
 diff --git a/src/host/hub.h b/src/host/hub.h
-index 595b8b645..74ac58a75 100644
+index 595b8b645..a1552d0cf 100644
 --- a/src/host/hub.h
 +++ b/src/host/hub.h
-@@ -168,6 +168,16 @@ bool hub_port_get_status_local(uint8_t hub_addr, uint8_t hub_port, hub_port_stat
+@@ -168,6 +168,19 @@ bool hub_port_get_status_local(uint8_t hub_addr, uint8_t hub_port, hub_port_stat
  // Get status from Interrupt endpoint
  bool hub_edpt_status_xfer(uint8_t daddr);
  
@@ -61,6 +81,9 @@ index 595b8b645..74ac58a75 100644
 +// Re-arm the status endpoint of hubs that have none pending. Called from the host task.
 +void hub_status_watchdog(void);
 +
++// How long the host task may block before hub_status_watchdog() has work to do, UINT32_MAX if none.
++uint32_t hub_status_watchdog_wait_ms(void);
++
 +// Drop any outstanding status transfer of a hub. hub_status_watchdog() re-arms it afterwards.
 +void hub_status_abort_pending(uint8_t daddr);
 +
@@ -68,7 +91,7 @@ index 595b8b645..74ac58a75 100644
  TU_ATTR_ALWAYS_INLINE static inline
  bool hub_port_reset(uint8_t hub_addr, uint8_t hub_port, tuh_xfer_cb_t complete_cb, uintptr_t user_data) {
 diff --git a/src/host/usbh.c b/src/host/usbh.c
-index 44819b016..089093a16 100644
+index 44819b016..36897fe91 100644
 --- a/src/host/usbh.c
 +++ b/src/host/usbh.c
 @@ -35,6 +35,7 @@
@@ -79,24 +102,38 @@ index 44819b016..089093a16 100644
  };
  
  //--------------------------------------------------------------------+
-@@ -736,6 +737,16 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+@@ -734,6 +735,7 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+     }
+ 
      hcd_event_t event;
++    uint32_t wait_ms = timeout_ms;
  
    #if CFG_TUH_HUB
-+    // Only on a quiet bus. A status transfer answered while a device is enumerating makes the hub
-+    // start its own port-status control chain, which then fights the enumeration for the shared
-+    // control buffer — including during the hub's own set_config, where it kills every device
-+    // behind it. Deafness is what this recovers from and it is never urgent.
-+    if (_usbh_data.enumerating_daddr == TUSB_INDEX_INVALID_8 &&
-+        _usbh_data.ctrl_xfer_info.stage == CONTROL_STAGE_IDLE &&
-+        tu_fifo_empty(&_usbh_pending_ctrl_q)) {
-+      hub_status_watchdog();
-+    }
-+
      // Get deferred device attachments if none is enumerating
-     bool has_deferred_attach = false;
-     if (_usbh_data.enumerating_daddr == TUSB_INDEX_INVALID_8) {
-@@ -776,6 +787,15 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+@@ -746,7 +748,21 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
+     if (!has_deferred_attach) // skip event queue to process deferred attach
+   #endif
+     {
+-      if (!osal_queue_receive(_usbh_q, &event, timeout_ms)) {
++  #if CFG_TUH_HUB
++      // Only on a quiet bus, and only once a deferred attach is known not to be waiting: a status
++      // transfer answered while a device is enumerating makes the hub start its own port-status
++      // control chain, which then fights the enumeration for the shared control buffer — including
++      // during the hub's own set_config, where it kills every device behind it. Deafness is what
++      // this recovers from and it is never urgent.
++      if (_usbh_data.enumerating_daddr == TUSB_INDEX_INVALID_8 &&
++          _usbh_data.ctrl_xfer_info.stage == CONTROL_STAGE_IDLE &&
++          tu_fifo_empty(&_usbh_pending_ctrl_q)) {
++        hub_status_watchdog();
++      }
++      // tuh_task() waits forever, which a hub with no status transfer pending would never survive
++      wait_ms = tu_min32(wait_ms, hub_status_watchdog_wait_ms());
++  #endif
++      if (!osal_queue_receive(_usbh_q, &event, wait_ms)) {
+         return;
+       }
+     }
+@@ -776,6 +792,15 @@ void tuh_task_ext(uint32_t timeout_ms, bool in_isr) {
        case HCD_EVENT_DEVICE_REMOVE:
          TU_LOG_USBH("[%u:%u:%u] USBH Device Removed\r\n", event.rhport, event.connection.hub_addr, event.connection.hub_port);
          process_remove_event(&event);
@@ -112,7 +149,7 @@ index 44819b016..089093a16 100644
          break;
  
        case HCD_EVENT_XFER_COMPLETE: {
-@@ -1577,15 +1597,24 @@ bool tuh_interface_set(uint8_t daddr, uint8_t itf_num, uint8_t itf_alt,
+@@ -1577,15 +1602,24 @@ bool tuh_interface_set(uint8_t daddr, uint8_t itf_num, uint8_t itf_alt,
  
  // process detach event from rhport:hub_addr:hub_port
  static void process_remove_event(hcd_event_t *event) {
@@ -144,17 +181,32 @@ index 44819b016..089093a16 100644
  }
  
  // remove a device at rhport:hub_addr:hub_port and all of its downstream
-@@ -2199,7 +2228,8 @@ void usbh_driver_set_config_complete(uint8_t dev_addr, uint8_t itf_num) {
+@@ -1612,8 +1646,11 @@ static void remove_device_tree(uint8_t rhport, uint8_t hub_addr, uint8_t hub_por
+           removing_hubs[dev_id - CFG_TUH_DEVICE_MAX] = 1;
+         } else
+         #endif
+-        {
+-          // Invoke callback before closing driver (maybe call it later ?)
++        // Invoke callback before closing driver (maybe call it later ?). Only for a device that
++        // reached tuh_mounted(): enumeration marks a device connected as soon as it has an address,
++        // so failing after that point would otherwise report an unmount for a device the
++        // application was never told about.
++        if (dev->configured) {
+           tuh_umount_cb(daddr);
+         }
+ 
+@@ -2199,7 +2236,9 @@ void usbh_driver_set_config_complete(uint8_t dev_addr, uint8_t itf_num) {
  }
  
  static void enum_full_complete(bool success) {
 -  (void)success;
 +  static uint8_t root_retry_count = 0;
 +  static uint8_t root_retry_rhport = TUSB_INDEX_INVALID_8; // the port root_retry_count belongs to
++  const uint8_t failed_daddr = _usbh_data.enumerating_daddr;
    TU_LOG_USBH("Enumeration complete: success = %u\r\n", success);
  
    _usbh_data.enumerating_daddr = TUSB_INDEX_INVALID_8; // mark enumeration as complete
-@@ -2211,6 +2241,27 @@ static void enum_full_complete(bool success) {
+@@ -2211,6 +2250,37 @@ static void enum_full_complete(bool success) {
      hub_edpt_status_xfer(_usbh_data.dev0_bus.hub_addr);
    }
    #endif
@@ -165,15 +217,25 @@ index 44819b016..089093a16 100644
 +    root_retry_count = 0;
 +  }
 +
-+  if (success) {
++  if (success || _usbh_data.dev0_bus.hub_addr != 0 || !hcd_port_connect_status(rhport)) {
++    // The budget covers one attachment, so it has to be given back when that attachment ends,
++    // whether it succeeded or the device was unplugged part-way through. Carrying a spent count
++    // into the next device would deny it the retries it has not used.
 +    root_retry_count = 0;
-+  } else if (_usbh_data.dev0_bus.hub_addr == 0 && hcd_port_connect_status(rhport)) {
++  } else {
 +    // A device behind a hub gets another chance from the next port status change, but nothing ever
 +    // retries the root port: the host stays dead until reboot. Re-post the attach so the port is
 +    // reset and enumerated again, e.g. after the controller dropped it on a bus error.
 +    if (root_retry_count < USBH_ENUM_ROOT_RETRY_MAX) {
 +      root_retry_count++;
 +      TU_LOG_USBH("Retry root port enumeration %u/%u\r\n", root_retry_count, USBH_ENUM_ROOT_RETRY_MAX);
++      // The attach handler only closes dev0 while it is the one enumerating, which this function
++      // has just stopped being true, and hcd_edpt_open() allocates rather than reuses: without
++      // this, every retry of an attempt that never reached SET_ADDRESS leaks an endpoint entry.
++      // A device that did get an address is torn down by the attach handler instead.
++      if (failed_daddr == 0) {
++        usbh_device_close(rhport, 0);
++      }
 +      hcd_event_device_attach(rhport, false);
 +    } else {
 +      root_retry_count = 0; // give up on this attach, but allow a later one to retry again
@@ -183,7 +245,7 @@ index 44819b016..089093a16 100644
  
  #endif
 diff --git a/src/portable/synopsys/dwc2/hcd_dwc2.c b/src/portable/synopsys/dwc2/hcd_dwc2.c
-index 089b839ae..c5ee7b376 100644
+index 089b839ae..efb3b0a6f 100644
 --- a/src/portable/synopsys/dwc2/hcd_dwc2.c
 +++ b/src/portable/synopsys/dwc2/hcd_dwc2.c
 @@ -119,6 +119,18 @@ TU_ATTR_ALWAYS_INLINE static inline tusb_speed_t hprt_speed_get(dwc2_regs_t* dwc
@@ -205,7 +267,7 @@ index 089b839ae..c5ee7b376 100644
  TU_ATTR_ALWAYS_INLINE static inline bool dma_host_enabled(const dwc2_regs_t* dwc2) {
    (void) dwc2;
    // Internal DMA only
-@@ -200,8 +212,75 @@ TU_ATTR_ALWAYS_INLINE static inline bool channel_disable(const dwc2_regs_t* dwc2
+@@ -200,11 +212,80 @@ TU_ATTR_ALWAYS_INLINE static inline bool channel_disable(const dwc2_regs_t* dwc2
    return true;
  }
  
@@ -275,13 +337,18 @@ index 089b839ae..c5ee7b376 100644
 +
  // attempt to send IN token to receive data
  TU_ATTR_ALWAYS_INLINE static inline bool channel_send_in_token(const dwc2_regs_t* dwc2, dwc2_channel_t* channel) {
-+#if DWC2_LS_ONE_XACT_PER_FRAME
-+  ls_frame_reserve(dwc2, channel);
-+#endif
    while (0 == req_queue_avail(dwc2, channel_is_periodic(channel->hcchar))) {
      // blocking wait for request queue available
    }
-@@ -656,6 +735,9 @@ static bool channel_xfer_start(dwc2_regs_t* dwc2, uint8_t ch_id) {
++#if DWC2_LS_ONE_XACT_PER_FRAME
++  // after the queue wait, not before: a wait that spans a frame boundary would leave the
++  // reservation naming a frame this channel no longer starts in
++  ls_frame_reserve(dwc2, channel);
++#endif
+   channel->hcchar |= HCCHAR_CHENA;
+   return true;
+ }
+@@ -656,6 +737,9 @@ static bool channel_xfer_start(dwc2_regs_t* dwc2, uint8_t ch_id) {
        channel_send_in_token(dwc2, channel);
      } else {
        hcd_dcache_clean(edpt->buffer, edpt->buflen);
@@ -291,7 +358,7 @@ index 089b839ae..c5ee7b376 100644
        channel->hcchar |= HCCHAR_CHENA;
      }
    } else {
-@@ -679,6 +761,12 @@ static bool channel_xfer_start(dwc2_regs_t* dwc2, uint8_t ch_id) {
+@@ -679,6 +763,12 @@ static bool channel_xfer_start(dwc2_regs_t* dwc2, uint8_t ch_id) {
      if (hcchar_bm->ep_dir == TUSB_DIR_IN) {
        channel_send_in_token(dwc2, channel);
      } else {
@@ -304,7 +371,7 @@ index 089b839ae..c5ee7b376 100644
        channel->hcchar |= HCCHAR_CHENA;
        if (edpt->buflen > 0) {
          // To prevent conflict with other channel, we will enable periodic/non-periodic FIFO empty interrupt accordingly
-@@ -1376,8 +1464,12 @@ static bool handle_sof_irq(uint8_t rhport, bool in_isr) {
+@@ -1376,8 +1466,12 @@ static bool handle_sof_irq(uint8_t rhport, bool in_isr) {
        if (edpt->hcchar_bm.enable && channel_is_periodic(edpt->hcchar) && edpt->uframe_countdown > 0) {
          edpt->uframe_countdown -= tu_min32(ucount, edpt->uframe_countdown);
          if (edpt->uframe_countdown == 0) {
@@ -319,7 +386,7 @@ index 089b839ae..c5ee7b376 100644
            }
          }
  
-@@ -1473,7 +1565,14 @@ static void handle_hprt_irq(uint8_t rhport, bool in_isr) {
+@@ -1473,7 +1567,14 @@ static void handle_hprt_irq(uint8_t rhport, bool in_isr) {
        const tusb_speed_t speed = hprt_speed_get(dwc2);
        port0_enable(dwc2, speed);
      } else {

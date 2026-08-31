@@ -27,7 +27,8 @@ USB host on ESP32-S2/S3 (full-speed DWC2) dies when two low-speed devices — a 
 mouse and keyboard, say — sit behind one full-speed hub. Written against `64d952c02`
 (v0.21.0-289), upstream at hathach/tinyusb#3864, where it is four commits in this order.
 Only the first is specific to these chips; the rest are missing recovery paths that leave
-any host deaf after one failed transfer. Four changes:
+any host deaf after one failed transfer. This file also carries the fixes that came out of
+review on that PR, which are not yet folded into its commits. Five changes:
 
 - **`hcd_dwc2.c`** — the core cannot run two preamble transactions in the same 1 ms
   frame; it clears `HPRT.PENA` and the whole bus goes down. Low-speed channel starts are
@@ -38,7 +39,11 @@ any host deaf after one failed transfer. Four changes:
   applying an extra delay for low-speed devices from the ISR (espressif/esp-idf#15683).
 - **`usbh.c`** — nothing retries enumeration of the root port, so one failed attach left
   the host dead until reboot. Re-post the attach up to three times while the port still
-  reports a connection, with the retry budget belonging to one port at a time.
+  reports a connection, with the retry budget belonging to one port at a time and handed
+  back as soon as that attachment ends, however it ended. dev0 is closed before each
+  retry: the attach handler only does so while dev0 is the one enumerating, which is no
+  longer true by then, and `hcd_edpt_open()` allocates rather than reuses, so every retry
+  of an attempt that never reached `SET_ADDRESS` would otherwise leak an endpoint entry.
 - **`usbh.c`** — a removal event for the whole roothub port did not close dev0 when the
   device was enumerating behind a downstream hub, leaving `enumerating_daddr` at 0 and
   every later attach deferred forever.
@@ -48,4 +53,11 @@ any host deaf after one failed transfer. Four changes:
   answers a status IN with a control chain that would collide with enumeration. The
   removal path aborts a pending status transfer without re-arming it in the same breath:
   `hcd_edpt_abort_xfer()` only requests the halt, and the channel is released later from
-  the interrupt.
+  the interrupt. The watchdog also caps how long the host task may block, since
+  `tuh_task()` otherwise waits forever and a deaf hub is exactly the case where no event
+  arrives to wake it — but only while some hub's status endpoint is actually idle, so a
+  healthy bus still sleeps as before.
+- **`usbh.c`** — `tuh_umount_cb()` is now only called for a device that reached
+  `tuh_mounted()`. Enumeration marks a device connected as soon as it has an address, so
+  a failure after that point — or a retry of one — reported an unmount for a device the
+  application had never been told about.
