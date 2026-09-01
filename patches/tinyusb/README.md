@@ -51,7 +51,8 @@ review on that PR, which are not yet folded into its commits. Six changes:
 - **`usbh.c`** — a removal event for the whole roothub port did not close dev0 when the
   device was enumerating behind a downstream hub, leaving `enumerating_daddr` at 0 and
   every later attach deferred forever.
-- **`hub.c` / `hub.h`** — every re-arm of a hub's status endpoint is one-shot, so a
+- **`hub.c` / `hub.h`** — *(temporary: drop this hunk once hathach/tinyusb#3815 merges,
+  see below)* every re-arm of a hub's status endpoint is one-shot, so a
   single failure makes the hub deaf to attach and detach for good. Added a watchdog that
   re-arms an idle status endpoint, gated on an otherwise quiet bus because the hub
   answers a status IN with a control chain that would collide with enumeration. The
@@ -72,3 +73,17 @@ review on that PR, which are not yet folded into its commits. Six changes:
   also caps its wait only while the watchdog is allowed to run, since the deadline stays
   expired while the watchdog is gated and the cap would otherwise be zero every pass,
   spinning the task for as long as the bus stays busy.
+
+### The hub watchdog goes away with hathach/tinyusb#3815
+
+That PR reworks channel teardown and abort in `hcd_dwc2.c`, and with it the hub's status
+transfer is no longer lost when a device is removed — which is the only thing the watchdog
+recovers from. Tested by building #3815 with this patch rebased on top and the watchdog
+compiled out: 15 connect/disconnect events on an S3, including three removals of a flash
+drive and one after minutes of an idle bus, all reported. So the transfer was jammed by
+the teardown rather than never re-armed, and the watchdog is worth carrying only for as
+long as the patch is applied to a master that does not have #3815.
+
+It stays here until then, because that is the tree this patch applies to. When #3815 lands,
+drop the `hub.c` / `hub.h` hunks, the two call sites in `usbh.c`, and the wait cap that
+exists to serve them.
