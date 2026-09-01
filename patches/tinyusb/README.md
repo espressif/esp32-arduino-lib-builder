@@ -33,8 +33,8 @@ review on that PR, which are not yet folded into its commits. Six changes:
 - **`hcd_dwc2.c`** — the core cannot run two preamble transactions in the same 1 ms
   frame; it clears `HPRT.PENA` and the whole bus goes down. Low-speed channel starts are
   now spaced one per frame, on every path that enables such a channel: IN tokens,
-  the DMA OUT branch, and the slave-mode OUT branch that S2/S3 actually take, since
-  those parts have no host DMA. Periodic INs armed from the SOF interrupt are deferred
+  the DMA OUT branch, and the slave-mode OUT branch, which is what these builds take
+  since host DMA is off by default. Periodic INs armed from the SOF interrupt are deferred
   a frame rather than spun on. ESP-IDF's own DWC host driver handles the same limit by
   applying an extra delay for low-speed devices from the ISR (espressif/esp-idf#15683).
   A port the core disables on its own — a babble or other port error — stops SOF, so no

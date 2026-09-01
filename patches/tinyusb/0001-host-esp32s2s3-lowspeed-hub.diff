@@ -271,7 +271,7 @@ index 44819b016..56a6c8755 100644
  
  #endif
 diff --git a/src/portable/synopsys/dwc2/hcd_dwc2.c b/src/portable/synopsys/dwc2/hcd_dwc2.c
-index 089b839ae..efb3b0a6f 100644
+index 089b839ae..5c3aa9902 100644
 --- a/src/portable/synopsys/dwc2/hcd_dwc2.c
 +++ b/src/portable/synopsys/dwc2/hcd_dwc2.c
 @@ -119,6 +119,18 @@ TU_ATTR_ALWAYS_INLINE static inline tusb_speed_t hprt_speed_get(dwc2_regs_t* dwc
@@ -389,9 +389,9 @@ index 089b839ae..efb3b0a6f 100644
        channel_send_in_token(dwc2, channel);
      } else {
 +#if DWC2_LS_ONE_XACT_PER_FRAME
-+      // slave mode is the only path on esp32s2/s3: the core has no host DMA, so this is where every
-+      // low-speed OUT/SETUP goes out, including the control stages of a device enumerating next to a
-+      // live low-speed interrupt IN
++      // the path taken whenever host DMA is off, which is the default: every low-speed OUT and SETUP
++      // goes out here, including the control stages of a device enumerating next to a live low-speed
++      // interrupt IN
 +      ls_frame_reserve(dwc2, channel);
 +#endif
        channel->hcchar |= HCCHAR_CHENA;
