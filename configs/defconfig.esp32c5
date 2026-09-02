@@ -28,6 +28,10 @@ CONFIG_OPENTHREAD_ENABLED=y
 # OT IDF issue https://github.com/espressif/esp-idf/issues/15069
 # CONFIG_OPENTHREAD_DNS64_CLIENT=y
 
+# Because C5 has SPIRAM=y, Openthread Component sets the number of buffers to 1024
+# This is not viable for Matter therefore we shall keep it in the NO SPIRAM default value
+CONFIG_OPENTHREAD_NUM_MESSAGE_BUFFERS=65
+
 # Radio for RPC
 # CONFIG_OPENTHREAD_RADIO=y 
 # CONFIG_OPENTHREAD_RADIO_NATIVE=y
