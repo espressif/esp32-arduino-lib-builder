@@ -25,7 +25,9 @@
  */
 
 #pragma once
-#include "tusb_option.h"
+/* Do not include tusb_option.h here: TinyUSB includes this file FROM tusb_option.h
+ * after OPT_* are defined. Including tusb_option.h first causes CFG_* defaults then
+ * redefinition warnings (CFG_TUD_ENABLED, CFG_TUSB_OS, CFG_TUD_MAX_SPEED, ...). */
 #include "sdkconfig.h"
 
 #ifdef __cplusplus
