@@ -61,6 +61,10 @@ CONFIG_OPENTHREAD_NETWORK_PSKC="104810e2315100afd6bc9215a6bfac53"
 CONFIG_ENABLE_CHIPOBLE=y
 CONFIG_ENABLE_MATTER_OVER_THREAD=n
 
+# Later default wins over the =y at the top of this file (same as master C5).
+# Matter.cpp sets Wi-Fi buffer counts; this only keeps Wi-Fi/lwIP out of PSRAM.
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n
+
 #
 # Zigbee
 #
