@@ -28,6 +28,10 @@ CONFIG_OPENTHREAD_ENABLED=y
 # OT IDF issue https://github.com/espressif/esp-idf/issues/15069
 # CONFIG_OPENTHREAD_DNS64_CLIENT=y
 
+# Because C5 has SPIRAM=y, Openthread Component sets the number of buffers to 1024
+# This is not viable for Matter therefore we shall keep it in the NO SPIRAM default value
+CONFIG_OPENTHREAD_NUM_MESSAGE_BUFFERS=65
+
 # Radio for RPC
 # CONFIG_OPENTHREAD_RADIO=y 
 # CONFIG_OPENTHREAD_RADIO_NATIVE=y
@@ -47,35 +51,19 @@ CONFIG_OPENTHREAD_NETWORK_MASTERKEY="00112233445566778899aabbccddeeff"
 CONFIG_OPENTHREAD_NETWORK_PSKC="104810e2315100afd6bc9215a6bfac53"
 # end of OpenThread
 
-# Matter settings: OpenThread + No CHIPoBLE
+#
+# ESP32-C5 Matter-over-Wi-Fi (chip_variant esp32c5, default).
+# Pair: configs/defconfig.esp32c5_mot (Matter-over-Thread).
+# OpenThread stays on for Arduino OThread / OThreadCLI examples.
+# Matter-over-Thread is off: CHIP uses Wi-Fi + CHIPoBLE.
+# OT message buffers stay at 65 (SPIRAM=y would otherwise default to 1024).
+#
 CONFIG_ENABLE_CHIPOBLE=y
 CONFIG_ENABLE_MATTER_OVER_THREAD=n
 
-# Set endpoint id for Thread and Wi-Fi, depending on the secondary network interface endpoint id.
-CONFIG_THREAD_NETWORK_ENDPOINT_ID=2
-CONFIG_WIFI_NETWORK_ENDPOINT_ID=0
-
-# Attempt to enable WiFi with 5GHz mode - default is WiFi enabled + Disable AP
-CONFIG_ENABLE_WIFI_STATION=y
-CONFIG_ENABLE_WIFI_AP=n
-
-# --- Wi-Fi buffers: balanced for general use + PSRAM-disabled Matter S3/C5 lack of HEAP issue ---
-# Enables a free TX-buffer choice, removes the internal cache-TX pool
-# (~25 KB wasted when PSRAM is off), and drops RX_BA_WIN back to its lean default
-# We then re-assert a STATIC TX pool for TX reliability.
+# Later default wins over the =y at the top of this file (same as master C5).
+# Matter.cpp sets Wi-Fi buffer counts; this only keeps Wi-Fi/lwIP out of PSRAM.
 CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=n
-
-# Keep STATIC TX buffers (robust under bursty UDP/TCP load), modest count
-CONFIG_ESP_WIFI_STATIC_TX_BUFFER=y
-CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM=8
-
-# RX: a static floor (DMA) plus dynamic headroom for bursts
-CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=8
-CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
-
-# Middle-ground RX block-ack window (8), between lean 6 and RAM-heavy 16.
-# Keep STATIC_RX_BUFFER_NUM >= RX_BA_WIN for AMPDU throughput.
-CONFIG_ESP_WIFI_RX_BA_WIN=8
 
 #
 # Zigbee
