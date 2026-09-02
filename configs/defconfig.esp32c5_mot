@@ -1,3 +1,12 @@
+#
+# ESP32-C5 Matter-over-Thread export (chip_variant esp32c5_mot).
+# mot = Matter over Thread. IDF target stays esp32c5.
+# Pair: configs/defconfig.esp32c5 (Matter-over-Wi-Fi).
+# OpenThread stays on for Arduino OThread / OThreadCLI examples.
+# CHIP uses Thread + CHIPoBLE; Wi-Fi station is off (H2-style).
+# Thread is the root Network Commissioning interface (not C6 dual-stack EP2).
+# OT message buffers stay at 65 (SPIRAM=y would otherwise default to 1024).
+#
 CONFIG_XTAL_FREQ_AUTO=y
 CONFIG_XTAL_FREQ=0
 CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
@@ -51,15 +60,11 @@ CONFIG_OPENTHREAD_NETWORK_MASTERKEY="00112233445566778899aabbccddeeff"
 CONFIG_OPENTHREAD_NETWORK_PSKC="104810e2315100afd6bc9215a6bfac53"
 # end of OpenThread
 
-#
-# ESP32-C5 Matter-over-Wi-Fi (chip_variant esp32c5, default).
-# Pair: configs/defconfig.esp32c5_mot (Matter-over-Thread).
-# OpenThread stays on for Arduino OThread / OThreadCLI examples.
-# Matter-over-Thread is off: CHIP uses Wi-Fi + CHIPoBLE.
-# OT message buffers stay at 65 (SPIRAM=y would otherwise default to 1024).
-#
+# Matter settings: OpenThread + CHIPoBLE (no Matter-over-Wi-Fi)
 CONFIG_ENABLE_CHIPOBLE=y
-CONFIG_ENABLE_MATTER_OVER_THREAD=n
+CONFIG_ENABLE_MATTER_OVER_THREAD=y
+CONFIG_ENABLE_WIFI_AP=n
+CONFIG_ENABLE_WIFI_STATION=n
 
 #
 # Zigbee

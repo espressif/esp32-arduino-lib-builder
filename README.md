@@ -39,6 +39,27 @@ To use it, follow these steps:
 7. If the compilation is successful and the option to copy the libraries to the Arduino Core folder is enabled, it will already be available for use in the Arduino IDE. Otherwise, you can find the compiled libraries in the `esp32-arduino-libs` folder alongside this repository.
   - Note that the copy operation doesn't currently support the core downloaded from the Arduino IDE Boards Manager, only the manual installation from the [`arduino-esp32`](https://github.com/espressif/arduino-esp32) repository.
 
+### Chip variants
+
+Most SoCs export one folder under `esp32-arduino-libs/<target>`. A few have a second `chip_variant` (same IDF target, different `configs/defconfig.<chip_variant>` and output folder):
+
+| IDF target | `chip_variant` / folder | Arduino IDE | Matter CHIP transport |
+| --- | --- | --- | --- |
+| `esp32c5` | `esp32c5` (default) | Matter Network → Wi-Fi | Wi-Fi + CHIPoBLE. OpenThread stays compiled for OT examples. |
+| `esp32c5` | `esp32c5_mot` | Matter Network → Thread | Thread + CHIPoBLE (`mot` = Matter over Thread). Wi-Fi station off. |
+| `esp32p4` | `esp32p4` | Chip Variant → v3.00 or newer | — |
+| `esp32p4` | `esp32p4_es` | Chip Variant → Before v3.00 | — |
+
+```bash
+./build.sh -t esp32c5                  # both C5 exports
+./build.sh -t esp32c5_mot              # Thread tree only
+./build.sh -t esp32c5,esp32c5_mot      # same as -t esp32c5
+./build.sh -t esp32p4                  # both P4 exports
+./build.sh -t esp32p4_es               # early-silicon P4 only
+```
+
+Both C5 trees keep `CONFIG_OPENTHREAD_ENABLED=y` and `CONFIG_OPENTHREAD_NUM_MESSAGE_BUFFERS=65`. They are not a dual-stack Matter image.
+
 ### Documentation
 
 For more information about how to use the Library builder, please refer to this [Documentation page](https://docs.espressif.com/projects/arduino-esp32/en/latest/lib_builder.html?highlight=lib%20builder)
