@@ -88,15 +88,10 @@ else
 	TOOLCHAIN="riscv32-esp-elf"
 fi
 
-# copy zigbee + zboss lib
+# copy zigbee prebuilt libs (esp-zigbee SDK v2.x)
 if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
 	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-	EXCLUDE_LIBS+="esp_zb_api.ed;esp_zb_api.zczr;"
-fi
-
-if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
-	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-	EXCLUDE_LIBS+="zboss_stack.ed;zboss_stack.zczr;zboss_port.native;zboss_port.native.debug;zboss_port.remote;zboss_port.remote.debug;"
+	EXCLUDE_LIBS+="esp-zigbee-core.zed.release;esp-zigbee-core.zed.debug;esp-zigbee-core.zczr.release;esp-zigbee-core.zczr.debug;esp-zigbee-idf.native.release;esp-zigbee-idf.native.debug;esp-zigbee-idf.remote.release;esp-zigbee-idf.remote.debug;esp-zigbee.release;esp-zigbee.debug;"
 fi
 
 # Strip surrounding quotes and absolute path from -specs=/path/file.specs -> -specs=file.specs
