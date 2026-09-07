@@ -109,6 +109,39 @@ CONFIGS=$@
 
 export IDF_CCACHE_ENABLE=$CCACHE_ENABLE
 
+# -t esp32c5 also runs the Matter-over-Thread harvest (chip_variant esp32c5_mot).
+# Other SoCs still match CHIP_VARIANT only (so -t esp32p4 does not pull in p4_es).
+function target_is_selected() {
+    local chip_variant="$1"
+    local idf_target="$2"
+    if [ "$TARGET" = "all" ]; then
+        return 0
+    fi
+    local item
+    for item in "${TARGET[@]}"; do
+        if [ "$item" = "$chip_variant" ]; then
+            return 0
+        fi
+        if [ "$item" = "esp32c5" ] && [ "$idf_target" = "esp32c5" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+function export_variant_publish() {
+    local target_json="$1"
+    local target="$2"
+    export PUBLISH_AS=$(echo "$target_json" | jq -r '.publish_as // .chip_variant // "'"$target"'"')
+    export HARVEST_ONLY=$(echo "$target_json" | jq -r '.harvest_only // false')
+    export MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.matter_lib_suffix // empty')
+    if [ "$HARVEST_ONLY" = "true" ] && [ ! -d "$AR_TOOLS/esp32-arduino-libs/$PUBLISH_AS/lib" ]; then
+        echo "ERROR: harvest_only ($CHIP_VARIANT) needs $AR_TOOLS/esp32-arduino-libs/$PUBLISH_AS/lib"
+        echo "       Build the published variant first (./build.sh -t $PUBLISH_AS)."
+        exit 1
+    fi
+}
+
 # Output the TARGET array
 echo "TARGET(s): ${TARGET[@]}"
 
@@ -149,19 +182,11 @@ if [ "$BUILD_TYPE" != "all" ]; then
         target=$(echo "$target_json" | jq -c '.target' | tr -d '"')
         export CHIP_VARIANT=$(echo "$target_json" | jq -c '.chip_variant // "'$target'"' | tr -d '"')
 
-        # Check if $CHIP_VARIANT is in the $TARGET array
-        target_in_array=false
-        for item in "${TARGET[@]}"; do
-            if [ "$item" = "$CHIP_VARIANT" ]; then
-                target_in_array=true
-                break
-            fi
-        done
-
-        if [ "$target_in_array" = false ]; then
-            # Skip building for targets that are not in the $TARGET array
+        if ! target_is_selected "$CHIP_VARIANT" "$target"; then
             continue
         fi
+
+        export_variant_publish "$target_json" "$target"
 
         configs="configs/defconfig.common;configs/defconfig.$CHIP_VARIANT;configs/defconfig.debug_$BUILD_DEBUG"
         for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
@@ -181,7 +206,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
         if [ $? -ne 0 ]; then exit 1; fi
 
         if [ "$BUILD_TYPE" == "srmodels_bin" ]; then
-            AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
+            AR_SDK="$AR_TOOLS/esp32-arduino-libs/$PUBLISH_AS"
             if [ -f "build/srmodels/srmodels.bin" ]; then
                 echo "$AR_SDK/esp_sr"
                 mkdir -p "$AR_SDK/esp_sr"
@@ -202,21 +227,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     export CHIP_VARIANT=$(echo "$target_json" | jq -c '.chip_variant // "'$target'"' | tr -d '"')
     target_skip=$(echo "$target_json" | jq -c '.skip // 0')
 
-    # Check if $CHIP_VARIANT is in the $TARGET array if not "all"
-    if [ "$TARGET" != "all" ]; then
-        target_in_array=false
-        for item in "${TARGET[@]}"; do
-            if [ "$item" = "$CHIP_VARIANT" ]; then
-                target_in_array=true
-                break
-            fi
-        done
-
-        # If $CHIP_VARIANT is not in the $TARGET array, skip processing
-        if [ "$target_in_array" = false ]; then
-            echo "* Skipping Target: $CHIP_VARIANT"
-            continue
-        fi
+    if [ "$TARGET" != "all" ] && ! target_is_selected "$CHIP_VARIANT" "$target"; then
+        echo "* Skipping Target: $CHIP_VARIANT"
+        continue
     fi
 
     # Skip chips that should not be a part of the final libs
@@ -226,7 +239,9 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         continue
     fi
 
-    echo "* Target: '$target', Variant: '$CHIP_VARIANT'"
+    export_variant_publish "$target_json" "$target"
+
+    echo "* Target: '$target', Variant: '$CHIP_VARIANT', Publish: '$PUBLISH_AS'"
 
     # Build Main Configs List
     main_configs="configs/defconfig.common;configs/defconfig.$CHIP_VARIANT;configs/defconfig.debug_$BUILD_DEBUG"
@@ -254,7 +269,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     if [ "$target" == "esp32s3" ] || [ "$target" == "esp32p4" ]; then
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" srmodels_bin
         if [ $? -ne 0 ]; then exit 1; fi
-        AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
+        AR_SDK="$AR_TOOLS/esp32-arduino-libs/$PUBLISH_AS"
         # sr model.bin
         if [ -f "build/srmodels/srmodels.bin" ]; then
             echo "$AR_SDK/esp_sr"
@@ -262,6 +277,12 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
             cp -f "build/srmodels/srmodels.bin" "$AR_SDK/esp_sr/"
             cp -f "partitions.csv" "$AR_SDK/esp_sr/"
         fi
+    fi
+
+    # Harvest recipes only need the Matter archive; skip bootloader / mem-variant rebuilds.
+    if [ "$HARVEST_ONLY" = "true" ]; then
+        echo "* Harvest-only ($CHIP_VARIANT -> $PUBLISH_AS): skip bootloaders and mem variants"
+        continue
     fi
 
     # Build Bootloaders

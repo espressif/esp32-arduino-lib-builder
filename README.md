@@ -41,24 +41,22 @@ To use it, follow these steps:
 
 ### Chip variants
 
-Most SoCs export one folder under `esp32-arduino-libs/<target>`. A few have a second `chip_variant` (same IDF target, different `configs/defconfig.<chip_variant>` and output folder):
+Most SoCs export one folder under `esp32-arduino-libs/<target>`. ESP32-P4 also publishes `esp32p4_es` (early silicon) as a second folder. ESP32-C5 still **compiles** Matter twice (Wi-Fi vs Matter-over-Thread) but **publishes one** `esp32c5/` tree: `libespressif__esp_matter.wifi.a` and `libespressif__esp_matter.thread.a`. `configs/defconfig.esp32c5_mot` is a harvest recipe only (`harvest_only`); it is not a published `chip_variant`.
 
-| IDF target | `chip_variant` / folder | Arduino IDE | Matter CHIP transport |
+| IDF target | Published folder | Arduino IDE | Matter CHIP transport |
 | --- | --- | --- | --- |
-| `esp32c5` | `esp32c5` (default) | Matter Network → Wi-Fi | Wi-Fi + CHIPoBLE. OpenThread stays compiled for OT examples. |
-| `esp32c5` | `esp32c5_mot` | Matter Network → Thread | Thread + CHIPoBLE (`mot` = Matter over Thread). Wi-Fi station off. |
+| `esp32c5` | `esp32c5` | Matter Network → Wi-Fi or Thread | Wi-Fi + CHIPoBLE, or Thread + CHIPoBLE (H2-style, Wi-Fi station off). OpenThread stays compiled for OT examples. |
 | `esp32p4` | `esp32p4` | Chip Variant → v3.00 or newer | — |
 | `esp32p4` | `esp32p4_es` | Chip Variant → Before v3.00 | — |
 
 ```bash
-./build.sh -t esp32c5                  # both C5 exports
-./build.sh -t esp32c5_mot              # Thread tree only
-./build.sh -t esp32c5,esp32c5_mot      # same as -t esp32c5
-./build.sh -t esp32p4                  # both P4 exports
+./build.sh -t esp32c5                  # Wi-Fi export, then harvest Matter-over-Thread .a into the same folder
+./build.sh -t esp32c5_mot              # harvest only (fails unless esp32c5/lib already exists)
+./build.sh -t esp32p4                  # P4 v3+ only
 ./build.sh -t esp32p4_es               # early-silicon P4 only
 ```
 
-Both C5 trees keep `CONFIG_OPENTHREAD_ENABLED=y` and `CONFIG_OPENTHREAD_NUM_MESSAGE_BUFFERS=65`. They are not a dual-stack Matter image.
+C5 is not a dual-stack Matter image. Both compiles keep `CONFIG_OPENTHREAD_ENABLED=y` and `CONFIG_OPENTHREAD_NUM_MESSAGE_BUFFERS=65`.
 
 ### Documentation
 

@@ -16,7 +16,41 @@ MEMCONF=$OCT_FLASH"_$OCT_PSRAM"
 
 source ./tools/config.sh
 
-echo "IDF_TARGET: $IDF_TARGET, CHIP_VARIANT: $CHIP_VARIANT, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
+echo "IDF_TARGET: $IDF_TARGET, CHIP_VARIANT: $CHIP_VARIANT, PUBLISH_AS: $PUBLISH_AS, HARVEST_ONLY: ${HARVEST_ONLY:-0}, MATTER_LIB_SUFFIX: ${MATTER_LIB_SUFFIX:-}, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
+
+# Harvest-only: copy the rebuilt Matter archive into an existing published tree.
+# Do not wipe lib/include/flags — that would delete the primary (Wi-Fi) C5 export.
+if [ "$HARVEST_ONLY" = "1" ] || [ "$HARVEST_ONLY" = "true" ]; then
+	if [ -z "$MATTER_LIB_SUFFIX" ]; then
+		echo "ERROR: harvest_only requires MATTER_LIB_SUFFIX"
+		exit 1
+	fi
+	if [ ! -d "$AR_SDK/lib" ]; then
+		echo "ERROR: harvest_only needs an existing $AR_SDK/lib (build the published variant first, e.g. ./build.sh -t esp32c5)"
+		exit 1
+	fi
+	MATTER_A=""
+	if [ -f "build/esp-idf/espressif__esp_matter/libespressif__esp_matter.a" ]; then
+		MATTER_A="build/esp-idf/espressif__esp_matter/libespressif__esp_matter.a"
+	else
+		MATTER_A=$(find build -name 'libespressif__esp_matter.a' -print -quit 2>/dev/null)
+	fi
+	if [ -z "$MATTER_A" ] || [ ! -f "$MATTER_A" ]; then
+		echo "ERROR: harvest_only: libespressif__esp_matter.a not found under build/"
+		exit 1
+	fi
+	DEST="$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
+	echo "Harvesting $MATTER_A -> $DEST"
+	cp -f "$MATTER_A" "$DEST"
+	if [ "$IS_XTENSA" = "y" ]; then
+		TOOLCHAIN="xtensa-$IDF_TARGET-elf"
+	else
+		TOOLCHAIN="riscv32-esp-elf"
+	fi
+	echo "Stripping $DEST"
+	"$TOOLCHAIN-strip" -g "$DEST"
+	exit 0
+fi
 
 # clean previous
 if [ -e "$AR_SDK/sdkconfig" ]; then
@@ -640,6 +674,23 @@ for item; do
 	cp "$item" "$AR_SDK/lib/"
 done
 
+# C5 Matter: publish a suffixed archive and keep it out of the default link line
+# (Arduino IDE / PIO pick .wifi / .thread the same way as Zigbee ED / ZCZR).
+if [ -n "$MATTER_LIB_SUFFIX" ]; then
+	if [ -f "$AR_SDK/lib/libespressif__esp_matter.a" ]; then
+		mv -f "$AR_SDK/lib/libespressif__esp_matter.a" "$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
+	fi
+	AR_LIBS=$(echo "$AR_LIBS" | sed -E 's/(^| )-lespressif__esp_matter( |$)/ /g' | tr -s ' ')
+	PIOARDUINO_LIBS=""
+	set -- $AR_LIBS
+	for item; do
+		if [ "$PIOARDUINO_LIBS" != "" ]; then
+			PIOARDUINO_LIBS+=", "
+		fi
+		PIOARDUINO_LIBS+="\"$item\""
+	done
+fi
+
 echo "    LIBPATH=[" >> "$AR_PIOARDUINO_PY"
 echo "        join($PIOARDUINO_SDK, \"lib\")," >> "$AR_PIOARDUINO_PY"
 echo "        join($PIOARDUINO_SDK, \"ld\")," >> "$AR_PIOARDUINO_PY"
@@ -734,7 +785,7 @@ for item; do
 	done
 done
 
-for lib in "openthread" "espressif__esp-tflite-micro" "bt" "espressif__esp_matter"; do
+for lib in "openthread" "espressif__esp-tflite-micro" "bt" "espressif__esp_matter" "espressif__esp_matter.wifi" "espressif__esp_matter.thread"; do
 	if [ -f "$AR_SDK/lib/lib$lib.a" ]; then
 		echo "Stripping $AR_SDK/lib/lib$lib.a"
 		"$TOOLCHAIN-strip" -g "$AR_SDK/lib/lib$lib.a"

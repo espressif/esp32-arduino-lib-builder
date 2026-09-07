@@ -30,6 +30,12 @@ if [ -z "$CHIP_VARIANT" ]; then
     CHIP_VARIANT="$IDF_TARGET"
 fi
 
+# Published folder under esp32-arduino-libs/. Harvest builds (C5 Matter-over-Thread)
+# keep CHIP_VARIANT for defconfig selection but write into publish_as (esp32c5).
+if [ -z "$PUBLISH_AS" ]; then
+    PUBLISH_AS="$CHIP_VARIANT"
+fi
+
 # Owner of the target ESP32 Arduino repository
 AR_USER="${GITHUB_REPOSITORY_OWNER:-espressif}"
 
@@ -54,8 +60,8 @@ AR_TOOLS="$AR_OUT/tools"
 AR_PATCHES="$AR_ROOT/patches"
 AR_PLATFORM_TXT="$AR_OUT/platform.txt"
 AR_GEN_PART_PY="$AR_TOOLS/gen_esp32part.py"
-AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
-PIOARDUINO_SDK="FRAMEWORK_SDK_DIR, \"$CHIP_VARIANT\""
+AR_SDK="$AR_TOOLS/esp32-arduino-libs/$PUBLISH_AS"
+PIOARDUINO_SDK="FRAMEWORK_SDK_DIR, \"$PUBLISH_AS\""
 TOOLS_JSON_OUT="$AR_TOOLS/esp32-arduino-libs"
 
 if [ -d "$IDF_PATH" ]; then

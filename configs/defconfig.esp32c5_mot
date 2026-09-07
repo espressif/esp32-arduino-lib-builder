@@ -1,7 +1,8 @@
 #
-# ESP32-C5 Matter-over-Thread export (chip_variant esp32c5_mot).
+# ESP32-C5 Matter-over-Thread harvest recipe (chip_variant esp32c5_mot).
 # mot = Matter over Thread. IDF target stays esp32c5.
-# Pair: configs/defconfig.esp32c5 (Matter-over-Wi-Fi).
+# Not a published folder: copy-libs harvests libespressif__esp_matter.thread.a into esp32c5/.
+# Pair: configs/defconfig.esp32c5 (Matter-over-Wi-Fi, published sdkconfig).
 # OpenThread stays on for Arduino OThread / OThreadCLI examples.
 # CHIP uses Thread + CHIPoBLE; Wi-Fi station is off (H2-style).
 # Thread is the root Network Commissioning interface (not C6 dual-stack EP2).
