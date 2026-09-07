@@ -72,25 +72,11 @@
 			"mem_variants":[
 				["dio","80m"]
 			],
-			"matter_lib_suffix": "wifi"
-		},
-		{
-			"chip_variant": "esp32c5_mot",
-			"target": "esp32c5",
-			"publish_as": "esp32c5",
-			"harvest_only": true,
-			"matter_lib_suffix": "thread",
-			"features":["qio_ram"],
-			"idf_libs":["qio","80m"],
-			"bootloaders":[
-				["qio","80m"],
-				["dio","80m"],
-				["qio","40m"],
-				["dio","40m"]
-			],
-			"mem_variants":[
-				["dio","80m"]
-			]
+			"matter_lib_suffix": "wifi",
+			"matter_harvest": {
+				"defconfig": "esp32c5_mot",
+				"matter_lib_suffix": "thread"
+			}
 		},
 		{
 			"chip_variant": "esp32p4_es",

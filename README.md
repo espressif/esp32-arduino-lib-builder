@@ -39,24 +39,9 @@ To use it, follow these steps:
 7. If the compilation is successful and the option to copy the libraries to the Arduino Core folder is enabled, it will already be available for use in the Arduino IDE. Otherwise, you can find the compiled libraries in the `esp32-arduino-libs` folder alongside this repository.
   - Note that the copy operation doesn't currently support the core downloaded from the Arduino IDE Boards Manager, only the manual installation from the [`arduino-esp32`](https://github.com/espressif/arduino-esp32) repository.
 
-### Chip variants
+### ESP32-C5 Matter
 
-Most SoCs export one folder under `esp32-arduino-libs/<target>`. ESP32-P4 also publishes `esp32p4_es` (early silicon) as a second folder. ESP32-C5 still **compiles** Matter twice (Wi-Fi vs Matter-over-Thread) but **publishes one** `esp32c5/` tree: `libespressif__esp_matter.wifi.a` and `libespressif__esp_matter.thread.a`. `configs/defconfig.esp32c5_mot` is a harvest recipe only (`harvest_only`); it is not a published `chip_variant`.
-
-| IDF target | Published folder | Arduino IDE | Matter CHIP transport |
-| --- | --- | --- | --- |
-| `esp32c5` | `esp32c5` | Matter Network → Wi-Fi or Thread | Wi-Fi + CHIPoBLE, or Thread + CHIPoBLE (H2-style, Wi-Fi station off). OpenThread stays compiled for OT examples. |
-| `esp32p4` | `esp32p4` | Chip Variant → v3.00 or newer | — |
-| `esp32p4` | `esp32p4_es` | Chip Variant → Before v3.00 | — |
-
-```bash
-./build.sh -t esp32c5                  # Wi-Fi export, then harvest Matter-over-Thread .a into the same folder
-./build.sh -t esp32c5_mot              # harvest only (fails unless esp32c5/lib already exists)
-./build.sh -t esp32p4                  # P4 v3+ only
-./build.sh -t esp32p4_es               # early-silicon P4 only
-```
-
-C5 is not a dual-stack Matter image. Both compiles keep `CONFIG_OPENTHREAD_ENABLED=y` and `CONFIG_OPENTHREAD_NUM_MESSAGE_BUFFERS=65`.
+`-t esp32c5` compiles Matter twice (Wi-Fi, then Matter-over-Thread) and publishes both archives in one `esp32c5/` folder: `libespressif__esp_matter.wifi.a` and `libespressif__esp_matter.thread.a`. `configs/defconfig.esp32c5_mot` is the Thread recipe used by that second compile.
 
 ### Documentation
 
