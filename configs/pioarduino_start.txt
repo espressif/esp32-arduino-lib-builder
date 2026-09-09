@@ -71,4 +71,13 @@ if ("ZIGBEE_MODE_ZCZR" in flatten_cppdefines or "ZIGBEE_MODE_ED" in flatten_cppd
         ]
     )
 
+#
+# C5 Matter: one published folder, two archives (Wi-Fi vs Matter-over-Thread).
+#
+if build_mcu == "esp32c5":
+    if "ARDUINO_MATTER_NETWORK_THREAD" in flatten_cppdefines:
+        env.Append(LIBS=["-lespressif__esp_matter.thread"])
+    else:
+        env.Append(LIBS=["-lespressif__esp_matter.wifi"])
+
 env.Append(

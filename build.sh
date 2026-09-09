@@ -109,6 +109,81 @@ CONFIGS=$@
 
 export IDF_CCACHE_ENABLE=$CCACHE_ENABLE
 
+# C5 only: after the published idf-libs tree exists, rebuild Matter with the
+# harvest recipe and copy libespressif__esp_matter.<suffix>.a into the same folder.
+# $3 is the primary SDKCONFIG_DEFAULTS list; only defconfig.$CHIP_VARIANT is swapped.
+function harvest_matter_libs() {
+    local target_json="$1"
+    local target="$2"
+    local primary_configs="$3"
+    local harvest_json
+    harvest_json=$(echo "$target_json" | jq -c '.matter_harvest // empty')
+    if [ -z "$harvest_json" ] || [ "$harvest_json" = "null" ]; then
+        return 0
+    fi
+
+    local harvest_defconfig harvest_suffix primary_suffix
+    harvest_defconfig=$(echo "$harvest_json" | jq -r '.defconfig')
+    harvest_suffix=$(echo "$harvest_json" | jq -r '.matter_lib_suffix')
+    primary_suffix=$(echo "$target_json" | jq -r '.matter_lib_suffix // empty')
+    if [ -z "$harvest_defconfig" ] || [ "$harvest_defconfig" = "null" ] || \
+       [ -z "$harvest_suffix" ] || [ "$harvest_suffix" = "null" ] || \
+       [ -z "$primary_suffix" ] || [ -z "$primary_configs" ]; then
+        echo "ERROR: matter_harvest requires defconfig, suffixes, and the primary config list"
+        exit 1
+    fi
+    if [ ! -f "configs/defconfig.$harvest_defconfig" ]; then
+        echo "ERROR: matter_harvest defconfig not found: configs/defconfig.$harvest_defconfig"
+        exit 1
+    fi
+    if [ ! -d "$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib" ]; then
+        echo "ERROR: matter harvest needs $AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib"
+        exit 1
+    fi
+
+    local harvest_configs="" part replaced=0
+    local IFS=';'
+    for part in $primary_configs; do
+        if [ "$part" = "configs/defconfig.$CHIP_VARIANT" ]; then
+            part="configs/defconfig.$harvest_defconfig"
+            replaced=$((replaced + 1))
+        fi
+        if [ -n "$harvest_configs" ]; then
+            harvest_configs="$harvest_configs;$part"
+        else
+            harvest_configs="$part"
+        fi
+    done
+    unset IFS
+    if [ "$replaced" -ne 1 ]; then
+        echo "ERROR: matter harvest expected configs/defconfig.$CHIP_VARIANT in: $primary_configs"
+        exit 1
+    fi
+
+    echo "* Harvest Matter ($harvest_suffix) from configs/defconfig.$harvest_defconfig"
+    echo "* Harvest configs: $harvest_configs"
+    export HARVEST_ONLY=true
+    export MATTER_LIB_SUFFIX="$harvest_suffix"
+    rm -rf build sdkconfig
+    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$harvest_configs" idf-libs
+    local rc=$?
+    unset HARVEST_ONLY
+    export MATTER_LIB_SUFFIX="$primary_suffix"
+    if [ $rc -ne 0 ]; then
+        exit 1
+    fi
+
+    local libdir="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib"
+    local primary_a="$libdir/libespressif__esp_matter.${primary_suffix}.a"
+    local harvest_a="$libdir/libespressif__esp_matter.${harvest_suffix}.a"
+    if [ ! -f "$primary_a" ] || [ ! -f "$harvest_a" ]; then
+        echo "ERROR: $CHIP_VARIANT Matter harvest must leave both archives:"
+        echo "       $primary_a"
+        echo "       $harvest_a"
+        exit 1
+    fi
+}
+
 # Output the TARGET array
 echo "TARGET(s): ${TARGET[@]}"
 
@@ -163,6 +238,8 @@ if [ "$BUILD_TYPE" != "all" ]; then
             continue
         fi
 
+        export MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.matter_lib_suffix // empty')
+
         configs="configs/defconfig.common;configs/defconfig.$CHIP_VARIANT;configs/defconfig.debug_$BUILD_DEBUG"
         for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
             configs="$configs;configs/defconfig.$defconf"
@@ -179,6 +256,10 @@ if [ "$BUILD_TYPE" != "all" ]; then
         rm -rf build sdkconfig
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
         if [ $? -ne 0 ]; then exit 1; fi
+
+        if [ "$BUILD_TYPE" == "idf-libs" ]; then
+            harvest_matter_libs "$target_json" "$target" "$configs"
+        fi
 
         if [ "$BUILD_TYPE" == "srmodels_bin" ]; then
             AR_SDK="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT"
@@ -226,6 +307,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         continue
     fi
 
+    export MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.matter_lib_suffix // empty')
+
     echo "* Target: '$target', Variant: '$CHIP_VARIANT'"
 
     # Build Main Configs List
@@ -244,6 +327,8 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     rm -rf build sdkconfig
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     if [ $? -ne 0 ]; then exit 1; fi
+
+    harvest_matter_libs "$target_json" "$target" "$idf_libs_configs"
 
     # Build ESP-Hosted slave firmwares
     if [ "$CHIP_VARIANT" == "esp32p4" ]; then
