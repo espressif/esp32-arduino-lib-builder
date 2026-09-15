@@ -39,6 +39,10 @@ To use it, follow these steps:
 7. If the compilation is successful and the option to copy the libraries to the Arduino Core folder is enabled, it will already be available for use in the Arduino IDE. Otherwise, you can find the compiled libraries in the `esp32-arduino-libs` folder alongside this repository.
   - Note that the copy operation doesn't currently support the core downloaded from the Arduino IDE Boards Manager, only the manual installation from the [`arduino-esp32`](https://github.com/espressif/arduino-esp32) repository.
 
+### ESP32-C5 Matter
+
+`-t esp32c5` compiles Matter twice (Wi-Fi, then Matter-over-Thread) and publishes both archives in one `esp32c5/` folder: `libespressif__esp_matter.wifi.a` and `libespressif__esp_matter.thread.a`. `configs/defconfig.esp32c5_mot` is the Thread recipe used by that second compile.
+
 ### Documentation
 
 For more information about how to use the Library builder, please refer to this [Documentation page](https://docs.espressif.com/projects/arduino-esp32/en/latest/lib_builder.html?highlight=lib%20builder)
