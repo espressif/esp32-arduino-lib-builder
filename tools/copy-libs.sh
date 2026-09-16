@@ -683,20 +683,18 @@ done
 # C5 Matter: publish a suffixed archive and keep it out of the default link line
 # (Arduino IDE / PIO pick .wifi / .thread the same way as Zigbee ED / ZCZR).
 if [ -n "$MATTER_LIB_SUFFIX" ]; then
-	if [ ! -f "$AR_SDK/lib/libespressif__esp_matter.a" ]; then
-		echo "ERROR: missing $AR_SDK/lib/libespressif__esp_matter.a; cannot publish .${MATTER_LIB_SUFFIX}.a"
-		exit 1
+	if [ -f "$AR_SDK/lib/libespressif__esp_matter.a" ]; then
+		mv -f "$AR_SDK/lib/libespressif__esp_matter.a" "$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
+		AR_LIBS=$(echo "$AR_LIBS" | sed -E 's/(^| )-lespressif__esp_matter( |$)/ /g' | tr -s ' ')
+		PIOARDUINO_LIBS=""
+		set -- $AR_LIBS
+		for item; do
+			if [ "$PIOARDUINO_LIBS" != "" ]; then
+				PIOARDUINO_LIBS+=", "
+			fi
+			PIOARDUINO_LIBS+="\"$item\""
+		done
 	fi
-	mv -f "$AR_SDK/lib/libespressif__esp_matter.a" "$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
-	AR_LIBS=$(echo "$AR_LIBS" | sed -E 's/(^| )-lespressif__esp_matter( |$)/ /g' | tr -s ' ')
-	PIOARDUINO_LIBS=""
-	set -- $AR_LIBS
-	for item; do
-		if [ "$PIOARDUINO_LIBS" != "" ]; then
-			PIOARDUINO_LIBS+=", "
-		fi
-		PIOARDUINO_LIBS+="\"$item\""
-	done
 fi
 
 echo "    LIBPATH=[" >> "$AR_PIOARDUINO_PY"
