@@ -77,7 +77,7 @@ if ("ZIGBEE_MODE_ZCZR" in flatten_cppdefines or "ZIGBEE_MODE_ED" in flatten_cppd
 if build_mcu == "esp32c5":
     if "ARDUINO_MATTER_NETWORK_THREAD" in flatten_cppdefines:
         env.Append(LIBS=["-lespressif__esp_matter.thread"])
-    else:
+    elif "ARDUINO_MATTER_NETWORK_WIFI" in flatten_cppdefines:
         env.Append(LIBS=["-lespressif__esp_matter.wifi"])
 
 env.Append(
