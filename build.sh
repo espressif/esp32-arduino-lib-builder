@@ -141,6 +141,14 @@ function harvest_matter_libs() {
         exit 1
     fi
 
+    local libdir="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib"
+    local primary_a="$libdir/libespressif__esp_matter.${primary_suffix}.a"
+    local harvest_a="$libdir/libespressif__esp_matter.${harvest_suffix}.a"
+    if [ ! -f "$primary_a" ]; then
+        echo "WARNING: Primary Matter library not found. Probably not included in the build"
+        return 0
+    fi
+
     local harvest_configs="" part replaced=0
     local IFS=';'
     for part in $primary_configs; do
@@ -173,9 +181,6 @@ function harvest_matter_libs() {
         exit 1
     fi
 
-    local libdir="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib"
-    local primary_a="$libdir/libespressif__esp_matter.${primary_suffix}.a"
-    local harvest_a="$libdir/libespressif__esp_matter.${harvest_suffix}.a"
     if [ ! -f "$primary_a" ] || [ ! -f "$harvest_a" ]; then
         echo "ERROR: $CHIP_VARIANT Matter harvest must leave both archives:"
         echo "       $primary_a"
