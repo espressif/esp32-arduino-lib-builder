@@ -46,28 +46,28 @@ flatten_cppdefines = env.Flatten(env['CPPDEFINES'])
 if "ZIGBEE_MODE_ZCZR" in flatten_cppdefines:
     env.Append(
         LIBS=[
-            "-lesp_zb_api.zczr",
-            "-lzboss_stack.zczr"
+            "-lesp-zigbee-core.zczr.release",
+            "-lesp-zigbee.release"
         ]
     )
-if "ZIGBEE_MODE_ZCZR" in flatten_cppdefines and build_mcu in ["esp32c5", "esp32c6", "esp32h2"]:
+if "ZIGBEE_MODE_ZCZR" in flatten_cppdefines and build_mcu in ["esp32c5", "esp32c6", "esp32h2", "esp32s31"]:
     env.Append(
         LIBS=[
-            "-lzboss_port.native"
+            "-lesp-zigbee-idf.native.release"
         ]
     )
-if "ZIGBEE_MODE_ED" in flatten_cppdefines and build_mcu in ["esp32c5", "esp32c6", "esp32h2"]:
+if "ZIGBEE_MODE_ED" in flatten_cppdefines and build_mcu in ["esp32c5", "esp32c6", "esp32h2", "esp32s31"]:
     env.Append(
         LIBS=[
-            "-lesp_zb_api.ed",
-            "-lzboss_stack.ed",
-            "-lzboss_port.native"
+            "-lesp-zigbee-core.zed.release",
+            "-lesp-zigbee-idf.native.release",
+            "-lesp-zigbee.release"
         ]
     )
 if ("ZIGBEE_MODE_ZCZR" in flatten_cppdefines or "ZIGBEE_MODE_ED" in flatten_cppdefines) and build_mcu in ["esp32", "esp32s2", "esp32s3", "esp32c3"]:
     env.Append(
         LIBS=[
-            "-libzboss_port.remote"
+            "-lesp-zigbee-idf.remote.release"
         ]
     )
 
