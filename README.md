@@ -39,25 +39,9 @@ To use it, follow these steps:
 7. If the compilation is successful and the option to copy the libraries to the Arduino Core folder is enabled, it will already be available for use in the Arduino IDE. Otherwise, you can find the compiled libraries in the `esp32-arduino-libs` folder alongside this repository.
   - Note that the copy operation doesn't currently support the core downloaded from the Arduino IDE Boards Manager, only the manual installation from the [`arduino-esp32`](https://github.com/espressif/arduino-esp32) repository.
 
-### ESP-Matter 1.6 / IDF 6.1
-
-This `release/v6.1` builder harvests static libs for Arduino-ESP32 `release/v4.0.x`. Matter settings match the Arduino-as-IDF test bed:
-
-- `main/idf_component.yml` pins `espressif/esp_matter` **1.6**
-- C++ is **gnu++2a** + `CHIP_HAVE_CONFIG_H` (no GCC14/C++20 ClosureControl patch)
-- `CONFIG_CUSTOM_DEVICE_INSTANCE_INFO_PROVIDER` so Arduino `VendorName` / `ProductName` wrap CHIP
-- Test DAC + commissionable data + `ENABLE_TEST_SETUP_PARAMS` (Arduino pairing codes)
-- `CONFIG_NONE_DEVICE_INFO_PROVIDER` (Arduino registers a RAM `DeviceInfoProvider` for FixedLabel)
-
 ### ESP32-C5 Matter
 
 `-t esp32c5` compiles Matter twice (Wi-Fi, then Matter-over-Thread) and publishes both archives in one `esp32c5/` folder: `libespressif__esp_matter.wifi.a` and `libespressif__esp_matter.thread.a`. `configs/defconfig.esp32c5_mot` is the Thread recipe used by that second compile.
-
-**Arduino IDE:** Tools → Matter Network → Wi-Fi or Thread (`boards.txt` also has Disabled, which does not link a Matter `.a`).
-
-**pioarduino:** `pioarduino-build.py` links `.wifi.a` unless the sketch defines `ARDUINO_MATTER_NETWORK_THREAD` (then `.thread.a`). There is no unsuffixed `libespressif__esp_matter.a` on C5.
-
-Endpoint counts in the harvested Matter lib: 32 on ESP32 / S2 / S3 / C5 / C6; 7 on C3 / H2 (no PSRAM).
 
 ### Documentation
 

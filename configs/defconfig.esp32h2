@@ -40,7 +40,6 @@ CONFIG_ENABLE_MATTER_OVER_THREAD=y
 # Disable Matter over WiFi
 CONFIG_ENABLE_WIFI_AP=n
 CONFIG_ENABLE_WIFI_STATION=n
-# Endpoint count stays at common (7): H2 has no PSRAM.
 
 #
 # Zigbee

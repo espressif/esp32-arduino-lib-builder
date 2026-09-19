@@ -8,6 +8,7 @@ CONFIG_ESP_WIFI_MBO_SUPPORT=y
 CONFIG_ESP_WIFI_11R_SUPPORT=y
 CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096
 
-# Matter settings: CHIPoBLE on. Endpoint count stays at common (7):
-# C3 has no PSRAM; 32 would not fit a typical Arduino Matter + NimBLE image.
+# Matter settings:
+# No CHIPoBLE for C3 - Manual WiFi Setup - lack of RAM
+# Last attempt:
 CONFIG_ENABLE_CHIPOBLE=y

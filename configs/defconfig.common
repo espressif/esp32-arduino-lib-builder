@@ -155,14 +155,6 @@ CONFIG_USE_MINIMAL_MDNS=n
 # SPIRAM when Arduino has added it to the heap (SPIRAM_USE_MALLOC).
 # Do not use EXTERNAL (hard-fails without PSRAM).
 CONFIG_ESP_MATTER_MEM_ALLOC_MODE_DEFAULT=y
-# Arduino Matter identity (VendorName/ProductName/SerialNumber/HardwareVersion).
-# These match ESP-Matter defaults when factory data is off; keep them explicit
-# so a later Kconfig default change does not break pairing or Arduino identity.
-CONFIG_CUSTOM_DEVICE_INSTANCE_INFO_PROVIDER=y
-CONFIG_NONE_DEVICE_INFO_PROVIDER=y
-CONFIG_EXAMPLE_DAC_PROVIDER=y
-CONFIG_EXAMPLE_COMMISSIONABLE_DATA_PROVIDER=y
-CONFIG_ENABLE_TEST_SETUP_PARAMS=y
 
 #
 # Matter Memory Settings - attempt to reduce memeory need
