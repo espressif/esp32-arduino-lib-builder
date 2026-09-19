@@ -107,6 +107,12 @@ done
 shift $((OPTIND -1))
 CONFIGS=$@
 
+# Temporary: Arduino Matter 1.6 lives on #12913. -A still overrides.
+# Unset this after feat/matter-1.6-idf-6.1 is merged to release/v4.0.x.
+if [ -z "$AR_SOURCE_BRANCH" ]; then
+    export AR_SOURCE_BRANCH="feat/matter-1.6-idf-6.1"
+fi
+
 export IDF_CCACHE_ENABLE=$CCACHE_ENABLE
 
 # C5 only: after the published idf-libs tree exists, rebuild Matter with the
