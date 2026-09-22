@@ -43,6 +43,10 @@ To use it, follow these steps:
 
 `-t esp32c5` compiles Matter twice (Wi-Fi, then Matter-over-Thread) and publishes both archives in one `esp32c5/` folder: `libespressif__esp_matter.wifi.a` and `libespressif__esp_matter.thread.a`. `configs/defconfig.esp32c5_mot` is the Thread recipe used by that second compile.
 
+**Arduino IDE:** Tools → Matter Network → Wi-Fi or Thread (`boards.txt` also has Disabled, which does not link a Matter `.a`).
+
+**pioarduino:** `pioarduino-build.py` links `.wifi.a` unless the sketch defines `ARDUINO_MATTER_NETWORK_THREAD` (then `.thread.a`). There is no unsuffixed `libespressif__esp_matter.a` on C5.
+
 ### Documentation
 
 For more information about how to use the Library builder, please refer to this [Documentation page](https://docs.espressif.com/projects/arduino-esp32/en/latest/lib_builder.html?highlight=lib%20builder)
