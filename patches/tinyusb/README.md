@@ -24,32 +24,23 @@ git diff -- src > ../../../patches/tinyusb/<name>.diff
 ## 0001-host-esp32s2s3-lowspeed-hub.diff
 
 USB host on ESP32-S2/S3 (full-speed DWC2) dies when two low-speed devices — a wired
-mouse and keyboard, say — sit behind one full-speed hub. This file is the four commits
-of hathach/tinyusb#3864 at `9db4010ed`, applied on top of current TinyUSB master
-(which already includes #3815). Only the DWC2 change is specific to these chips; the
-`usbh.c` pieces are missing recovery paths that leave any host deaf after one failed
-transfer. Delete this file once #3864 merges.
+mouse and keyboard, say — sit behind one full-speed hub. This file is the source changes
+from [hathach/tinyusb#3864](https://github.com/hathach/tinyusb/pull/3864) at `ca49b6346`,
+rebased onto current TinyUSB master. Only the DWC2 change is specific to these chips; the
+`usbh.c` / `hid_host.c` pieces are missing recovery paths that leave any host deaf after
+one failed transfer. Delete this file once #3864 merges (see
+[espressif/esp32-arduino-lib-builder#404](https://github.com/espressif/esp32-arduino-lib-builder/pull/404)).
 
 - **`hcd_dwc2.c`** — the core cannot run two preamble transactions in the same 1 ms
   frame; it clears `HPRT.PENA` and the whole bus goes down. Low-speed channel starts are
-  now spaced one per frame (`ls_frame_reserve`), on every path that enables such a
-  channel: IN tokens, the DMA OUT branch, and the slave-mode OUT branch, which is what
-  these builds take since host DMA is off by default. Periodic INs armed from the SOF
-  interrupt are deferred a frame rather than spun on. ESP-IDF's own DWC host driver
-  handles the same limit by applying an extra delay for low-speed devices from the ISR
-  (espressif/esp-idf#15683). A port the core disables on its own — a babble or other
-  port error — stops SOF, so no transfer on that bus can ever complete again. If the
-  port is still connected and this IRQ is not already an attach detect, post attach so
-  the existing handler tears down the stale tree and enumerates again.
+  spaced one per frame without busy-waiting in ISR context: a busy frame parks the channel
+  and SOF replays the start. ESP-IDF's own DWC host driver handles the same limit with an
+  extra delay for low-speed devices from the ISR (espressif/esp-idf#15683). A port the core
+  disables on its own posts attach so the existing handler tears down the stale tree and
+  enumerates again.
 - **`usbh.c`** — nothing retries enumeration of the root port, so one failed attach left
   the host dead until reboot. Re-post the attach up to three times while the port still
-  reports a connection, with the retry budget belonging to one port at a time and handed
-  back as soon as that attachment ends, however it ended. An attach that is tearing down
-  what was already on the port is treated as a fresh start, not a retry of itself.
-  `tuh_umount_cb()` is only called for a device that reached `tuh_mounted()`.
-- **`usbh.c`** — a removal event for the whole roothub port did not close dev0 when the
-  device was enumerating behind a downstream hub, leaving `enumerating_daddr` at 0 and
-  every later attach deferred forever.
-
-hathach/tinyusb#3815 is already on the tree this patch applies to, so there is no hub
-watchdog here. That PR unjams the hub status transfer on device removal.
+  reports a connection. `tuh_umount_cb()` runs only after `tuh_mount_cb()`. A whole
+  roothub-port removal closes mid-enumeration `dev0`.
+- **`hid_host.c`** — `tuh_hid_umount_cb()` only for an interface that reached
+  `tuh_hid_mount_cb()`.
