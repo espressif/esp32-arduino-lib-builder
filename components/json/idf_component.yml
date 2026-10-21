@@ -1,0 +1,6 @@
+dependencies:
+  idf: ">=6.0"
+  espressif/cjson:
+    version: "^1.7.19~2"
+    rules:
+      - if: idf_version >= 6.0
