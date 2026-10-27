@@ -21,13 +21,49 @@ fi
 if [ -n "${7-}" ]; then
 	export MATTER_LIB_SUFFIX="$7"
 fi
+if [ -n "${8-}" ]; then
+	export BT_MATTER_LIB_SUFFIX="$8"
+fi
 
 source ./tools/config.sh
 
-echo "IDF_TARGET: $IDF_TARGET, CHIP_VARIANT: $CHIP_VARIANT, HARVEST_ONLY: ${HARVEST_ONLY:-0}, MATTER_LIB_SUFFIX: ${MATTER_LIB_SUFFIX:-}, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
+echo "IDF_TARGET: $IDF_TARGET, CHIP_VARIANT: $CHIP_VARIANT, HARVEST_ONLY: ${HARVEST_ONLY:-0}, MATTER_LIB_SUFFIX: ${MATTER_LIB_SUFFIX:-}, BT_MATTER_LIB_SUFFIX: ${BT_MATTER_LIB_SUFFIX:-}, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
+
+if [ "$IS_XTENSA" = "y" ]; then
+	TOOLCHAIN="xtensa-$IDF_TARGET-elf"
+else
+	TOOLCHAIN="riscv32-esp-elf"
+fi
+
+# Copy only the rebuilt BT archive (CHIPoBLE min NimBLE) into the existing published tree.
+if [ "$HARVEST_ONLY" = "bt" ]; then
+	if [ -z "$BT_MATTER_LIB_SUFFIX" ]; then
+		echo "ERROR: bt matter harvest requires BT_MATTER_LIB_SUFFIX"
+		exit 1
+	fi
+	if [ ! -d "$AR_SDK/lib" ]; then
+		echo "ERROR: bt matter harvest needs an existing $AR_SDK/lib"
+		exit 1
+	fi
+	if [ -f "build/esp-idf/bt/libbt.a" ]; then
+		BT_A="build/esp-idf/bt/libbt.a"
+	else
+		BT_A=$(find build -path '*/bt/libbt.a' -print 2>/dev/null | head -n 1)
+	fi
+	if [ -z "$BT_A" ] || [ ! -f "$BT_A" ]; then
+		echo "ERROR: bt matter harvest: libbt.a not found under build/"
+		exit 1
+	fi
+	DEST="$AR_SDK/lib/libbt.${BT_MATTER_LIB_SUFFIX}.a"
+	echo "Harvesting $BT_A -> $DEST"
+	cp -f "$BT_A" "$DEST"
+	echo "Stripping $DEST"
+	"$TOOLCHAIN-strip" -g "$DEST"
+	exit 0
+fi
 
 # Copy only the rebuilt Matter archive into the existing published tree.
-if [ "$HARVEST_ONLY" = "1" ] || [ "$HARVEST_ONLY" = "true" ]; then
+if [ "$HARVEST_ONLY" = "1" ] || [ "$HARVEST_ONLY" = "true" ] || [ "$HARVEST_ONLY" = "matter" ]; then
 	if [ -z "$MATTER_LIB_SUFFIX" ]; then
 		echo "ERROR: matter harvest requires MATTER_LIB_SUFFIX"
 		exit 1
@@ -48,11 +84,6 @@ if [ "$HARVEST_ONLY" = "1" ] || [ "$HARVEST_ONLY" = "true" ]; then
 	DEST="$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
 	echo "Harvesting $MATTER_A -> $DEST"
 	cp -f "$MATTER_A" "$DEST"
-	if [ "$IS_XTENSA" = "y" ]; then
-		TOOLCHAIN="xtensa-$IDF_TARGET-elf"
-	else
-		TOOLCHAIN="riscv32-esp-elf"
-	fi
 	echo "Stripping $DEST"
 	"$TOOLCHAIN-strip" -g "$DEST"
 	exit 0
@@ -744,6 +775,15 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
+# Arduino IDE: arduino-esp32/tools/configure_link_libs.{sh,cmd} reads matter_bt_lib,
+# ld_libs_no_bt, and chipoble_bt_matter into {build.path}/link_libs.rsp.
+# pioarduino keeps using flags/ld_libs (-lbt) unchanged.
+if [ -n "$BT_MATTER_LIB_SUFFIX" ]; then
+	echo "-lbt.${BT_MATTER_LIB_SUFFIX}" > "$FLAGS_DIR/matter_bt_lib"
+	echo "$AR_LIBS" | sed -E 's/(^| )-lbt( |$)/ /g' | sed -E 's/^ +//;s/ +$//' > "$FLAGS_DIR/ld_libs_no_bt"
+	echo "1" > "$FLAGS_DIR/chipoble_bt_matter"
+fi
+
 # Matter Library adjustments
 for flag_file in "c_flags" "cpp_flags" "S_flags"; do
 	echo "Fixing $FLAGS_DIR/$flag_file"
@@ -786,7 +826,7 @@ for item; do
 	done
 done
 
-for lib in "openthread" "espressif__esp-tflite-micro" "bt" "espressif__esp_matter" "espressif__esp_matter.wifi"; do
+for lib in "openthread" "espressif__esp-tflite-micro" "bt" "bt.matter" "espressif__esp_matter" "espressif__esp_matter.wifi"; do
 	if [ -f "$AR_SDK/lib/lib$lib.a" ]; then
 		echo "Stripping $AR_SDK/lib/lib$lib.a"
 		"$TOOLCHAIN-strip" -g "$AR_SDK/lib/lib$lib.a"

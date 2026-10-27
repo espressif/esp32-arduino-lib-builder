@@ -47,6 +47,10 @@
 		{
 			"target": "esp32s31",
 			"features":[],
+			"bt_matter_harvest": {
+				"defconfig": "bt_matter_chipoble",
+				"lib_suffix": "matter"
+			},
 			"idf_libs":["qio","80m_250m","opi_ram"],
 			"bootloaders":[
 				["qio","80m_250m","opi_ram"]
@@ -85,6 +89,10 @@
 			"matter_harvest": {
 				"defconfig": "esp32c5_mot",
 				"matter_lib_suffix": "thread"
+			},
+			"bt_matter_harvest": {
+				"defconfig": "bt_matter_chipoble",
+				"lib_suffix": "matter"
 			}
 		},
 		{
@@ -134,6 +142,10 @@
 		{
 			"target": "esp32h2",
 			"features":[],
+			"bt_matter_harvest": {
+				"defconfig": "bt_matter_chipoble",
+				"lib_suffix": "matter"
+			},
 			"idf_libs":["qio","64m"],
 			"bootloaders":[
 				["qio","64m"],
@@ -148,6 +160,10 @@
 		{
 			"target": "esp32c6",
 			"features":[],
+			"bt_matter_harvest": {
+				"defconfig": "bt_matter_chipoble",
+				"lib_suffix": "matter"
+			},
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
 				["qio","80m"],
@@ -162,6 +178,10 @@
 		{
 			"target": "esp32c3",
 			"features":[],
+			"bt_matter_harvest": {
+				"defconfig": "bt_matter_chipoble",
+				"lib_suffix": "matter"
+			},
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
 				["qio","80m"],
@@ -204,6 +224,10 @@
 		{
 			"target": "esp32s3",
 			"features":["esp_sr"],
+			"bt_matter_harvest": {
+				"defconfig": "bt_matter_chipoble",
+				"lib_suffix": "matter"
+			},
 			"idf_libs":["qio","80m","qio_ram"],
 			"bootloaders":[
 				["qio","120m","qio_ram"],

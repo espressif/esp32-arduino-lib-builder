@@ -47,6 +47,30 @@ To use it, follow these steps:
 
 **pioarduino:** `pioarduino-build.py` links `.wifi.a` unless the sketch defines `ARDUINO_MATTER_NETWORK_THREAD` (then `.thread.a`). There is no unsuffixed `libespressif__esp_matter.a` on C5.
 
+### CHIPoBLE Matter NimBLE (`libbt.matter.a`)
+
+On **esp32c3**, **esp32s3**, **esp32c6**, **esp32h2**, **esp32c5**, and **esp32s31**, the primary `idf-libs` build still publishes **`libbt.a`** (large pools from `defconfig.common`). A second **BT matter harvest** appends `configs/defconfig.bt_matter_chipoble` and copies **`libbt.matter.a`** into the same `lib/` folder (link with **`-lbt.matter`**).
+
+**ESP32-P4** is unchanged (no `bt_matter_harvest` in `configs/builds.json`).
+
+Published flag files (CHIPoBLE targets only):
+
+| File | Purpose |
+|------|---------|
+| `flags/ld_libs` | Default link line, includes **`-lbt`** (PIO and non-Matter IDE) |
+| `flags/matter_bt_lib` | **`-lbt.matter`** (single token) |
+| `flags/ld_libs_no_bt` | `ld_libs` without **`-lbt`** |
+| `flags/chipoble_bt_matter` | Marker that this SDK ships **`libbt.matter.a`** |
+
+**Arduino IDE** (`tools/configure_link_libs.sh` on Linux/macOS, `configure_link_libs.cmd` on Windows; `recipe.hooks.linking.prelink`):
+
+1. If `{build.path}/libraries/Matter` exists **and** `flags/chipoble_bt_matter` exists → write `{build.path}/link_libs.rsp` = contents of **`ld_libs_no_bt`** + **`matter_bt_lib`**.
+2. Else → **`link_libs.rsp`** = **`ld_libs`** (includes **`-lbt`**).
+
+`platform.txt` sets `compiler.c.elf.libs=@{build.path}/link_libs.rsp`. C5 **Matter Network** menu still adds **`build.matter_libs`** (`esp_matter.wifi` / `.thread`) in the combine recipe; BT swap is independent.
+
+**pioarduino:** uses **`flags/ld_libs`** from generated `pioarduino-build.py` only (always **`-lbt`**). Does not run `configure_link_libs`.
+
 ### Documentation
 
 For more information about how to use the Library builder, please refer to this [Documentation page](https://docs.espressif.com/projects/arduino-esp32/en/latest/lib_builder.html?highlight=lib%20builder)

@@ -189,6 +189,66 @@ function harvest_matter_libs() {
     fi
 }
 
+# CHIPoBLE targets: rebuild NimBLE (bt component) with min-RAM sdkconfig and publish
+# libbt.<suffix>.a beside the default libbt.a from the primary idf-libs build.
+function harvest_bt_matter_libs() {
+    local target_json="$1"
+    local target="$2"
+    local primary_configs="$3"
+    local harvest_json
+    harvest_json=$(echo "$target_json" | jq -c '.bt_matter_harvest // empty')
+    if [ -z "$harvest_json" ] || [ "$harvest_json" = "null" ]; then
+        return 0
+    fi
+
+    local harvest_defconfig harvest_suffix
+    harvest_defconfig=$(echo "$harvest_json" | jq -r '.defconfig')
+    harvest_suffix=$(echo "$harvest_json" | jq -r '.lib_suffix')
+    if [ -z "$harvest_defconfig" ] || [ "$harvest_defconfig" = "null" ] || \
+       [ -z "$harvest_suffix" ] || [ "$harvest_suffix" = "null" ] || \
+       [ -z "$primary_configs" ]; then
+        echo "ERROR: bt_matter_harvest requires defconfig, lib_suffix, and the primary config list"
+        exit 1
+    fi
+    if [ ! -f "configs/defconfig.$harvest_defconfig" ]; then
+        echo "ERROR: bt_matter_harvest defconfig not found: configs/defconfig.$harvest_defconfig"
+        exit 1
+    fi
+    if [ ! -d "$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib" ]; then
+        echo "ERROR: bt matter harvest needs $AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib"
+        exit 1
+    fi
+
+    local libdir="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib"
+    local default_a="$libdir/libbt.a"
+    local harvest_a="$libdir/libbt.${harvest_suffix}.a"
+    if [ ! -f "$default_a" ]; then
+        echo "WARNING: Primary libbt.a not found; skipping bt matter harvest"
+        return 0
+    fi
+
+    local harvest_configs="$primary_configs;configs/defconfig.$harvest_defconfig"
+
+    echo "* Harvest BT Matter ($harvest_suffix) from configs/defconfig.$harvest_defconfig"
+    echo "* Harvest configs: $harvest_configs"
+    export HARVEST_ONLY=bt
+    export BT_MATTER_LIB_SUFFIX="$harvest_suffix"
+    rm -rf build sdkconfig
+    idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$harvest_configs" idf-libs
+    local rc=$?
+    unset HARVEST_ONLY
+    if [ $rc -ne 0 ]; then
+        exit 1
+    fi
+
+    if [ ! -f "$default_a" ] || [ ! -f "$harvest_a" ]; then
+        echo "ERROR: $CHIP_VARIANT BT matter harvest must leave both archives:"
+        echo "       $default_a"
+        echo "       $harvest_a"
+        exit 1
+    fi
+}
+
 # Output the TARGET array
 echo "TARGET(s): ${TARGET[@]}"
 
@@ -244,6 +304,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
         fi
 
         export MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.matter_lib_suffix // empty')
+        export BT_MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.bt_matter_harvest.lib_suffix // empty')
 
         configs="configs/defconfig.common;configs/defconfig.$CHIP_VARIANT;configs/defconfig.debug_$BUILD_DEBUG"
         for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
@@ -264,6 +325,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
 
         if [ "$BUILD_TYPE" == "idf-libs" ]; then
             harvest_matter_libs "$target_json" "$target" "$configs"
+            harvest_bt_matter_libs "$target_json" "$target" "$configs"
         fi
 
         if [ "$BUILD_TYPE" == "srmodels_bin" ]; then
@@ -313,6 +375,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     fi
 
     export MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.matter_lib_suffix // empty')
+    export BT_MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.bt_matter_harvest.lib_suffix // empty')
 
     echo "* Target: '$target', Variant: '$CHIP_VARIANT'"
 
@@ -334,6 +397,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     if [ $? -ne 0 ]; then exit 1; fi
 
     harvest_matter_libs "$target_json" "$target" "$idf_libs_configs"
+    harvest_bt_matter_libs "$target_json" "$target" "$idf_libs_configs"
 
     # Build ESP-Hosted slave firmwares
     if [ "$CHIP_VARIANT" == "esp32p4" ]; then
