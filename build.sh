@@ -170,7 +170,7 @@ function harvest_matter_libs() {
 
     echo "* Harvest Matter ($harvest_suffix) from configs/defconfig.$harvest_defconfig"
     echo "* Harvest configs: $harvest_configs"
-    export HARVEST_ONLY=true
+    export HARVEST_ONLY=matter
     export MATTER_LIB_SUFFIX="$harvest_suffix"
     rm -rf build sdkconfig
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$harvest_configs" idf-libs
@@ -189,29 +189,31 @@ function harvest_matter_libs() {
     fi
 }
 
-# CHIPoBLE targets: rebuild NimBLE (bt component) with min-RAM sdkconfig and publish
-# libbt.<suffix>.a beside the default libbt.a from the primary idf-libs build.
+# Low-RAM Matter targets (builds.json bt_matter_harvest): second idf-libs pass publishes
+# libbt.matter.a next to libbt.a. Recipe: configs/defconfig.bt_matter_chipoble appended to primary sdkconfig.
+function export_bt_matter_flags() {
+    local target_json="$1"
+    if [ "$(echo "$target_json" | jq -r '.bt_matter_harvest // false')" = "true" ]; then
+        export BT_MATTER_LIB_SUFFIX=matter
+    else
+        export BT_MATTER_LIB_SUFFIX=
+    fi
+}
+
 function harvest_bt_matter_libs() {
     local target_json="$1"
     local target="$2"
     local primary_configs="$3"
-    local harvest_json
-    harvest_json=$(echo "$target_json" | jq -c '.bt_matter_harvest // empty')
-    if [ -z "$harvest_json" ] || [ "$harvest_json" = "null" ]; then
+
+    if [ "$(echo "$target_json" | jq -r '.bt_matter_harvest // false')" != "true" ]; then
         return 0
     fi
-
-    local harvest_defconfig harvest_suffix
-    harvest_defconfig=$(echo "$harvest_json" | jq -r '.defconfig')
-    harvest_suffix=$(echo "$harvest_json" | jq -r '.lib_suffix')
-    if [ -z "$harvest_defconfig" ] || [ "$harvest_defconfig" = "null" ] || \
-       [ -z "$harvest_suffix" ] || [ "$harvest_suffix" = "null" ] || \
-       [ -z "$primary_configs" ]; then
-        echo "ERROR: bt_matter_harvest requires defconfig, lib_suffix, and the primary config list"
+    if [ -z "$primary_configs" ]; then
+        echo "ERROR: bt_matter_harvest needs the primary sdkconfig list"
         exit 1
     fi
-    if [ ! -f "configs/defconfig.$harvest_defconfig" ]; then
-        echo "ERROR: bt_matter_harvest defconfig not found: configs/defconfig.$harvest_defconfig"
+    if [ ! -f "configs/defconfig.bt_matter_chipoble" ]; then
+        echo "ERROR: missing configs/defconfig.bt_matter_chipoble"
         exit 1
     fi
     if [ ! -d "$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib" ]; then
@@ -221,18 +223,18 @@ function harvest_bt_matter_libs() {
 
     local libdir="$AR_TOOLS/esp32-arduino-libs/$CHIP_VARIANT/lib"
     local default_a="$libdir/libbt.a"
-    local harvest_a="$libdir/libbt.${harvest_suffix}.a"
+    local harvest_a="$libdir/libbt.matter.a"
     if [ ! -f "$default_a" ]; then
         echo "WARNING: Primary libbt.a not found; skipping bt matter harvest"
         return 0
     fi
 
-    local harvest_configs="$primary_configs;configs/defconfig.$harvest_defconfig"
+    local harvest_configs="$primary_configs;configs/defconfig.bt_matter_chipoble"
 
-    echo "* Harvest BT Matter ($harvest_suffix) from configs/defconfig.$harvest_defconfig"
+    echo "* Harvest libbt.matter.a"
     echo "* Harvest configs: $harvest_configs"
     export HARVEST_ONLY=bt
-    export BT_MATTER_LIB_SUFFIX="$harvest_suffix"
+    export BT_MATTER_LIB_SUFFIX=matter
     rm -rf build sdkconfig
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$harvest_configs" idf-libs
     local rc=$?
@@ -304,7 +306,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
         fi
 
         export MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.matter_lib_suffix // empty')
-        export BT_MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.bt_matter_harvest.lib_suffix // empty')
+        export_bt_matter_flags "$target_json"
 
         configs="configs/defconfig.common;configs/defconfig.$CHIP_VARIANT;configs/defconfig.debug_$BUILD_DEBUG"
         for defconf in `echo "$target_json" | jq -c '.features[]' | tr -d '"'`; do
@@ -375,7 +377,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     fi
 
     export MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.matter_lib_suffix // empty')
-    export BT_MATTER_LIB_SUFFIX=$(echo "$target_json" | jq -r '.bt_matter_harvest.lib_suffix // empty')
+    export_bt_matter_flags "$target_json"
 
     echo "* Target: '$target', Variant: '$CHIP_VARIANT'"
 

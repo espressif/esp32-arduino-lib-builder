@@ -78,9 +78,8 @@ if ("ZIGBEE_MODE_ZCZR" in flatten_cppdefines or "ZIGBEE_MODE_ED" in flatten_cppd
 # copy-libs.sh keeps the unsuffixed libespressif__esp_matter.a off the
 # default LIBS line so the wrong archive is never pulled in.
 #
-# CHIPoBLE libbt.matter.a: Arduino IDE uses configure_link_libs.sh/.cmd -> link_libs.rsp
-# (flags/matter_bt_lib + ld_libs_no_bt when libraries/Matter is in the build tree).
-# PIO always links -lbt from LIBS (flags/ld_libs / libbt.a).
+# libbt.matter.a: esp32c3 / esp32c5 / esp32h2 (bt_matter_harvest). Arduino IDE only
+# (configure_link_libs.sh/.cmd). PIO keeps -lbt / libbt.a here; separate Matter stack.
 #
 if build_mcu == "esp32c5":
     if "ARDUINO_MATTER_NETWORK_THREAD" in flatten_cppdefines:

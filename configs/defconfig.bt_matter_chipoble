@@ -1,8 +1,7 @@
 #
-# Harvest-only delta: appended for libbt.matter.a (CHIPoBLE min NimBLE RAM).
-# Not a standalone target. Overrides defconfig.common large pools (30x512).
-# ESP-Matter: docs/en/optimizations.rst#ble-optimizations
-# SMP stays enabled for Matter pairing.
+# BT matter harvest (libbt.matter.a): esp32c3, esp32c5, esp32h2 only.
+# Appended to the primary idf-libs sdkconfig list; not a standalone chip defconfig.
+# ESP-Matter BLE optimizations — docs/en/optimizations.rst#ble-optimizations
 #
 
 # Roles (peripheral commissioning)
@@ -20,7 +19,6 @@ CONFIG_BT_NIMBLE_GATT_MAX_PROCS=1
 CONFIG_BT_NIMBLE_MSYS_1_BLOCK_COUNT=10
 CONFIG_BT_NIMBLE_MSYS_1_BLOCK_SIZE=100
 CONFIG_BT_NIMBLE_MSYS_2_BLOCK_COUNT=4
-# CONFIG_BT_NIMBLE_MSYS_BUF_FROM_HEAP is not set
 CONFIG_BT_NIMBLE_TRANSPORT_ACL_FROM_LL_COUNT=5
 CONFIG_BT_NIMBLE_TRANSPORT_EVT_COUNT=5
 CONFIG_BT_NIMBLE_TRANSPORT_EVT_DISCARD_COUNT=3

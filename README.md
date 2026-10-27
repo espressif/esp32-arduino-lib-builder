@@ -49,27 +49,27 @@ To use it, follow these steps:
 
 ### CHIPoBLE Matter NimBLE (`libbt.matter.a`)
 
-On **esp32c3**, **esp32s3**, **esp32c6**, **esp32h2**, **esp32c5**, and **esp32s31**, the primary `idf-libs` build still publishes **`libbt.a`** (large pools from `defconfig.common`). A second **BT matter harvest** appends `configs/defconfig.bt_matter_chipoble` and copies **`libbt.matter.a`** into the same `lib/` folder (link with **`-lbt.matter`**).
+**Low-RAM targets only:** set `"bt_matter_harvest": true` in `configs/builds.json` for **esp32c3**, **esp32c5**, and **esp32h2**. The builder runs a second **idf-libs** pass and publishes **`libbt.matter.a`** beside **`libbt.a`**.
 
-**ESP32-P4** is unchanged (no `bt_matter_harvest` in `configs/builds.json`).
+All other chips keep the default **`libbt.a`** only (no harvest pass).
 
-Published flag files (CHIPoBLE targets only):
+Harvest appends **`configs/defconfig.bt_matter_chipoble`**; suffix **`matter`** is fixed in `build.sh`. Only **`"bt_matter_harvest": true`** is set per target in `builds.json`.
+
+Published flag files (**C3 / C5 / H2** SDK folders only):
 
 | File | Purpose |
 |------|---------|
 | `flags/ld_libs` | Default link line, includes **`-lbt`** (PIO and non-Matter IDE) |
-| `flags/matter_bt_lib` | **`-lbt.matter`** (single token) |
+| `flags/matter_bt_lib` | **`-lbt.matter`** |
 | `flags/ld_libs_no_bt` | `ld_libs` without **`-lbt`** |
 | `flags/chipoble_bt_matter` | Marker that this SDK ships **`libbt.matter.a`** |
 
-**Arduino IDE** (`tools/configure_link_libs.sh` on Linux/macOS, `configure_link_libs.cmd` on Windows; `recipe.hooks.linking.prelink`):
+**Arduino IDE** (`tools/configure_link_libs.sh` / `.cmd` at `recipe.hooks.linking.prelink`):
 
-1. If `{build.path}/libraries/Matter` exists **and** `flags/chipoble_bt_matter` exists → write `{build.path}/link_libs.rsp` = contents of **`ld_libs_no_bt`** + **`matter_bt_lib`**.
-2. Else → **`link_libs.rsp`** = **`ld_libs`** (includes **`-lbt`**).
+1. If `{build.path}/libraries/Matter` exists **and** `flags/chipoble_bt_matter` exists → `link_libs.rsp` = **`ld_libs_no_bt`** + **`matter_bt_lib`**.
+2. Else → **`ld_libs`** (includes **`-lbt`**). Matter on S3/C6/S31 uses the standard **`libbt.a`**.
 
-`platform.txt` sets `compiler.c.elf.libs=@{build.path}/link_libs.rsp`. C5 **Matter Network** menu still adds **`build.matter_libs`** (`esp_matter.wifi` / `.thread`) in the combine recipe; BT swap is independent.
-
-**pioarduino:** uses **`flags/ld_libs`** from generated `pioarduino-build.py` only (always **`-lbt`**). Does not run `configure_link_libs`.
+**pioarduino:** **`flags/ld_libs`** only (always **`-lbt`**).
 
 ### Documentation
 

@@ -35,58 +35,52 @@ else
 	TOOLCHAIN="riscv32-esp-elf"
 fi
 
-# Copy only the rebuilt BT archive (CHIPoBLE min NimBLE) into the existing published tree.
+# idf-libs harvest passes (build.sh): copy one archive into the published tree and exit.
+function harvest_copy_archive() {
+	local label="$1"
+	local primary_guess="$2"
+	local find_name="$3"
+	local dest="$4"
+
+	if [ ! -d "$AR_SDK/lib" ]; then
+		echo "ERROR: $label harvest needs an existing $AR_SDK/lib"
+		exit 1
+	fi
+	local src="$primary_guess"
+	if [ ! -f "$src" ]; then
+		src=$(find build -name "$find_name" -print 2>/dev/null | head -n 1)
+	fi
+	if [ -z "$src" ] || [ ! -f "$src" ]; then
+		echo "ERROR: $label harvest: $find_name not found under build/"
+		exit 1
+	fi
+	echo "Harvesting $src -> $dest"
+	cp -f "$src" "$dest"
+	echo "Stripping $dest"
+	"$TOOLCHAIN-strip" -g "$dest"
+	exit 0
+}
+
 if [ "$HARVEST_ONLY" = "bt" ]; then
 	if [ -z "$BT_MATTER_LIB_SUFFIX" ]; then
 		echo "ERROR: bt matter harvest requires BT_MATTER_LIB_SUFFIX"
 		exit 1
 	fi
-	if [ ! -d "$AR_SDK/lib" ]; then
-		echo "ERROR: bt matter harvest needs an existing $AR_SDK/lib"
-		exit 1
-	fi
-	if [ -f "build/esp-idf/bt/libbt.a" ]; then
-		BT_A="build/esp-idf/bt/libbt.a"
-	else
-		BT_A=$(find build -path '*/bt/libbt.a' -print 2>/dev/null | head -n 1)
-	fi
-	if [ -z "$BT_A" ] || [ ! -f "$BT_A" ]; then
-		echo "ERROR: bt matter harvest: libbt.a not found under build/"
-		exit 1
-	fi
-	DEST="$AR_SDK/lib/libbt.${BT_MATTER_LIB_SUFFIX}.a"
-	echo "Harvesting $BT_A -> $DEST"
-	cp -f "$BT_A" "$DEST"
-	echo "Stripping $DEST"
-	"$TOOLCHAIN-strip" -g "$DEST"
-	exit 0
+	harvest_copy_archive "bt matter" \
+		"build/esp-idf/bt/libbt.a" \
+		"libbt.a" \
+		"$AR_SDK/lib/libbt.${BT_MATTER_LIB_SUFFIX}.a"
 fi
 
-# Copy only the rebuilt Matter archive into the existing published tree.
-if [ "$HARVEST_ONLY" = "1" ] || [ "$HARVEST_ONLY" = "true" ] || [ "$HARVEST_ONLY" = "matter" ]; then
+if [ "$HARVEST_ONLY" = "matter" ]; then
 	if [ -z "$MATTER_LIB_SUFFIX" ]; then
 		echo "ERROR: matter harvest requires MATTER_LIB_SUFFIX"
 		exit 1
 	fi
-	if [ ! -d "$AR_SDK/lib" ]; then
-		echo "ERROR: matter harvest needs an existing $AR_SDK/lib"
-		exit 1
-	fi
-	if [ -f "build/esp-idf/espressif__esp_matter/libespressif__esp_matter.a" ]; then
-		MATTER_A="build/esp-idf/espressif__esp_matter/libespressif__esp_matter.a"
-	else
-		MATTER_A=$(find build -name 'libespressif__esp_matter.a' -print 2>/dev/null | head -n 1)
-	fi
-	if [ -z "$MATTER_A" ] || [ ! -f "$MATTER_A" ]; then
-		echo "ERROR: matter harvest: libespressif__esp_matter.a not found under build/"
-		exit 1
-	fi
-	DEST="$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
-	echo "Harvesting $MATTER_A -> $DEST"
-	cp -f "$MATTER_A" "$DEST"
-	echo "Stripping $DEST"
-	"$TOOLCHAIN-strip" -g "$DEST"
-	exit 0
+	harvest_copy_archive "matter" \
+		"build/esp-idf/espressif__esp_matter/libespressif__esp_matter.a" \
+		"libespressif__esp_matter.a" \
+		"$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
 fi
 
 # clean previous
