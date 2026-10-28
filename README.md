@@ -55,21 +55,12 @@ All other chips keep the default **`libbt.a`** only (no harvest pass).
 
 Harvest appends **`configs/defconfig.bt_matter_chipoble`**; suffix **`matter`** is fixed in `build.sh`. Only **`"bt_matter_harvest": true`** is set per target in `builds.json`.
 
-Published flag files (**C3 / C5 / H2** SDK folders only):
-
-| File | Purpose |
-|------|---------|
-| `flags/ld_libs` | Default link line, includes **`-lbt`** (PIO and non-Matter IDE) |
-| `flags/matter_bt_lib` | **`-lbt.matter`** |
-| `flags/ld_libs_no_bt` | `ld_libs` without **`-lbt`** |
-| `flags/chipoble_bt_matter` | Marker that this SDK ships **`libbt.matter.a`** |
+Published link flags: **`flags/ld_libs`** only (includes **`-lbt`**). Harvest targets also ship **`lib/libbt.matter.a`**.
 
 **Arduino IDE** (`tools/configure_link_libs.sh` / `.cmd` at `recipe.hooks.linking.prelink`):
 
-1. If `{build.path}/libraries/Matter` exists **and** `flags/chipoble_bt_matter` exists → `link_libs.rsp` = **`ld_libs_no_bt`** + **`matter_bt_lib`**.
-2. Else → **`ld_libs`** (includes **`-lbt`**). Matter on S3/C6/S31 uses the standard **`libbt.a`**.
-
-**pioarduino:** **`flags/ld_libs`** only (always **`-lbt`**).
+1. If `{build.path}/libraries/Matter` exists **and** **`lib/libbt.matter.a`** exists → copy **`flags/ld_libs`** to `link_libs.rsp` with **`-lbt`** replaced by **`-lbt.matter`** (token match; does not affect **`-lbtbb`**, etc.).
+2. Else → **`flags/ld_libs`** unchanged (Matter on S3/C6/S31 keeps **`-lbt`** / **`libbt.a`**).
 
 ### Documentation
 

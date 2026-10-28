@@ -769,14 +769,8 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
-# Arduino IDE: arduino-esp32/tools/configure_link_libs.{sh,cmd} reads matter_bt_lib,
-# ld_libs_no_bt, and chipoble_bt_matter into {build.path}/link_libs.rsp.
-# pioarduino keeps using flags/ld_libs (-lbt) unchanged.
-if [ -n "$BT_MATTER_LIB_SUFFIX" ]; then
-	echo "-lbt.${BT_MATTER_LIB_SUFFIX}" > "$FLAGS_DIR/matter_bt_lib"
-	echo "$AR_LIBS" | sed -E 's/(^| )-lbt( |$)/ /g' | sed -E 's/^ +//;s/ +$//' > "$FLAGS_DIR/ld_libs_no_bt"
-	echo "1" > "$FLAGS_DIR/chipoble_bt_matter"
-fi
+# Arduino IDE: configure_link_libs.{sh,cmd} find/replaces -lbt -> -lbt.matter in flags/ld_libs
+# when libraries/Matter is linked and lib/libbt.matter.a exists (bt_matter_harvest: c3/c5/h2).
 
 # Matter Library adjustments
 for flag_file in "c_flags" "cpp_flags" "S_flags"; do
