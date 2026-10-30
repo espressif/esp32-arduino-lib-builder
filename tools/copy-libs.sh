@@ -21,41 +21,66 @@ fi
 if [ -n "${7-}" ]; then
 	export MATTER_LIB_SUFFIX="$7"
 fi
+if [ -n "${8-}" ]; then
+	export BT_MATTER_LIB_SUFFIX="$8"
+fi
 
 source ./tools/config.sh
 
-echo "IDF_TARGET: $IDF_TARGET, CHIP_VARIANT: $CHIP_VARIANT, HARVEST_ONLY: ${HARVEST_ONLY:-0}, MATTER_LIB_SUFFIX: ${MATTER_LIB_SUFFIX:-}, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
+echo "IDF_TARGET: $IDF_TARGET, CHIP_VARIANT: $CHIP_VARIANT, HARVEST_ONLY: ${HARVEST_ONLY:-0}, MATTER_LIB_SUFFIX: ${MATTER_LIB_SUFFIX:-}, BT_MATTER_LIB_SUFFIX: ${BT_MATTER_LIB_SUFFIX:-}, MEMCONF: $MEMCONF, PWD: $PWD, OUT: $AR_SDK"
 
-# Copy only the rebuilt Matter archive into the existing published tree.
-if [ "$HARVEST_ONLY" = "1" ] || [ "$HARVEST_ONLY" = "true" ]; then
+if [ "$IS_XTENSA" = "y" ]; then
+	TOOLCHAIN="xtensa-$IDF_TARGET-elf"
+else
+	TOOLCHAIN="riscv32-esp-elf"
+fi
+
+# idf-libs harvest passes (build.sh): copy one archive into the published tree and exit.
+function harvest_copy_archive() {
+	local label="$1"
+	local primary_guess="$2"
+	local find_name="$3"
+	local dest="$4"
+
+	if [ ! -d "$AR_SDK/lib" ]; then
+		echo "ERROR: $label harvest needs an existing $AR_SDK/lib"
+		exit 1
+	fi
+	local src="$primary_guess"
+	if [ ! -f "$src" ]; then
+		src=$(find build -name "$find_name" -print 2>/dev/null | head -n 1)
+	fi
+	if [ -z "$src" ] || [ ! -f "$src" ]; then
+		echo "ERROR: $label harvest: $find_name not found under build/"
+		exit 1
+	fi
+	echo "Harvesting $src -> $dest"
+	cp -f "$src" "$dest"
+	echo "Stripping $dest"
+	"$TOOLCHAIN-strip" -g "$dest"
+	exit 0
+}
+
+if [ "$HARVEST_ONLY" = "bt" ]; then
+	if [ -z "$BT_MATTER_LIB_SUFFIX" ]; then
+		echo "ERROR: bt matter harvest requires BT_MATTER_LIB_SUFFIX"
+		exit 1
+	fi
+	harvest_copy_archive "bt matter" \
+		"build/esp-idf/bt/libbt.a" \
+		"libbt.a" \
+		"$AR_SDK/lib/libbt.${BT_MATTER_LIB_SUFFIX}.a"
+fi
+
+if [ "$HARVEST_ONLY" = "matter" ]; then
 	if [ -z "$MATTER_LIB_SUFFIX" ]; then
 		echo "ERROR: matter harvest requires MATTER_LIB_SUFFIX"
 		exit 1
 	fi
-	if [ ! -d "$AR_SDK/lib" ]; then
-		echo "ERROR: matter harvest needs an existing $AR_SDK/lib"
-		exit 1
-	fi
-	if [ -f "build/esp-idf/espressif__esp_matter/libespressif__esp_matter.a" ]; then
-		MATTER_A="build/esp-idf/espressif__esp_matter/libespressif__esp_matter.a"
-	else
-		MATTER_A=$(find build -name 'libespressif__esp_matter.a' -print 2>/dev/null | head -n 1)
-	fi
-	if [ -z "$MATTER_A" ] || [ ! -f "$MATTER_A" ]; then
-		echo "ERROR: matter harvest: libespressif__esp_matter.a not found under build/"
-		exit 1
-	fi
-	DEST="$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
-	echo "Harvesting $MATTER_A -> $DEST"
-	cp -f "$MATTER_A" "$DEST"
-	if [ "$IS_XTENSA" = "y" ]; then
-		TOOLCHAIN="xtensa-$IDF_TARGET-elf"
-	else
-		TOOLCHAIN="riscv32-esp-elf"
-	fi
-	echo "Stripping $DEST"
-	"$TOOLCHAIN-strip" -g "$DEST"
-	exit 0
+	harvest_copy_archive "matter" \
+		"build/esp-idf/espressif__esp_matter/libespressif__esp_matter.a" \
+		"libespressif__esp_matter.a" \
+		"$AR_SDK/lib/libespressif__esp_matter.${MATTER_LIB_SUFFIX}.a"
 fi
 
 # clean previous
@@ -128,15 +153,10 @@ else
 	TOOLCHAIN="riscv32-esp-elf"
 fi
 
-# copy zigbee + zboss lib
+# copy zigbee prebuilt libs (esp-zigbee SDK v2.x)
 if [ -d "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET/" ]; then
 	cp -r "managed_components/espressif__esp-zigbee-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-	EXCLUDE_LIBS+="esp_zb_api.ed;esp_zb_api.zczr;"
-fi
-
-if [ -d "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET/" ]; then
-	cp -r "managed_components/espressif__esp-zboss-lib/lib/$IDF_TARGET"/* "$AR_SDK/lib/"
-	EXCLUDE_LIBS+="zboss_stack.ed;zboss_stack.zczr;zboss_port.native;zboss_port.native.debug;zboss_port.remote;zboss_port.remote.debug;"
+	EXCLUDE_LIBS+="esp-zigbee-core.zed.release;esp-zigbee-core.zed.debug;esp-zigbee-core.zczr.release;esp-zigbee-core.zczr.debug;esp-zigbee-idf.native.release;esp-zigbee-idf.native.debug;esp-zigbee-idf.remote.release;esp-zigbee-idf.remote.debug;esp-zigbee.release;esp-zigbee.debug;"
 fi
 
 # Strip surrounding quotes and absolute path from -specs=/path/file.specs -> -specs=file.specs
@@ -749,6 +769,9 @@ echo -n "$LD_FLAGS" > "$FLAGS_DIR/ld_flags"
 echo -n "$LD_SCRIPTS" > "$FLAGS_DIR/ld_scripts"
 echo -n "$AR_LIBS" > "$FLAGS_DIR/ld_libs"
 
+# Arduino IDE: configure_link_libs.{sh,cmd} find/replaces -lbt -> -lbt.matter in flags/ld_libs
+# when libraries/Matter is linked and lib/libbt.matter.a exists (bt_matter_harvest: c3/c5/h2).
+
 # Matter Library adjustments
 for flag_file in "c_flags" "cpp_flags" "S_flags"; do
 	echo "Fixing $FLAGS_DIR/$flag_file"
@@ -791,7 +814,7 @@ for item; do
 	done
 done
 
-for lib in "openthread" "espressif__esp-tflite-micro" "bt" "espressif__esp_matter" "espressif__esp_matter.wifi"; do
+for lib in "openthread" "espressif__esp-tflite-micro" "bt" "bt.matter" "espressif__esp_matter" "espressif__esp_matter.wifi"; do
 	if [ -f "$AR_SDK/lib/lib$lib.a" ]; then
 		echo "Stripping $AR_SDK/lib/lib$lib.a"
 		"$TOOLCHAIN-strip" -g "$AR_SDK/lib/lib$lib.a"
