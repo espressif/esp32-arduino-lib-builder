@@ -356,6 +356,12 @@ for item; do
 									if [ -f "$n_item" ]; then
 										if [[ $EXCLUDE_LIBS != *";$lname;"* ]]; then
 											#echo "3. renamed add: -l$n_name"
+											# A previous harvest already created libfoo_2.a in build/; still
+											# copy it into the SDK. Skipping LD_LIB_FILES here left -lfoo_2
+											# in ld_libs with no archive after AR_SDK/lib was wiped.
+											if [[ $LD_LIB_FILES != *"$n_item"* ]]; then
+												LD_LIB_FILES+="$n_item "
+											fi
 											LD_LIBS+="-l$n_name "
 										fi
 										break
