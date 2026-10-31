@@ -1,34 +1,54 @@
-# DISABLED: Bluedroid host overlay, used only to compile-test the
-# BLE library (including LE Audio / ISO) against Bluedroid. The builder only
-# reads configs/defconfig.<name>, so this file is never picked up. To use it,
-# copy it to configs/defconfig.bluedroid and apply it last on top of the
-# normal target stack, e.g. for the S31:
+# DISABLED: Bluedroid host overlay for the ESP32-S31 BLE library.
+#
+# This is the only tracked Bluedroid config. tools/select-ble-backend.sh
+# promotes it to configs/defconfig.bluedroid for a build and removes the
+# promoted copy again on exit (success or failure), so the builder checkout
+# never keeps an active overlay. Manual equivalent:
+#
+#   cp configs/defconfig.esp32s31_bluedroid.disabled configs/defconfig.bluedroid
 #   ./build.sh -s -t esp32s31 -b idf-libs qio 80m_250m opi_ram bluedroid
+#   rm configs/defconfig.bluedroid
+#
 # Build with the same IDF_PATH as the published libs.
 
-CONFIG_BT_NIMBLE_ENABLED=n
 CONFIG_BT_BLUEDROID_ENABLED=y
-CONFIG_BT_CLASSIC_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=n
+
+# BLE 5 features the library exposes: extended + periodic advertising and the
+# PAST procedure (Broadcast Assistant / Scan Delegator / Broadcast Sink).
 CONFIG_BT_BLE_ENABLED=y
 CONFIG_BT_BLE_50_FEATURES_SUPPORTED=y
-
-# Host ISO on Bluedroid (also selected by CONFIG_BT_ISO; explicit as in the
-# esp_ble_audio examples).
 CONFIG_BT_BLE_FEAT_ISO_EN=y
-# PAST: Broadcast Assistant sends it, Scan Delegator / Broadcast Sink receive it.
 CONFIG_BT_BLE_FEAT_PERIODIC_ADV_SYNC_TRANSFER=y
 
-# Bluedroid counterparts of CONFIG_BT_NIMBLE_MAX_CCCDS for the many LE Audio
-# services and client subscriptions. 32 is the Kconfig maximum (the target
-# defconfig asks for 48, which Bluedroid rejects).
+# Bluetooth Classic (BluetoothSerial / SPP) alongside BLE. The controller mode
+# is BLE-only by default on this target and BT_CLASSIC_ENABLED does not depend on
+# it: with the classic host compiled in but the controller in BLE-only mode,
+# BTA_DM's enable path issues the BR/EDR "read local name" command and waits for
+# a completion a BLE-only controller never sends, so esp_bluedroid_enable()
+# hangs. Dual mode links the BR/EDR controller (libbredr_app.a) and makes the
+# classic half usable. SPP is the Arduino-facing classic profile
+# (BluetoothSerial); classic L2CAP/SDP are required for it.
+CONFIG_BTDM_CTRL_MODE_BLE_ONLY=n
+CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY=n
+CONFIG_BTDM_CTRL_MODE_BTDM=y
+CONFIG_BT_CLASSIC_ENABLED=y
+CONFIG_BT_SPP_ENABLED=y
+CONFIG_BT_L2CAP_ENABLED=y
+CONFIG_BT_SDP_COMMON_ENABLED=y
+CONFIG_BTDM_CTRL_BR_EDR_MAX_SYNC_CONN=0
+
+# Bluedroid GATT server pools. 32 profiles is the Kconfig maximum, while the
+# S31 target defconfig asks for 48 - the value NimBLE's CCCD table needs.
+# LE Audio registers ~16 services, and their characteristics + CCCDs are well
+# above the 100-attribute default, so the attribute pool is raised as well.
 CONFIG_BT_GATT_MAX_SR_PROFILES=32
+CONFIG_BT_GATT_MAX_SR_ATTRIBUTES=200
 CONFIG_BT_GATTC_NOTIF_REG_MAX=64
 
-# Matter's Bluedroid BLEManagerImpl does not build on the S31, and it is
-# irrelevant to this BLE test:
-#  - with Matter-over-Thread it calls ThreadStackMgr().OnCHIPoBLEAdvertisingStop(),
-#    which does not exist;
-#  - it uses BT_CONTROLLER_INIT_CONFIG_DEFAULT(), whose S31 definition takes
-#    the address of a compound literal, which is invalid C++.
+# Matter's Bluedroid BLE manager does not build for the S31 (Matter-over-Thread
+# calls ThreadStackMgr::OnCHIPoBLEAdvertisingStop, which does not exist, and it
+# uses BT_CONTROLLER_INIT_CONFIG_DEFAULT() from C++, whose S31 definition takes
+# the address of a compound literal). Unrelated to the BLE library.
 CONFIG_ENABLE_MATTER_OVER_THREAD=n
 CONFIG_ENABLE_CHIPOBLE=n
