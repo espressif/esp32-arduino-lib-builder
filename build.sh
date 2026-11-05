@@ -213,6 +213,10 @@ else
     source ./tools/config.sh
 fi
 
+# Fixes we cannot wait for upstream on, see patches/idf/README.md.
+# --3way makes a rebuild that already carries them a no-op.
+git -C "$IDF_PATH" apply --3way -q "$AR_PATCHES"/idf/*.diff
+
 if [ "$BUILD_TYPE" != "all" ]; then
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
