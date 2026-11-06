@@ -1,0 +1,569 @@
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
+index 324fff1981c..5fa87bd7551 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
+@@ -175,6 +175,12 @@ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
+ 
+     bt_le_audio_deinit();
+ 
++    /* Drop app callbacks before the host mutex goes away. GATT/GAP events
++     * still in flight take that mutex; unregistering after k_mutex_delete
++     * aborts on mutex->handle == NULL. */
++    bt_le_gatt_app_cb_unregister();
++    bt_le_gap_app_cb_unregister();
++
+     err = bt_le_host_deinit();
+     if (err) {
+         return ESP_ERR_TIMEOUT;
+@@ -188,9 +194,6 @@ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
+         bt_le_per_adv_sync_state_reset();
+     }
+ 
+-    bt_le_gatt_app_cb_unregister();
+-    bt_le_gap_app_cb_unregister();
+-
+     return ESP_OK;
+ }
+ 
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_pacs_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_pacs_api.c
+index 68425997934..7d8c68ade50 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_pacs_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_pacs_api.c
+@@ -9,6 +9,9 @@
+ #include "esp_ble_audio_pacs_api.h"
+ 
+ #if CONFIG_BT_PACS
++/* The PACS profile API returns 0 or a negative errno. Return it as-is so
++ * -EALREADY stays distinguishable instead of flattening it to ESP_FAIL. */
++
+ esp_err_t esp_ble_audio_pacs_register(const esp_ble_audio_pacs_register_param_t *param)
+ {
+     int err;
+@@ -23,11 +26,7 @@ esp_err_t esp_ble_audio_pacs_register(const esp_ble_audio_pacs_register_param_t
+ 
+     bt_le_host_unlock();
+ 
+-    if (err) {
+-        return ESP_FAIL;
+-    }
+-
+-    return ESP_OK;
++    return err;
+ }
+ 
+ esp_err_t esp_ble_audio_pacs_unregister(void)
+@@ -39,7 +38,7 @@ esp_err_t esp_ble_audio_pacs_unregister(void)
+ 
+     err = bt_pacs_unregister();
+     if (err) {
+-        ret = ESP_FAIL;
++        ret = err;
+         goto end;
+     }
+ 
+@@ -78,11 +77,7 @@ esp_err_t esp_ble_audio_pacs_cap_register(esp_ble_audio_dir_t dir,
+ 
+     bt_le_host_unlock();
+ 
+-    if (err) {
+-        return ESP_FAIL;
+-    }
+-
+-    return ESP_OK;
++    return err;
+ }
+ 
+ esp_err_t esp_ble_audio_pacs_cap_unregister(esp_ble_audio_dir_t dir,
+@@ -100,11 +95,7 @@ esp_err_t esp_ble_audio_pacs_cap_unregister(esp_ble_audio_dir_t dir,
+ 
+     bt_le_host_unlock();
+ 
+-    if (err) {
+-        return ESP_FAIL;
+-    }
+-
+-    return ESP_OK;
++    return err;
+ }
+ 
+ esp_err_t esp_ble_audio_pacs_set_location(esp_ble_audio_dir_t dir,
+@@ -122,11 +113,7 @@ esp_err_t esp_ble_audio_pacs_set_location(esp_ble_audio_dir_t dir,
+ 
+     bt_le_host_unlock();
+ 
+-    if (err) {
+-        return ESP_FAIL;
+-    }
+-
+-    return ESP_OK;
++    return err;
+ }
+ 
+ esp_err_t esp_ble_audio_pacs_set_available_contexts(esp_ble_audio_dir_t dir,
+@@ -144,11 +131,7 @@ esp_err_t esp_ble_audio_pacs_set_available_contexts(esp_ble_audio_dir_t dir,
+ 
+     bt_le_host_unlock();
+ 
+-    if (err) {
+-        return ESP_FAIL;
+-    }
+-
+-    return ESP_OK;
++    return err;
+ }
+ 
+ esp_ble_audio_context_t esp_ble_audio_pacs_get_available_contexts(esp_ble_audio_dir_t dir)
+@@ -192,7 +175,7 @@ esp_err_t esp_ble_audio_pacs_conn_set_available_contexts_for_conn(uint16_t conn_
+ 
+     err = bt_pacs_conn_set_available_contexts_for_conn(conn, dir, contexts);
+     if (err) {
+-        ret = ESP_FAIL;
++        ret = err;
+     }
+ 
+ unlock:
+@@ -239,10 +222,6 @@ esp_err_t esp_ble_audio_pacs_set_supported_contexts(esp_ble_audio_dir_t dir,
+ 
+     bt_le_host_unlock();
+ 
+-    if (err) {
+-        return ESP_FAIL;
+-    }
+-
+-    return ESP_OK;
++    return err;
+ }
+ #endif /* CONFIG_BT_PACS */
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/init.c b/components/bt/esp_ble_audio/host/adapter/nimble/init.c
+index be7be8e4310..3424b80b16d 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/init.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/init.c
+@@ -469,8 +469,15 @@ void bt_le_nimble_audio_deinit(void)
+ {
+     LOG_DBG("[N]AudioDeinit");
+ 
+-    /* Nothing to release: the services added here are boot-scoped and the defs
+-     * NimBLE holds reference no lib memory, so resources_deinit() is safe. */
++    /* These BSS flags survive nimble_port_deinit()/init(). After the host is
++     * torn down the GATT table is gone, so the next audio_init/start must
++     * re-add services and call ble_gatts_start again. Leaving them set makes
++     * the second cycle a no-op against an empty stack. */
++#if CONFIG_BT_CSIP_SET_MEMBER
++    (void)bt_le_nimble_csis_deinit(NULL);
++#endif /* CONFIG_BT_CSIP_SET_MEMBER */
++    nimble_svcs_registered = false;
++    nimble_gatts_started = false;
+ }
+ 
+ int bt_le_nimble_audio_start(void *info)
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
+index 4d015430eb0..8d59eff69f4 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
+@@ -388,5 +388,8 @@ int bt_le_nimble_csis_deinit(void *csis_svc)
+     ARG_UNUSED(csis_svc);
+ 
+     LOG_DBG("[N]CsisDeinit");
++    csis_svc_count = 0;
++    csis_reg_count = 0;
++    csis_registered = false;
+     return 0;
+ }
+diff --git a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.db.c b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.db.c
+index 13f6e114f2d..9332c9ac8c2 100644
+--- a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.db.c
++++ b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.db.c
+@@ -259,6 +259,53 @@ static void gattc_db_dsc_cccd_store(sys_slist_t *chrc_list,
+     memcpy(&owner->cccd, dsc, sizeof(owner->cccd));
+ }
+ 
++/**
++ * One Find Information for every descriptor in @p chrc_list.
++ *
++ * NimBLE's ble_gattc_disc_all_dscs() starts at a characteristic value handle,
++ * not the service declaration. Passing the service start left VCS/MICS CCCDs
++ * unstored, so bt_gatt_subscribe() AUTO_CCC failed with -ENODEV.
++ *
++ * @return 0 if a discovery was started, 1 if there is nothing to discover,
++ *         or a negative error (NimBLE reports its errors as positive values).
++ */
++static int gattc_db_disc_svc_dscs(struct gattc_db *adb, sys_slist_t *chrc_list,
++                                  uint16_t svc_end, ble_gatt_dsc_fn *cb, void *cb_arg)
++{
++    struct gattc_db_chrc *first = NULL;
++    struct gattc_db_chrc *it;
++    uint16_t start;
++    int rc;
++
++    SYS_SLIST_FOR_EACH_CONTAINER(chrc_list, first, node) {
++        break;
++    }
++    if (first == NULL) {
++        return 1;
++    }
++    /* Use the lowest value handle, not list order, as the Find Info start. */
++    start = first->chrc.val_handle;
++    SYS_SLIST_FOR_EACH_CONTAINER(chrc_list, it, node) {
++        if (it->chrc.val_handle < start) {
++            start = it->chrc.val_handle;
++        }
++    }
++    if (start >= svc_end) {
++        return 1;
++    }
++
++    rc = ble_gattc_disc_all_dscs(adb->conn_handle, start, svc_end, cb, cb_arg);
++    if (rc) {
++        LOG_ERR("[N]GattcDbDiscAllDscsFail[%d]", rc);
++        adb->status = DISC_FAIL;
++        /* The caller reserves 1 for "nothing to discover"; NimBLE errors are
++         * positive, so return them negated to keep the two apart. */
++        return rc < 0 ? rc : -rc;
++    }
++    adb->status = DISC_IN_PROGRESS;
++    return 0;
++}
++
+ static struct gattc_db_svc *gattc_db_disc_find(struct gattc_db *adb)
+ {
+     struct gattc_db_svc *asvc;
+@@ -352,61 +399,25 @@ static int gattc_db_disc_start(struct gattc_db *adb, struct gattc_db_svc *asvc)
+ 
+     SYS_SLIST_FOR_EACH_CONTAINER(&asvc->inc_svc_list, ainc_svc, node) {
+         if (ainc_svc->dsc_disc == 0) {
+-            /* If trying to discover CCCD of a characteristic, then the service
+-             * end_handle must be not smaller than start_handle plus 4, i.e. at
+-             * least 4 attributes shall exist in the service. They are:
+-             * - Service declaration
+-             * - Characteristic declaration
+-             * - Characteristic value
+-             * - Characteristic CCCD
+-             */
+             LOG_DBG("[N]GattcDbIncDscDisc[%u][%u]", ainc_svc->svc.start_handle, ainc_svc->svc.end_handle);
+ 
+-            if (ainc_svc->svc.end_handle >= ainc_svc->svc.start_handle + 4) {
+-                rc = ble_gattc_disc_all_dscs(adb->conn_handle,
+-                                             ainc_svc->svc.start_handle,
+-                                             ainc_svc->svc.end_handle,
+-                                             gattc_db_disc_all_inc_dscs_cb_safe,
+-                                             ainc_svc);
+-                if (rc) {
+-                    LOG_ERR("[N]GattcDbDiscAllDscsFail[%d]", rc);
+-                    adb->status = DISC_FAIL;
+-                } else {
+-                    adb->status = DISC_IN_PROGRESS;
+-                }
++            rc = gattc_db_disc_svc_dscs(adb, &ainc_svc->chrc_list, ainc_svc->svc.end_handle,
++                                        gattc_db_disc_all_inc_dscs_cb_safe, ainc_svc);
++            if (rc <= 0) {
+                 return rc;
+             }
+-
+             ainc_svc->dsc_disc = 1;
+         }
+     }
+ 
+     if (asvc->dsc_disc == 0) {
+-        /* If trying to discover CCCD of a characteristic, then the service
+-         * end_handle must be not smaller than start_handle plus 4, i.e. at
+-         * least 4 attributes shall exist in the service. They are:
+-         * - Service declaration
+-         * - Characteristic declaration
+-         * - Characteristic value
+-         * - Characteristic CCCD
+-         */
+         LOG_DBG("[N]GattcDbDscDisc[%u][%u]", asvc->svc.start_handle, asvc->svc.end_handle);
+ 
+-        if (asvc->svc.end_handle >= asvc->svc.start_handle + 4) {
+-            rc = ble_gattc_disc_all_dscs(adb->conn_handle,
+-                                         asvc->svc.start_handle,
+-                                         asvc->svc.end_handle,
+-                                         gattc_db_disc_all_dscs_cb_safe,
+-                                         asvc);
+-            if (rc) {
+-                LOG_ERR("[N]GattcDbDiscAllDscsFail[%d]", rc);
+-                adb->status = DISC_FAIL;
+-            } else {
+-                adb->status = DISC_IN_PROGRESS;
+-            }
++        rc = gattc_db_disc_svc_dscs(adb, &asvc->chrc_list, asvc->svc.end_handle,
++                                    gattc_db_disc_all_dscs_cb_safe, asvc);
++        if (rc <= 0) {
+             return rc;
+         }
+-
+         asvc->dsc_disc = 1;
+     }
+ 
+@@ -1381,7 +1392,7 @@ static int handle_gattc_disc_all_dscs(struct bt_conn *conn,
+                         found = &attr;
+                     }
+ 
+-                    LOG_DBG("[N]GattcDbIncCccFound[%u]", achrc->cccd.handle);
++                    LOG_DBG("[N]GattcDbIncCccFound[%u]", attr.handle);
+                     goto end;
+                 }
+             }
+@@ -1403,7 +1414,7 @@ static int handle_gattc_disc_all_dscs(struct bt_conn *conn,
+                     found = &attr;
+                 }
+ 
+-                LOG_DBG("[N]GattcDbCccFound[%u]", achrc->cccd.handle);
++                LOG_DBG("[N]GattcDbCccFound[%u]", attr.handle);
+                 goto end;
+             }
+         }
+@@ -1411,9 +1422,12 @@ static int handle_gattc_disc_all_dscs(struct bt_conn *conn,
+ 
+ end:
+     if (found == NULL && rc == 0) {
+-        /* Char missing, or char found with cccd.handle==0 — not success.
+-         * Returning 0 here made bt_gatt_subscribe() append a dead node. */
+-        rc = -ENODEV;
++        /* Char missing, or char found with cccd.handle == 0. The answer ends
++         * the discovery with a NULL attr and rc==0, matching Zephyr: a peer
++         * that publishes no CCCD (e.g. a read-only VCS Volume Flags char)
++         * is not a discovery error. Returning -ENODEV here made Zephyr-
++         * portable controllers abort their subscription step. */
++        LOG_WRN("[N]GattcDbCccMiss[%u][val=%u]", conn->handle, sub_params->value_handle);
+     }
+ 
+     params->func(conn, found, params);
+@@ -1498,11 +1512,10 @@ void bt_le_nimble_gattc_db_remove(uint16_t conn_handle)
+  * valid handle, so the free marker is UINT16_MAX. */
+ void bt_le_nimble_gattc_db_init(void)
+ {
+-    for (size_t i = 0; i < ARRAY_SIZE(gattc_db); i++) {
+-        gattc_db[i].conn_handle = UINT16_MAX;
+-        gattc_db[i].status = DISC_IDLE;
+-        sys_slist_init(&gattc_db[i].svc_list);
+-    }
++    /* Free any leftover discovery nodes first: a previous deinit may have
++     * been skipped (check_idle -EBUSY), and sys_slist_init alone orphans
++     * those heap blocks. gattc_db_del is a no-op on an already-free slot. */
++    bt_le_nimble_gattc_db_deinit();
+ }
+ 
+ /* Free each slot's discovery nodes on deinit so an init/deinit/re-init cycle stays
+diff --git a/components/bt/esp_ble_iso/host/adapter/nimble/iso.c b/components/bt/esp_ble_iso/host/adapter/nimble/iso.c
+index 9d28ba32d75..3e5115ac9d0 100644
+--- a/components/bt/esp_ble_iso/host/adapter/nimble/iso.c
++++ b/components/bt/esp_ble_iso/host/adapter/nimble/iso.c
+@@ -19,6 +19,7 @@
+ #include "host/ble_hs_iso_hci.h"
+ 
+ #include "common/host.h"
++#include "common/conn.h"
+ 
+ #include "nimble/hs_error.h"
+ 
+@@ -786,8 +787,14 @@ static void iso_evt_rx(uint8_t event, const void *data,
+     uint8_t *qdata;
+     int err;
+ 
++    /* Setters have no unregister path, so this still fires after host deinit.
++     * Drop rather than queue work that would take a deleted mutex. */
++    if (!bt_le_host_ready()) {
++        return;
++    }
++
+     if (event != BT_HCI_EVT_LE_BIGINFO_ADV_REPORT) {
+-        LOG_DBG("[N]ISOEvtRx[%02x][%u][%u]", event, len, le_meta);
++        /* Non-BIGInfo events are handled by the shim path below. */
+     }
+ 
+     qdata_len = len + 2;
+@@ -861,10 +868,10 @@ int bt_le_nimble_iso_init(void)
+     /* nimble's setters reject NULL and refuse re-registration (EALREADY), and
+      * expose no unregister path — so deinit cannot clear these. On a host
+      * re-enable the callback is still our own iso_evt_rx / bt_le_iso_rx, so
+-     * treat EALREADY as success instead of failing the whole init. (evt setter
+-     * returns -BLE_HS_EALREADY, pkt setter returns BLE_HS_EALREADY.) */
++     * treat EALREADY as success instead of failing the whole init. Both setters
++     * return BLE_HS_EALREADY (positive 2); accept the negative form as well. */
+     err = ble_hs_iso_evt_rx_cb_set(iso_evt_rx);
+-    if (err && err != -BLE_HS_EALREADY) {
++    if (err && err != BLE_HS_EALREADY && err != -BLE_HS_EALREADY) {
+         LOG_ERR("[N]IsoEvtRxCbSetFail[%d]", err);
+         return err;
+     }
+@@ -896,6 +903,13 @@ void bt_le_nimble_iso_deinit(void)
+      * setters reject NULL); they harmlessly persist until the next init,
+      * which tolerates the resulting EALREADY. */
+ #if CONFIG_BT_ISO_UNICAST
+-    iso_disable_cis();
++    /* Core Vol 4 Part E 7.8.115: LE Set Host Feature is Command Disallowed
++     * (0x0C / NimBLE 524) while any connection exists. The ACL can outlive
++     * ISO deinit (audio still has the GAP link). Skip; a stale CIS-host-
++     * support bit is harmless and the next init sets it again. Matches
++     * Bluedroid's bt_le_bluedroid_iso_deinit(). */
++    if (bt_le_acl_conn_count() == 0) {
++        iso_disable_cis();
++    }
+ #endif /* CONFIG_BT_ISO_UNICAST */
+ }
+diff --git a/components/bt/esp_ble_iso/host/common/gatt.c b/components/bt/esp_ble_iso/host/common/gatt.c
+index ac5800da056..fecb45c5a54 100644
+--- a/components/bt/esp_ble_iso/host/common/gatt.c
++++ b/components/bt/esp_ble_iso/host/common/gatt.c
+@@ -1207,6 +1207,17 @@ static void gattc_sub_clear(struct bt_conn *conn)
+     bt_addr_le_copy(&sub->peer, BT_ADDR_LE_ANY);
+ }
+ 
++void bt_le_gattc_sub_reset(void)
++{
++    /* Do not walk or write the params nodes: they belong to the audio
++     * profiles and may already have been freed with the previous session. */
++    for (size_t i = 0; i < ARRAY_SIZE(subscriptions); i++) {
++        sys_slist_init(&subscriptions[i].list);
++        bt_addr_le_copy(&subscriptions[i].peer, BT_ADDR_LE_ANY);
++        subscriptions[i].id = 0;
++    }
++}
++
+ _IDF_ONLY
+ struct gattc_sub *bt_gattc_sub_find(struct bt_conn *conn)
+ {
+@@ -1344,12 +1355,21 @@ int bt_gatt_subscribe(struct bt_conn *conn, struct bt_gatt_subscribe_params *par
+                 return err;
+             }
+ 
+-            /* Adapter may have returned 0 while leaving ccc unresolved
+-             * (cb got attr==NULL). Do not append a dead subscription. */
+-            if (params->ccc_handle == BT_GATT_AUTO_DISCOVER_CCC_HANDLE) {
+-                LOG_ERR("GattcSubCccUnresolved[%u]", params->value_handle);
+-                params->value_handle = 0;
+-                return -ENOENT;
++            /* The NimBLE adapter resolves this discovery synchronously from
++             * the GATT client cache: the cb ran inline and consumed
++             * disc_params. An answer of attr==NULL with ccc unresolved means
++             * the peer publishes no CCCD in this range (e.g. a read-only VCS
++             * Volume Flags characteristic). Zephyr treats that as a normal
++             * end-of-discovery: the NULL notify already ran, so do not
++             * append the node and let the caller see a normal return. An
++             * asynchronous discovery (Bluedroid) keeps upstream behavior:
++             * the node appends now and the CCC resolves later. */
++            if (params->ccc_handle == BT_GATT_AUTO_DISCOVER_CCC_HANDLE &&
++                    params->disc_params->start_handle == 0 &&
++                    params->disc_params->sub_params == NULL) {
++                LOG_WRN("GattcSubCccUnresolved[%u]", params->value_handle);
++                params->value_handle = 0; /* not linked: clear retry guard */
++                return 0;
+             }
+         } else {
+             /* Note:
+diff --git a/components/bt/esp_ble_iso/host/common/host.c b/components/bt/esp_ble_iso/host/common/host.c
+index 9af7d2d6300..d0f1e038009 100644
+--- a/components/bt/esp_ble_iso/host/common/host.c
++++ b/components/bt/esp_ble_iso/host/common/host.c
+@@ -19,6 +19,7 @@
+ 
+ #include "common/host.h"
+ #include "common/conn.h"
++#include "common/gatt.h"
+ #include "common/app/gap.h"
+ #include "common/app/gatt.h"
+ 
+@@ -80,12 +81,21 @@ void bt_le_host_lock(void)
+     }
+ }
+ 
++bool bt_le_host_ready(void)
++{
++    return host_mutex.handle != NULL;
++}
++
+ int bt_le_host_lock_timeout(void)
+ {
+     /* The bounded variant, for callers that can report the failure upward - see
+      * BT_LE_HOST_LOCK_OR_RETURN. Bounded by K_MUTEX_SHORT rather than
+      * HOST_LOCK_ABORT_MS so that disabling the abort does not turn this into a
+      * try-lock that fails on any contention. */
++    if (host_mutex.handle == NULL) {
++        return -EBUSY;
++    }
++
+     if (k_mutex_lock(&host_mutex, K_MUTEX_SHORT) != 0) {
+         return -EBUSY;
+     }
+@@ -105,6 +115,9 @@ void bt_le_host_unlock(void)
+      * so this branch is unreachable in normal flow. Keep the check to
+      * catch any unbalanced unlock (callers releasing without prior lock).
+      */
++    if (host_mutex.handle == NULL) {
++        return;
++    }
+     if (xSemaphoreGetMutexHolder(host_mutex.handle) != xTaskGetCurrentTaskHandle()) {
+         LOG_WRN("HostUnlockNotHolder");
+         return;
+@@ -147,6 +160,7 @@ int bt_le_host_init(void)
+ 
+     k_mutex_create(&host_mutex);
+ 
++    bt_le_gattc_sub_reset();
+     bt_le_conn_reset();
+ 
+     bt_le_iso_state_reset();
+@@ -221,6 +235,7 @@ int bt_le_host_deinit(void)
+     bt_le_nimble_gattc_db_deinit();
+     bt_le_nimble_gatt_nrp_deinit();
+ #endif /* CONFIG_BT_BLUEDROID_ENABLED */
++    bt_le_gattc_sub_reset();
+     bt_le_scan_deinit();
+ 
+     /* Last: iso_task has exited and the callbacks above are gone, so nothing
+diff --git a/components/bt/esp_ble_iso/host/common/include/common/gatt.h b/components/bt/esp_ble_iso/host/common/include/common/gatt.h
+index d48aa3c2506..39d33732d25 100644
+--- a/components/bt/esp_ble_iso/host/common/include/common/gatt.h
++++ b/components/bt/esp_ble_iso/host/common/include/common/gatt.h
+@@ -310,6 +310,12 @@ int bt_gattc_disc_start(uint16_t conn_handle);
+ 
+ struct gattc_sub *bt_gattc_sub_find(struct bt_conn *conn);
+ 
++/* Drop every GATTC subscription slot without touching the params nodes:
++ * BLE.end() can free the profile-owned bt_gatt_subscribe_params before the
++ * ACL-disconnect listener runs, leaving a BSS list of dangling pointers.
++ * Walking that list in a later bt_gatt_subscribe() is a load fault. */
++void bt_le_gattc_sub_reset(void);
++
+ void bt_le_acl_conn_disconnected_gatt_listener(uint16_t conn_handle);
+ 
+ void bt_le_acl_conn_bond_deleted_gatt_listener(uint8_t id, const bt_addr_le_t *peer);
+diff --git a/components/bt/esp_ble_iso/host/common/include/common/host.h b/components/bt/esp_ble_iso/host/common/include/common/host.h
+index d41a74c9cc4..ea21e6f6356 100644
+--- a/components/bt/esp_ble_iso/host/common/include/common/host.h
++++ b/components/bt/esp_ble_iso/host/common/include/common/host.h
+@@ -8,6 +8,7 @@
+ #ifndef HOST_COMMON_HOST_H_
+ #define HOST_COMMON_HOST_H_
+ 
++#include <stdbool.h>
+ #include <stdint.h>
+ 
+ #include <zephyr/autoconf.h>
+@@ -44,6 +45,11 @@ void bt_le_host_unlock(void);
+ 
+ int bt_le_host_lock_timeout(void);
+ 
++/* True between bt_le_host_init() and bt_le_host_deinit(). ISO event setters
++ * have no unregister path; drop those events when this is false rather than
++ * taking a deleted mutex. */
++bool bt_le_host_ready(void);
++
+ /* For the app-facing api/ wrappers, which run on the application's own tasks:
+  * acquire, or bail out with the caller's failure value so a task holding a lock
+  * of its own never waits here indefinitely - that is the AB-BA edge that
+diff --git a/components/bt/esp_ble_iso/host/common/iso.c b/components/bt/esp_ble_iso/host/common/iso.c
+index 960b579ef3a..b9bce5571dc 100644
+--- a/components/bt/esp_ble_iso/host/common/iso.c
++++ b/components/bt/esp_ble_iso/host/common/iso.c
+@@ -904,6 +904,9 @@ int bt_le_iso_init(void)
+     err = bt_le_nimble_iso_init();
+ #endif
+     if (err) {
++        bt_le_host_lock();
++        bt_le_iso_cb_unregister(&iso_cb);
++        bt_le_host_unlock();
+         return err;
+     }
+ 

@@ -13,6 +13,12 @@ components/arduino_tinyusb/tinyusb/
 components/tflite-micro/
 esp-idf/
 out/
+# Per-host-backend copies of a target's libs, kept across `build.sh`'s
+# `rm -rf out`. See tools/select-ble-backend.sh.
+variants/
+# Transient Bluedroid overlay promoted from
+# configs/defconfig.esp32s31_bluedroid.disabled by tools/select-ble-backend.sh.
+configs/defconfig.bluedroid
 build/
 dist/
 env.sh

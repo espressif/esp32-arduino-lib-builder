@@ -1,0 +1,321 @@
+diff --git a/components/bt/esp_ble_audio/host/adapter/bluedroid/include/bluedroid/server.h b/components/bt/esp_ble_audio/host/adapter/bluedroid/include/bluedroid/server.h
+index 833d8d2778c..ef91aa4f127 100644
+--- a/components/bt/esp_ble_audio/host/adapter/bluedroid/include/bluedroid/server.h
++++ b/components/bt/esp_ble_audio/host/adapter/bluedroid/include/bluedroid/server.h
+@@ -172,6 +172,11 @@ int bt_le_bluedroid_svc_deinit(struct bt_gatt_service *svc);
+ 
+ int bt_le_bluedroid_svc_start(struct bt_gatt_service *svc);
+ 
++/* Find an attribute by its Bluedroid handle across every service this adapter
++ * created. Covers services Bluedroid advertises although the engine did not
++ * register them in its gatt_db (for example a PACS without PAC records). */
++struct bt_gatt_attr *bt_le_bluedroid_audio_find_attr_by_handle(uint16_t handle);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/components/bt/esp_ble_audio/host/adapter/bluedroid/server.c b/components/bt/esp_ble_audio/host/adapter/bluedroid/server.c
+index 364bb3bae58..ccba6433764 100644
+--- a/components/bt/esp_ble_audio/host/adapter/bluedroid/server.c
++++ b/components/bt/esp_ble_audio/host/adapter/bluedroid/server.c
+@@ -287,6 +287,25 @@ void bt_le_bluedroid_audio_gatts_init(void)
+     bt_le_bluedroid_gatts_svc_cb_register(&svc_cb);
+ }
+ 
++struct bt_gatt_attr *bt_le_bluedroid_audio_find_attr_by_handle(uint16_t handle)
++{
++    for (uint8_t i = 0; i < created_svc_count; i++) {
++        struct bt_gatt_service *svc = created_svcs[i];
++
++        if (svc == NULL || svc->attrs == NULL) {
++            continue;
++        }
++
++        for (size_t j = 0; j < svc->attr_count; j++) {
++            if (svc->attrs[j].handle == handle) {
++                return &svc->attrs[j];
++            }
++        }
++    }
++
++    return NULL;
++}
++
+ int bt_le_bluedroid_svc_deinit(struct bt_gatt_service *svc)
+ {
+     if (svc == NULL || svc->attrs == NULL) {
+@@ -301,7 +320,14 @@ int bt_le_bluedroid_svc_deinit(struct bt_gatt_service *svc)
+ 
+     LOG_DBG("[B]SvcDeinit[0x%04x]", svc->attrs[0].handle);
+ 
++    bt_le_bluedroid_gatts_sem_reset();
+     BTA_GATTS_DeleteService(svc->attrs[0].handle);
++
++    if (bt_le_bluedroid_gatts_sem_take()) {
++        LOG_ERR("[B]SvcDeleteFail[0x%04x]", svc->attrs[0].handle);
++        return -1;
++    }
++
+     svc->attrs[0].handle = 0;
+ 
+     return 0;
+diff --git a/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c b/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
+index 4676ce7faa2..12bead5d10d 100644
+--- a/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
++++ b/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
+@@ -28,6 +28,10 @@
+ #include "common/app/gap.h"
+ #include "common/app/gatt.h"
+ 
++#if CONFIG_BT_AUDIO
++#include "bluedroid/server.h"
++#endif
++
+ LOG_MODULE_REGISTER(ISO_BGAT, CONFIG_BT_ISO_LOG_LEVEL);
+ 
+ /* Use UUID with a fixed pattern 0x98 for ISO & LE Audio GATT Server.
+@@ -922,6 +926,14 @@ static void gatts_app_cb(tBTA_GATTS_EVT event, tBTA_GATTS *p_data)
+         LOG_DBG("[B]GattsDeleteEvt[%u][%u][%u]",
+                 p_data->srvc_oper.status, p_data->srvc_oper.server_if,
+                 p_data->srvc_oper.service_id);
++
++        /* Service deletion is asynchronous. Wake the deinit path so the next
++         * audio session cannot allocate its handles after a service that is
++         * still present in BTA's table (which would make peer discovery see
++         * stale handles that the engine's gatt_db no longer contains). */
++        if (p_data->srvc_oper.server_if == gatts_if) {
++            bt_le_bluedroid_gatts_sem_give(p_data->srvc_oper.status);
++        }
+         break;
+ 
+     case BTA_GATTS_START_EVT:
+@@ -1396,6 +1408,10 @@ static void post_acl_connect_app_event(struct gatt_conn *gatt_conn)
+     struct bt_le_gap_app_param *qev;
+     int err;
+ 
++    if (gatt_conn->acl_connect_posted) {
++        return;
++    }
++
+     qev = bt_le_ext_calloc(1, sizeof(*qev));
+     BT_LE_ASSERT(qev);
+ 
+@@ -1416,7 +1432,9 @@ static void post_acl_connect_app_event(struct gatt_conn *gatt_conn)
+     if (err) {
+         ISO_POST_FAIL_LOG(err, "[B]AclConnPostFail[%d]", err);
+         free(qev);
++        return;
+     }
++    gatt_conn->acl_connect_posted = 1;
+ }
+ 
+ /* A connect that never reached the link layer gets no CONNECT_EVT, so nothing
+@@ -1509,9 +1527,10 @@ static void handle_gattc_connect_event(struct bt_le_gattc_connect_event *event)
+         reset_gatt_conn(gatt_conn);
+     }
+ 
+-    /* App initiated via esp_ble_gattc_aux_open(engine_gattc_if, ...). BTA
+-     * dispatches CONNECT here first, OPEN follows. We allocate the slot now
+-     * so the OPEN handler finds it and posts ACL_CONNECT. */
++    /* BTA dispatches the physical CONNECT before the app-level GATT OPEN.
++     * Allocate the slot here and publish the ACL immediately: the link may
++     * have been opened through a different GATTC app, so this adapter may
++     * never receive its own OPEN event. */
+     gatt_conn = bt_le_bluedroid_find_free_gatt_conn();
+     if (gatt_conn == NULL) {
+         LOG_ERR("[B]NoFreeConnInfo");
+@@ -1527,6 +1546,11 @@ static void handle_gattc_connect_event(struct bt_le_gattc_connect_event *event)
+     gatt_conn->role = event->role;
+     gatt_conn->peer.type = event->peer.type;
+     memcpy(gatt_conn->peer.val, event->peer.val, BT_ADDR_SIZE);
++
++    /* ISO uses the physical ACL, not this app's later GATT OPEN. Another
++     * application (e.g. Arduino BLEClient) may own the GATT client interface
++     * and never generate OPEN for the ISO adapter's interface. */
++    post_acl_connect_app_event(gatt_conn);
+ }
+ 
+ static void handle_gattc_disconnect_event(struct bt_le_gattc_disconnect_event *event)
+@@ -1584,7 +1608,12 @@ static void handle_gattc_open_event(struct bt_le_gattc_open_event *event)
+         post_acl_connect_app_event(gatt_conn);
+ 
+         if (gatt_conn->status) {
+-            reset_gatt_conn(gatt_conn);
++            /* A physical ACL may have been published at CONNECT even though
++             * this GATTC app's OPEN failed. Keep its slot until the actual
++             * disconnect so ISO can use the link and always receive cleanup. */
++            if (!gatt_conn->acl_connect_posted) {
++                reset_gatt_conn(gatt_conn);
++            }
+             return;
+         }
+     } else {
+@@ -2051,6 +2080,13 @@ static void handle_gatts_read_event(struct bt_le_gatts_read_event *event)
+     }
+ 
+     attr = bt_gatts_find_attr_by_handle(event->attr_handle);
++#if CONFIG_BT_AUDIO
++    if (attr == NULL) {
++        /* A service can exist in Bluedroid's table without being registered in
++         * the engine's gatt_db (PACS with no PAC records is the known case). */
++        attr = bt_le_bluedroid_audio_find_attr_by_handle(event->attr_handle);
++    }
++#endif
+     if (attr == NULL) {
+         LOG_ERR("[B]GattsRdAttrNotFound[%u]", event->attr_handle);
+         status = GATT_INVALID_HANDLE;
+@@ -2215,6 +2251,11 @@ static void handle_gatts_write_event(struct bt_le_gatts_write_event *event)
+     }
+ 
+     attr = bt_gatts_find_attr_by_handle(event->attr_handle);
++#if CONFIG_BT_AUDIO
++    if (attr == NULL) {
++        attr = bt_le_bluedroid_audio_find_attr_by_handle(event->attr_handle);
++    }
++#endif
+     if (attr == NULL) {
+         LOG_ERR("[B]GattsWrAttrNotFound[%u]", event->attr_handle);
+         status = GATT_INVALID_HANDLE;
+@@ -2319,6 +2360,11 @@ static void handle_gatts_exec_write_event(struct bt_le_gatts_exec_write_event *e
+             status = GATT_INSUF_RESOURCE;
+         } else {
+             attr = bt_gatts_find_attr_by_handle(gatt_conn->prep_attr_handle);
++#if CONFIG_BT_AUDIO
++            if (attr == NULL) {
++                attr = bt_le_bluedroid_audio_find_attr_by_handle(gatt_conn->prep_attr_handle);
++            }
++#endif
+             if (attr == NULL) {
+                 status = GATT_INVALID_HANDLE;
+             } else if (attr->write == NULL) {
+@@ -3200,9 +3246,18 @@ static int gattc_disc_chrc_desc(struct bt_conn *conn, uint16_t conn_id,
+             count, chrc_handle, params->end_handle);
+ 
+     if (db == NULL || count == 0) {
+-        params->func(conn, NULL, params);
++        /* The peer publishes no descriptor for this characteristic — e.g. a
++         * read-only VCS Volume Flags char, which by spec carries no CCCD.
++         * Mirror NimBLE (gatt.db.c handle_gattc_disc_all_dscs): the answer ends
++         * the discovery with a NULL attr and rc == 0. Returning -ENODEV here is
++         * a contract violation — Zephyr's bt_gatt_discover() reports "nothing
++         * found" through the NULL attr callback, not through the return code,
++         * which describes the request itself. Zephyr-portable controllers
++         * (libble_audio's VCP/CSIS/CAP procedures) read a non-zero return as a
++         * failed subscription step and abort the whole profile setup. */
++        LOG_WRN("[B]ChrcDescMiss[%u][val=%u]", conn->handle, chrc_handle);
+ 
+-        err = -ENODEV;
++        params->func(conn, NULL, params);
+         goto end;
+     }
+ 
+diff --git a/components/bt/esp_ble_iso/host/adapter/bluedroid/include/bluedroid/gatt.h b/components/bt/esp_ble_iso/host/adapter/bluedroid/include/bluedroid/gatt.h
+index a75d71a7026..5262d03930b 100644
+--- a/components/bt/esp_ble_iso/host/adapter/bluedroid/include/bluedroid/gatt.h
++++ b/components/bt/esp_ble_iso/host/adapter/bluedroid/include/bluedroid/gatt.h
+@@ -30,6 +30,7 @@ struct gatt_conn {
+     uint8_t  gattc_open : 1;
+     uint8_t  cfg_mtu : 1;
+     uint8_t  mtu_posted : 1;
++    uint8_t  acl_connect_posted : 1; /* CONNECT posts before OPEN; suppress its duplicate. */
+ 
+     uint8_t  status;
+     uint8_t  gatt_if;
+diff --git a/components/bt/esp_ble_iso/host/common/app/gap.c b/components/bt/esp_ble_iso/host/common/app/gap.c
+index c4bdbb82dfe..fa986001fc6 100644
+--- a/components/bt/esp_ble_iso/host/common/app/gap.c
++++ b/components/bt/esp_ble_iso/host/common/app/gap.c
+@@ -370,8 +370,18 @@ static void handle_acl_disconnect_event_safe(struct bt_le_gap_app_param *param)
+         goto end;
+     }
+ 
+-    err = bt_le_acl_conn_delete(event.acl_disconnect.conn_handle);
+-    BT_LE_ASSERT(err == 0);
++#if CONFIG_BT_ISO_UNICAST
++    /* Some Bluedroid controllers report a local CIS Disconnect as an ACL
++     * disconnect. Once the parent ACL is gone, any remaining CIS channels
++     * cannot stay connected; complete their host state and callbacks. */
++    bt_iso_acl_disconnected(event.acl_disconnect.conn_handle,
++                            event.acl_disconnect.reason);
++#endif /* CONFIG_BT_ISO_UNICAST */
++
++    if (bt_le_acl_conn_find(event.acl_disconnect.conn_handle) != NULL) {
++        err = bt_le_acl_conn_delete(event.acl_disconnect.conn_handle);
++        BT_LE_ASSERT(err == 0);
++    }
+ 
+ end:
+     bt_le_host_unlock();
+diff --git a/components/bt/esp_ble_iso/host/common/include/common/iso.h b/components/bt/esp_ble_iso/host/common/include/common/iso.h
+index ea45348a3f1..eba0b0511b1 100644
+--- a/components/bt/esp_ble_iso/host/common/include/common/iso.h
++++ b/components/bt/esp_ble_iso/host/common/include/common/iso.h
+@@ -75,6 +75,9 @@ int bt_le_iso_rx(const uint8_t *data, uint16_t len, void *arg);
+ 
+ int bt_le_iso_disconnect(uint16_t conn_handle, uint8_t reason);
+ 
++/* Complete any CIS channels still attached when their parent ACL is gone. */
++void bt_iso_acl_disconnected(uint16_t acl_handle, uint8_t reason);
++
+ void bt_le_iso_state_reset(void);
+ 
+ size_t bt_le_iso_report_busy(void);
+diff --git a/components/bt/esp_ble_iso/host/iso/iso.c b/components/bt/esp_ble_iso/host/iso/iso.c
+index 460ba37ae68..69658871c4e 100644
+--- a/components/bt/esp_ble_iso/host/iso/iso.c
++++ b/components/bt/esp_ble_iso/host/iso/iso.c
+@@ -448,6 +448,11 @@ static void bt_iso_chan_disconnected(struct bt_iso_chan *chan, uint8_t reason)
+ {
+     BT_LE_ASSERT(chan->iso != NULL && "NullConnForIsoChan");
+ 
++    if (chan->state == BT_ISO_STATE_DISCONNECTED) {
++        bt_iso_cleanup_acl(chan->iso);
++        return;
++    }
++
+     const uint8_t conn_type = chan->iso->iso.info.type;
+ 
+     LOG_INF("IsoChanDisconnected[%02x]", reason);
+@@ -878,6 +883,42 @@ void bt_iso_cleanup_acl(struct bt_conn *iso)
+ #endif /* CONFIG_BT_ISO_UNICAST */
+ }
+ 
++void bt_iso_acl_disconnected(uint16_t acl_handle, uint8_t reason)
++{
++#if CONFIG_BT_ISO_UNICAST
++    struct bt_conn *acl = bt_le_acl_conn_find(acl_handle);
++
++    if (acl == NULL || acl->state != BT_CONN_DISCONNECTED) {
++        return;
++    }
++
++    for (size_t i = 0; i < ARRAY_SIZE(iso_conns); i++) {
++        struct bt_conn *iso = &iso_conns[i];
++        struct bt_iso_chan *chan;
++
++        if (iso->type != BT_CONN_TYPE_ISO || iso->iso.acl != acl) {
++            continue;
++        }
++
++        chan = iso->iso.chan;
++        if (chan == NULL) {
++            bt_iso_cleanup_acl(iso);
++            continue;
++        }
++
++        if (chan->state != BT_ISO_STATE_DISCONNECTED) {
++            LOG_WRN("IsoAclLostCis[%u][0x%03x]", acl_handle, iso->handle);
++            bt_iso_chan_disconnected(chan, reason);
++        } else {
++            bt_iso_cleanup_acl(iso);
++        }
++    }
++#else
++    ARG_UNUSED(acl_handle);
++    ARG_UNUSED(reason);
++#endif /* CONFIG_BT_ISO_UNICAST */
++}
++
+ static void store_cis_info(const struct bt_hci_evt_le_cis_established *evt, struct bt_conn *iso)
+ {
+     struct bt_conn_iso *iso_conn = &iso->iso;

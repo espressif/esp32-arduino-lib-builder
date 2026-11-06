@@ -17,3 +17,9 @@ dependencies:
     require: public
     rules:
       - if: "idf_version >= 5.4 && target in [esp32s3, esp32p4, esp32s31]"
+  # LC3 codec for the LE Audio
+  espressif/esp_audio_codec:
+    version: "^2.6.2"
+    require: public
+    rules:
+      - if: "target in [esp32s31, esp32h4]"

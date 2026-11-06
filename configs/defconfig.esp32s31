@@ -1,4 +1,158 @@
 CONFIG_BT_ENABLED=y
+
+# ── LE Audio (GAF) ──────────────────────────────────────────────────────
+# Controller-level Isochronous (CIS/BIG) support. Off by default; required
+# by every LE Audio role. The host-side CONFIG_BT_ISO symbol is auto-selected
+# by the BAP roles below, which in turn select CONFIG_BT_AUDIO.
+CONFIG_BT_LE_ISO_SUPPORT=y
+# Basic Audio Profile — both sides, so a single S31 can play every counterpart
+# role against the Linux+dongle peer (unicast client/server, broadcast src/sink).
+CONFIG_BT_BAP_UNICAST_SERVER=y
+CONFIG_BT_BAP_UNICAST_CLIENT=y
+CONFIG_BT_BAP_BROADCAST_SOURCE=y
+CONFIG_BT_BAP_SCAN_DELEGATOR=y
+CONFIG_BT_BAP_BROADCAST_SINK=y
+# Broadcast Assistant (BASS client): drives a remote Scan Delegator (add
+# source, PAST, broadcast code). Also a prerequisite of CAP Handover.
+CONFIG_BT_BAP_BROADCAST_ASSISTANT=y
+
+# Multi-stream (stereo). The host ISO channel pool defaults to 1, which caps
+# every role at a single CIS/BIS. 4 channels cover the largest topology the
+# library exposes (two CIS per unicast group, or two BIS per broadcast) and
+# stay within the controller's BT_NIMBLE_ISO_CIS / BT_NIMBLE_ISO_BIS (2 each).
+CONFIG_BT_ISO_MAX_CHAN=4
+CONFIG_BT_BAP_UNICAST_CLIENT_GROUP_STREAM_COUNT=2
+CONFIG_BT_BAP_BROADCAST_SRC_STREAM_COUNT=2
+CONFIG_BT_BAP_BROADCAST_SNK_STREAM_COUNT=2
+# Common Audio Profile — mandatory CAS coordination for spec-compliant streams.
+# All three roles so one S31 can be acceptor, initiator, or commander.
+CONFIG_BT_CAP_ACCEPTOR=y
+# The acceptor is also a coordinated-set member (CAS includes a CSIS). This is
+# what compiles esp_ble_audio_cap_acceptor_register (CAS + included CSIS); the
+# BLE library's BLE_AUDIO_CAP_ACCEPTOR_SUPPORTED guard keys off this symbol.
+CONFIG_BT_CAP_ACCEPTOR_SET_MEMBER=y
+CONFIG_BT_CAP_INITIATOR=y
+CONFIG_BT_CAP_COMMANDER=y
+# CAP Handover (unicast <-> broadcast). Depends on commander + initiator +
+# broadcast assistant + broadcast source, all enabled above.
+CONFIG_BT_CAP_HANDOVER=y
+
+# ── Control & coordination profiles (CSIP/VCP/MICP/MCP/CCP) ─────────────
+# Both member/server and coordinator/client sides of every profile, so a
+# single S31 can play either end (ESP-to-ESP demos and against a Linux+dongle
+# peer). Each *_MAX_INSTANCE_COUNT / *_INSTANCE_COUNT knob >0 pulls in the
+# corresponding (otherwise-hidden) service.
+
+# Coordinated Set Identification (CSIP + its CSIS service) — stereo earbud
+# pairs: SIRK/rank/size and the RSI advertised for set discovery.
+CONFIG_BT_CSIP_SET_MEMBER=y
+CONFIG_BT_CSIP_SET_COORDINATOR=y
+
+# Volume Control (VCP + VCS) with one Volume Offset (VOCS) and one Audio Input
+# Control (AICS) sub-instance mounted under VCS on each side.
+CONFIG_BT_VCP_VOL_REND=y
+CONFIG_BT_VCP_VOL_CTLR=y
+CONFIG_BT_VOCS_MAX_INSTANCE_COUNT=1
+CONFIG_BT_VOCS_CLIENT_MAX_INSTANCE_COUNT=1
+# AICS_MAX_INSTANCE_COUNT / AICS_CLIENT_MAX_INSTANCE_COUNT are GLOBAL pools the
+# engine draws from at init (lib_aics_init / lib_aics_client_init). They must be
+# >= the sum of every AICS sub-instance across all profiles, not per-profile:
+# here VCS (VCP_VOL_REND_AICS=1) + MICS (MICP_MIC_DEV_AICS=1) = 2 on the server
+# side and the matching two on the client side. A device that mounts AICS under
+# both VCS and MICS (e.g. a headset with volume + mic gain) needs 2, otherwise
+# the engine fails common_init with AicsPoolUndersized / LibAicsInitFail.
+CONFIG_BT_AICS_MAX_INSTANCE_COUNT=2
+CONFIG_BT_AICS_CLIENT_MAX_INSTANCE_COUNT=2
+CONFIG_BT_VCP_VOL_REND_VOCS_INSTANCE_COUNT=1
+CONFIG_BT_VCP_VOL_REND_AICS_INSTANCE_COUNT=1
+CONFIG_BT_VCP_VOL_CTLR_MAX_VOCS_INST=1
+CONFIG_BT_VCP_VOL_CTLR_MAX_AICS_INST=1
+
+# Microphone Control (MICP + MICS), device and controller, with one AICS
+# sub-instance each (mic gain).
+CONFIG_BT_MICP_MIC_DEV=y
+CONFIG_BT_MICP_MIC_CTLR=y
+CONFIG_BT_MICP_MIC_DEV_AICS_INSTANCE_COUNT=1
+CONFIG_BT_MICP_MIC_CTLR_MAX_AICS_INST=1
+
+# Media Control (MCS server + MCC client). MCS requires the local media-player
+# control layer (MCTL) with remote-control enabled.
+CONFIG_BT_MCTL=y
+CONFIG_BT_MCTL_LOCAL_PLAYER_CONTROL=y
+CONFIG_BT_MCTL_LOCAL_PLAYER_REMOTE_CONTROL=y
+CONFIG_BT_MCS=y
+CONFIG_BT_MCC=y
+# The MCS server needs a backing media player instance. BT_MPL provides the
+# engine's reference player (name/state/track metadata); it is NOT auto-selected
+# by BT_MCS/BT_MCTL, so enable it explicitly. Without it, esp_ble_audio_media_
+# proxy_pl_init() runs against an unprovisioned player and a client read of the
+# Media Player Name characteristic dereferences an unset name (read_player_name
+# in mcs.c → Load access fault).
+CONFIG_BT_MPL=y
+CONFIG_BT_MPL_MEDIA_PLAYER_NAME="ESP Player"
+
+# Call Control (CCP + Telephone Bearer Service). The esp_ble_audio TBS server
+# currently supports only the Generic Telephone Bearer (GTBS), so the bearer
+# count must stay 0 (a static assert in init.c enforces this); BT_TBS=y still
+# instantiates GTBS, which is what the CCP server uses. Client covers both the
+# GTBS- and TBS-oriented roles.
+CONFIG_BT_TBS=y
+CONFIG_BT_TBS_BEARER_COUNT=0
+CONFIG_BT_CCP_CALL_CONTROL_SERVER=y
+CONFIG_BT_TBS_CLIENT_GTBS=y
+CONFIG_BT_TBS_CLIENT_TBS=y
+CONFIG_BT_CCP_CALL_CONTROL_CLIENT=y
+
+# The engine registers many CCCDs/services into the single GATT table; the
+# control profiles above add ~8 services (CSIS/VCS/VOCS/AICS/MICS/MCS/GTBS/TBS)
+# with several notifiable characteristics each, so raise these ceilings for the
+# NimBLE (TOTAL_CCCDS_COUNT) / Bluedroid (TOTAL_SERVICE_COUNT) build-time
+# static asserts. If a build asserts a higher value, bump to exactly what it
+# reports.
+CONFIG_BT_NIMBLE_MAX_CCCDS=96
+CONFIG_BT_GATT_MAX_SR_PROFILES=48
+
+# ── Top-level profile identity services (TMAP/GMAP) ─────────────────────
+# TMAP (Telephony & Media Audio Profile) and GMAP (Gaming Audio Profile) add a
+# small TMAS/GMAS identity service advertising which top-level roles the device
+# implements; the media/call/game audio still flows through CAP+BAP+control.
+# The per-role *_SUPPORTED symbols auto-select from the CAP/BAP/VCP/MCS/TBS
+# roles already enabled above, so a single S31 exposes every TMAP/GMAP role.
+CONFIG_BT_TMAP=y
+CONFIG_BT_GMAP=y
+
+# Public Broadcast Profile (PBP) — the Auracast public-broadcast announcement
+# builder/parser (BLEAudioPublicBroadcast); pure helper, no extra services.
+CONFIG_BT_PBP=y
+
+# Hearing Access Service (HAS) — hearing-aid device (presets server) + client.
+# The device needs a non-zero preset list; enable dynamic names so a controller
+# can rename presets. Depends on BT_BAP_UNICAST_SERVER (already enabled).
+CONFIG_BT_HAS=y
+CONFIG_BT_HAS_PRESET_COUNT=4
+CONFIG_BT_HAS_PRESET_NAME_DYNAMIC=y
+CONFIG_BT_HAS_CLIENT=y
+
+# ── Standalone Isochronous transport (esp_ble_iso) ──────────────────────
+# The BAP/CAP roles above use the engine's *internal* ISO (lib_bap_iso_init).
+# The library's internal, audio-agnostic ISO transport layer (iso/BLEIso, a
+# future public BLE ISO feature) instead drives the standalone esp_ble_iso
+# component (esp_ble_iso_cig_create / _chan_connect / _big_create / _big_sync).
+# Those APIs are only compiled when the host-side ISO roles below are selected,
+# so enable all four so a single S31 can be CIS central+peripheral and BIG
+# broadcaster+sync-receiver (both sides of the iso_cis/iso_bis transport tests).
+CONFIG_BT_ISO_CENTRAL=y
+CONFIG_BT_ISO_PERIPHERAL=y
+CONFIG_BT_ISO_BROADCASTER=y
+CONFIG_BT_ISO_SYNC_RECEIVER=y
+
+# LE Audio/ISO memory placement stays internal (default). The ISO data path is
+# latency-sensitive, so the heap must not move to PSRAM. Moving only the
+# control-plane .bss (CONFIG_BT_ISO_BSS_SEG_EXTERNAL_MEMORY +
+# CONFIG_BT_AUDIO_BSS_SEG_EXTERNAL_MEMORY, which also need
+# CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY) is an option if internal DRAM
+# becomes the bottleneck; measure with esp-idf-size before enabling it.
+
 CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_SPIRAM=y
