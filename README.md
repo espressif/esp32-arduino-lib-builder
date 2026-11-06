@@ -43,6 +43,25 @@ To use it, follow these steps:
 
 `-t esp32c5` compiles Matter twice (Wi-Fi, then Matter-over-Thread) and publishes both archives in one `esp32c5/` folder: `libespressif__esp_matter.wifi.a` and `libespressif__esp_matter.thread.a`. `configs/defconfig.esp32c5_mot` is the Thread recipe used by that second compile.
 
+**Arduino IDE:** Tools → Matter Network → Wi-Fi or Thread (`boards.txt` also has Disabled, which does not link a Matter `.a`).
+
+**pioarduino:** `pioarduino-build.py` links `.wifi.a` unless the sketch defines `ARDUINO_MATTER_NETWORK_THREAD` (then `.thread.a`). There is no unsuffixed `libespressif__esp_matter.a` on C5.
+
+### CHIPoBLE Matter NimBLE (`libbt.matter.a`)
+
+**Low-RAM targets only:** set `"bt_matter_harvest": true` in `configs/builds.json` for **esp32c3**, **esp32c5**, and **esp32h2**. The builder runs a second **idf-libs** pass and publishes **`libbt.matter.a`** beside **`libbt.a`**.
+
+All other chips keep the default **`libbt.a`** only (no harvest pass).
+
+Harvest appends **`configs/defconfig.bt_matter_chipoble`**; suffix **`matter`** is fixed in `build.sh`. Only **`"bt_matter_harvest": true`** is set per target in `builds.json`.
+
+Published link flags: **`flags/ld_libs`** only (includes **`-lbt`**). Harvest targets also ship **`lib/libbt.matter.a`**.
+
+**Arduino IDE** (`tools/configure_link_libs.sh` / `.cmd` at `recipe.hooks.linking.prelink`):
+
+1. If `{build.path}/libraries/Matter` exists **and** **`lib/libbt.matter.a`** exists → copy **`flags/ld_libs`** to `link_libs.rsp` with **`-lbt`** replaced by **`-lbt.matter`** (token match; does not affect **`-lbtbb`**, etc.).
+2. Else → **`flags/ld_libs`** unchanged (Matter on S3/C6/S31 keeps **`-lbt`** / **`libbt.a`**).
+
 ### Documentation
 
 For more information about how to use the Library builder, please refer to this [Documentation page](https://docs.espressif.com/projects/arduino-esp32/en/latest/lib_builder.html?highlight=lib%20builder)

@@ -4,7 +4,7 @@
 			"file":"libspi_flash.a",
 			"src":"build/esp-idf/spi_flash/libspi_flash.a",
 			"out":"lib/libspi_flash.a",
-			"targets":["esp32","esp32c2","esp32c3","esp32s2","esp32s3","esp32c6","esp32h2","esp32p4","esp32p4_es","esp32c5","esp32c61"]
+			"targets":["esp32","esp32c2","esp32c3","esp32s2","esp32s3","esp32c6","esp32h2","esp32p4","esp32p4_es","esp32c5","esp32c61","esp32s31"]
 		},
 		{
 			"file":"libesp_psram.a",
@@ -45,6 +45,15 @@
 	],
 	"targets":[
 		{
+			"target": "esp32s31",
+			"features":[],
+			"idf_libs":["qio","80m_250m","opi_ram"],
+			"bootloaders":[
+				["qio","80m_250m","opi_ram"]
+			],
+			"mem_variants":[]
+		},
+		{
 			"target": "esp32c61",
 			"skip": 1,
 			"features":["qio_ram"],
@@ -76,7 +85,8 @@
 			"matter_harvest": {
 				"defconfig": "esp32c5_mot",
 				"matter_lib_suffix": "thread"
-			}
+			},
+			"bt_matter_harvest": true
 		},
 		{
 			"chip_variant": "esp32p4_es",
@@ -125,6 +135,7 @@
 		{
 			"target": "esp32h2",
 			"features":[],
+			"bt_matter_harvest": true,
 			"idf_libs":["qio","64m"],
 			"bootloaders":[
 				["qio","64m"],
@@ -153,6 +164,7 @@
 		{
 			"target": "esp32c3",
 			"features":[],
+			"bt_matter_harvest": true,
 			"idf_libs":["qio","80m"],
 			"bootloaders":[
 				["qio","80m"],
