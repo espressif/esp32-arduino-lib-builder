@@ -19,6 +19,8 @@ fi
 export IDF_COMPONENT_OVERWRITE_MANAGED_COMPONENTS=1
 
 CCACHE_ENABLE=1
+KEEP_BUILD=${AR_KEEP_BUILD:-1}
+FORCE_CLEAN=${AR_FORCE_CLEAN:-0}
 
 TARGET="all"
 BUILD_TYPE="all"
@@ -43,14 +45,83 @@ function print_help() {
     echo "       -c     Set the arduino-esp32 folder to copy the result to. ex. '$HOME/Arduino/hardware/espressif/esp32'"
     echo "       -t     Set the build target(chip) ex. 'esp32s3' or select multiple targets(chips) by separating them with comma ex. 'esp32,esp32s3,esp32c3'"
     echo "       -b     Set the build type. ex. 'build' to build the project and prepare for uploading to a board"
+    echo "       -f     Force a clean build, ignoring the keep-build stamp"
     echo "       ...    Specify additional configs to be applied. ex. 'qio 80m' to compile for QIO Flash@80MHz. Requires -b"
     exit 1
 }
 
-while getopts ":A:I:i:c:t:b:D:sde" opt; do
+function hash_stream() {
+    if command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 | awk '{print $1}'
+    elif command -v sha256sum >/dev/null 2>&1; then
+        sha256sum | awk '{print $1}'
+    else
+        cksum | awk '{print $1}'
+    fi
+}
+
+function hash_file() {
+    if [ -f "$1" ]; then
+        hash_stream < "$1"
+    else
+        echo missing
+    fi
+}
+
+function hash_git() {
+    local dir="$1"
+    if git -C "$dir" rev-parse --git-dir >/dev/null 2>&1; then
+        {
+            git -C "$dir" rev-parse HEAD 2>/dev/null
+            git -C "$dir" diff HEAD 2>/dev/null
+        } | hash_stream
+    else
+        echo nogit
+    fi
+}
+
+# Reuse the build directory only when every build input is unchanged: target,
+# config/defaults, build type, IDF/Arduino revisions, managed dependencies and
+# this script. Switching target, variant or config still starts from a clean
+# build. Set -f or AR_FORCE_CLEAN=1 for a guaranteed clean build.
+function prepare_build_dir() {
+    local target="$1"
+    local configs="$2"
+    local stamp_file="${AR_OUT:-out}/.build_config_stamp"
+    local config_hash=""
+    local conf
+    local stamp
+
+    for conf in $(echo "$configs" | tr ';' ' '); do
+        config_hash="$config_hash$(hash_file "$conf")"
+    done
+
+    stamp=$(printf '%s\n' \
+        "target=$target" \
+        "configs=$configs" \
+        "config_hash=$config_hash" \
+        "idf=$(hash_git "$IDF_PATH")" \
+        "arduino=$(hash_git "$AR_COMPS/arduino")" \
+        "deps=$(hash_file "$AR_ROOT/dependencies.lock")" \
+        "script=$(hash_file "$AR_ROOT/build.sh")")
+
+    if [ "$KEEP_BUILD" = "1" ] && [ "$FORCE_CLEAN" != "1" ] && [ -f "$stamp_file" ] && [ "$(cat "$stamp_file")" = "$stamp" ]; then
+        echo "* Keeping existing build directory and sdkconfig (inputs unchanged)"
+        return
+    fi
+
+    rm -rf build sdkconfig
+    mkdir -p "$(dirname "$stamp_file")"
+    printf '%s\n' "$stamp" > "$stamp_file"
+}
+
+while getopts ":A:I:i:c:t:b:D:sdef" opt; do
     case ${opt} in
         s )
             SKIP_ENV=1
+            ;;
+        f )
+            FORCE_CLEAN=1
             ;;
         n )
             CCACHE_ENABLE=0
@@ -213,6 +284,11 @@ else
     source ./tools/config.sh
 fi
 
+# Normalise paths for ccache so entries survive build-directory wipes and
+# differently-named checkouts. Target/config differences still produce
+# different preprocessed input, so ccache never shares incompatible objects.
+export CCACHE_BASEDIR="${CCACHE_BASEDIR:-$AR_ROOT}"
+export CCACHE_NOHASHDIR="${CCACHE_NOHASHDIR:-1}"
 if [ "$BUILD_TYPE" != "all" ]; then
     if [ "$TARGET" = "all" ]; then
         echo "ERROR: You need to specify target for non-default builds"
@@ -258,7 +334,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
         done
 
         echo "idf.py -DIDF_TARGET=\"$target\" -DSDKCONFIG_DEFAULTS=\"$configs\" $BUILD_TYPE"
-        rm -rf build sdkconfig
+        prepare_build_dir "$target" "$configs"
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
         if [ $? -ne 0 ]; then exit 1; fi
 
@@ -329,7 +405,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     done
 
     echo "* Build IDF-Libs: $idf_libs_configs"
-    rm -rf build sdkconfig
+    prepare_build_dir "$target" "$idf_libs_configs"
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     if [ $? -ne 0 ]; then exit 1; fi
 
