@@ -1,0 +1,115 @@
+diff --git a/components/protocomm/src/transports/protocomm_nimble.c b/components/protocomm/src/transports/protocomm_nimble.c
+index 2f46b6d01a5..2eb8bd15468 100644
+--- a/components/protocomm/src/transports/protocomm_nimble.c
++++ b/components/protocomm/src/transports/protocomm_nimble.c
+@@ -19,8 +19,11 @@
+ #include "nimble/nimble_port.h"
+ #include "nimble/nimble_port_freertos.h"
+ #include "host/ble_hs.h"
++#include "host/ble_hs_adv.h"
++#include "host/ble_hs_mbuf.h"
+ #include "host/ble_uuid.h"
+ #include "host/util/util.h"
++#include "os/os_mbuf.h"
+ #include "services/gap/ble_svc_gap.h"
+ #include "services/gatt/ble_svc_gatt.h"
+ 
+@@ -197,6 +200,65 @@ static int simple_ble_gatts_get_attr_value(uint16_t attr_handle, ssize_t
+ /*****************************************************************************************/
+ /*                             SIMPLE BLE INTEGRATION                                    */
+ /*****************************************************************************************/
++#if MYNEWT_VAL(BLE_EXT_ADV)
++/* Legacy-PDU advertising must use the last extended advertising instance,
++ * matching the Arduino BLE library's legacy advertising path. */
++#define PROTOCOMM_BLE_EXT_ADV_INSTANCE (BLE_ADV_INSTANCES - 1)
++
++static int
++simple_ble_ext_adv_set_data(const struct ble_hs_adv_fields *fields, bool scan_rsp)
++{
++    uint8_t buf[BLE_HS_ADV_MAX_SZ];
++    uint8_t len;
++    int rc = ble_hs_adv_set_fields(fields, buf, &len, sizeof(buf));
++    if (rc != 0) {
++        return rc;
++    }
++
++    /* ble_gap_ext_adv_set_data/rsp_set_data take ownership of the mbuf. */
++    struct os_mbuf *om = ble_hs_mbuf_from_flat(buf, len);
++    if (om == NULL) {
++        return BLE_HS_ENOMEM;
++    }
++
++    return scan_rsp ? ble_gap_ext_adv_rsp_set_data(PROTOCOMM_BLE_EXT_ADV_INSTANCE, om)
++                    : ble_gap_ext_adv_set_data(PROTOCOMM_BLE_EXT_ADV_INSTANCE, om);
++}
++
++static int
++simple_ble_ext_advertise(void)
++{
++    struct ble_gap_ext_adv_params params = {0};
++    int rc;
++
++    params.connectable = 1;
++    params.scannable = 1;
++    params.legacy_pdu = 1;
++    params.itvl_min = 0x100;
++    params.itvl_max = 0x100;
++    params.own_addr_type = own_addr_type;
++
++    rc = ble_gap_ext_adv_configure(PROTOCOMM_BLE_EXT_ADV_INSTANCE, &params, NULL,
++                                   simple_ble_gap_event, NULL);
++    if (rc != 0 && rc != BLE_HS_EALREADY) {
++        return rc;
++    }
++
++    rc = simple_ble_ext_adv_set_data(&adv_data, false);
++    if (rc != 0) {
++        return rc;
++    }
++
++    rc = simple_ble_ext_adv_set_data(&resp_data, true);
++    if (rc != 0) {
++        return rc;
++    }
++
++    /* 0 means no expiration for the extended advertising API. */
++    return ble_gap_ext_adv_start(PROTOCOMM_BLE_EXT_ADV_INSTANCE, 0, 0);
++}
++#endif
++
+ static void
+ simple_ble_advertise(void)
+ {
+@@ -211,6 +273,9 @@ simple_ble_advertise(void)
+     adv_data.num_uuids128 = 1;
+     adv_data.uuids128_is_complete = 1;
+ 
++#if MYNEWT_VAL(BLE_EXT_ADV)
++    rc = simple_ble_ext_advertise();
++#else
+     rc = ble_gap_adv_set_fields(&adv_data);
+     if (rc != 0) {
+         ESP_LOGE(TAG, "Error setting advertisement data; rc = %d", rc);
+@@ -230,6 +295,7 @@ simple_ble_advertise(void)
+ 
+     rc = ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER,
+                            &adv_params, simple_ble_gap_event, NULL);
++#endif
+     if (rc != 0) {
+         /* If BLE Host is disabled, it probably means device is already
+          * provisioned in previous session. Avoid error prints for this case.*/
+@@ -1240,7 +1306,14 @@ esp_err_t protocomm_ble_stop(protocomm_t *pc)
+ 
+     esp_err_t ret = ESP_OK;
+     bool ble_callbacks_active = true;
++#if MYNEWT_VAL(BLE_EXT_ADV)
++    esp_err_t rc = ble_gap_ext_adv_stop(PROTOCOMM_BLE_EXT_ADV_INSTANCE);
++    if (rc == 0) {
++        rc = ble_gap_ext_adv_remove(PROTOCOMM_BLE_EXT_ADV_INSTANCE);
++    }
++#else
+     esp_err_t rc = ble_gap_adv_stop();
++#endif
+     if (rc) {
+         ESP_LOGD(TAG, "Error in stopping advertisement with err code = %d",
+                  rc);
