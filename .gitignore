@@ -1,30 +1,22 @@
 .DS_Store
 .vscode
-managed_components/
-components/arduino/
-components/esp-dl/
-components/esp-sr/
-components/esp32-camera/
-components/esp_littlefs/
-components/esp-rainmaker/
-components/espressif__esp-dsp/
-components/esp-insights/
-components/arduino_tinyusb/tinyusb/
-components/tflite-micro/
-esp-idf/
-out/
+/managed_components
+/components/arduino
+/components/arduino_tinyusb/tinyusb
+/esp-idf
+/out
 # Per-host-backend copies of a target's libs, kept across `build.sh`'s
 # `rm -rf out`. See tools/select-ble-backend.sh.
-variants/
+/variants
 # Transient Bluedroid overlay promoted from
 # configs/defconfig.esp32s31_bluedroid.disabled by tools/select-ble-backend.sh.
-configs/defconfig.bluedroid
-build/
-dist/
-env.sh
-sdkconfig
-sdkconfig.old
-version.txt
-dependencies.lock
-managed_components/
-target/
+/configs/defconfig.bluedroid
+/build
+/dist
+/env.sh
+/sdkconfig
+/sdkconfig.old
+/version.txt
+/dependencies.lock
+/managed_components
+/target
