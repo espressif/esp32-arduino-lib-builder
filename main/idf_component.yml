@@ -30,4 +30,4 @@ dependencies:
     version: "^0.4.0"
     require: public
     rules:
-      - if: "idf_version >= 5.4 && target in [esp32s3, esp32p4]"
+      - if: "idf_version >= 5.4 && target in [esp32p4]"
