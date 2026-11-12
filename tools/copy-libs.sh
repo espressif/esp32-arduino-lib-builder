@@ -799,8 +799,15 @@ for lib in "openthread" "espressif__esp-tflite-micro" "bt" "espressif__esp_matte
 done
 
 # Handle Mem Variants
+if [ ! -f "$PWD/build/config/sdkconfig.h" ]; then
+	echo "ERROR: build/config/sdkconfig.h is missing; refusing to publish an incomplete sdkconfig"
+	exit 1
+fi
 mkdir -p "$AR_SDK/$MEMCONF/include"
-mv "$PWD/build/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
+# Copy, don't move: the generated header must stay in build/ or the next
+# incremental build regenerates it and recompiles every translation unit that
+# includes it.
+cp "$PWD/build/config/sdkconfig.h" "$AR_SDK/$MEMCONF/include/sdkconfig.h"
 for mem_variant in `jq -c '.mem_variants_files[]' configs/builds.json`; do
 	skip_file=1
 	for file_target in $(echo "$mem_variant" | jq -c '.targets[]' | tr -d '"'); do
