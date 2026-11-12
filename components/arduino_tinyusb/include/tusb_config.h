@@ -149,8 +149,7 @@ extern "C" {
 #define CFG_TUD_NCM           CONFIG_TINYUSB_NCM_ENABLED
 
 // CDC enable notify
-// Currently causes CDC to not be enumerated properly so port is unavailable
-//#define CFG_TUD_CDC_NOTIFY			1
+#define CFG_TUD_CDC_NOTIFY			1
 
 // CDC FIFO size of TX and RX
 #define CFG_TUD_CDC_RX_BUFSIZE 		CONFIG_TINYUSB_CDC_RX_BUFSIZE
