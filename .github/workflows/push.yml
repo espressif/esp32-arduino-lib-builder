@@ -34,8 +34,31 @@ jobs:
     - name: Install dependencies
       run: bash ./tools/prepare-ci.sh
 
+    # Every job starts on a fresh runner, so without this the ccache created by
+    # build.sh (see CCACHE_BASEDIR/CCACHE_NOHASHDIR) is discarded at the end of
+    # the job and every target recompiles ESP-IDF from scratch on every push.
+    - name: Restore ccache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ github.workspace }}/.ccache
+        key: ccache-${{ runner.os }}-${{ matrix.target }}-${{ github.event.pull_request.base_ref || github.ref_name }}-${{ github.run_id }}
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ matrix.target }}-${{ github.event.pull_request.base_ref || github.ref_name }}-
+
     - name: Build Libs for ${{ matrix.target }}
+      env:
+        CCACHE_DIR: ${{ github.workspace }}/.ccache
+        CCACHE_COMPILERCHECK: content
+        CCACHE_MAXSIZE: 500M
       run: bash ./build.sh -e -t ${{ matrix.target }}
+
+    - name: ccache statistics
+      if: always()
+      env:
+        CCACHE_DIR: ${{ github.workspace }}/.ccache
+      # prepare-ci.sh installs ccache; keep this informational step harmless if
+      # that ever changes.
+      run: command -v ccache >/dev/null && ccache -s || true
 
     - name: Upload build
       if: failure()

@@ -68,51 +68,79 @@ function hash_file() {
     fi
 }
 
-function hash_git() {
-    local dir="$1"
-    if git -C "$dir" rev-parse --git-dir >/dev/null 2>&1; then
-        {
-            git -C "$dir" rev-parse HEAD 2>/dev/null
-            git -C "$dir" diff HEAD 2>/dev/null
-        } | hash_stream
-    else
-        echo nogit
-    fi
-}
+# The stamp describes what build/ currently belongs to. It must live outside
+# out/ (wiped at the start of every full build) and outside build/ (wiped by the
+# clean path below), and it is only written after a successful build so a failed
+# run can never be reused.
+BUILD_STAMP_FILE="${AR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}/.build_stamp"
 
-# Reuse the build directory only when every build input is unchanged: target,
-# config/defaults, build type, IDF/Arduino revisions, managed dependencies and
-# this script. Switching target, variant or config still starts from a clean
-# build. Set -f or AR_FORCE_CLEAN=1 for a guaranteed clean build.
-function prepare_build_dir() {
+# Identity of the tree: which target and which defconfig set produced it.
+#
+# Deliberately *not* part of it: ESP-IDF/Arduino revisions, dependencies.lock,
+# this script. Those change whenever you edit a source file, and throwing the
+# tree away for them is what made the previous version useless. Ninja tracks
+# per-object dependencies and command lines, so a source or toolchain update is
+# rebuilt incrementally, and copy-libs.sh publishes the archives referenced by
+# the *current* link line (build/CMakeFiles/arduino-lib-builder.elf.dir/link.txt),
+# so a component that left the build can never leak a stale archive into the
+# published libs. Set -f or AR_FORCE_CLEAN=1 to force a pristine tree.
+function build_inputs_stamp() {
     local target="$1"
     local configs="$2"
-    local stamp_file="${AR_OUT:-out}/.build_config_stamp"
     local config_hash=""
     local conf
-    local stamp
 
     for conf in $(echo "$configs" | tr ';' ' '); do
         config_hash="$config_hash$(hash_file "$conf")"
     done
 
-    stamp=$(printf '%s\n' \
+    printf '%s\n' \
         "target=$target" \
         "configs=$configs" \
-        "config_hash=$config_hash" \
-        "idf=$(hash_git "$IDF_PATH")" \
-        "arduino=$(hash_git "$AR_COMPS/arduino")" \
-        "deps=$(hash_file "$AR_ROOT/dependencies.lock")" \
-        "script=$(hash_file "$AR_ROOT/build.sh")")
+        "config_hash=$config_hash"
+}
 
-    if [ "$KEEP_BUILD" = "1" ] && [ "$FORCE_CLEAN" != "1" ] && [ -f "$stamp_file" ] && [ "$(cat "$stamp_file")" = "$stamp" ]; then
-        echo "* Keeping existing build directory and sdkconfig (inputs unchanged)"
-        return
+# Prepare build/ for one idf.py task.
+#
+#  * same target and same configs      -> keep build/ and sdkconfig, nothing to do
+#  * same target, different configs    -> keep build/, drop sdkconfig so the
+#                                         defconfigs are applied to a clean
+#                                         config; ninja rebuilds what changed
+#  * different target, -f, AR_KEEP_BUILD=0, or a previous failure -> clean tree
+#
+# Returns 0 when the existing tree was kept untouched.
+function prepare_build_dir() {
+    local target="$1"
+    local configs="$2"
+    local stamp
+    local previous_target=""
+
+    stamp=$(build_inputs_stamp "$target" "$configs")
+
+    if [ "$KEEP_BUILD" = "1" ] && [ "$FORCE_CLEAN" != "1" ] && [ -f "$BUILD_STAMP_FILE" ] && [ "$(cat "$BUILD_STAMP_FILE")" = "$stamp" ]; then
+        echo "* Keeping build directory (same target and configs: $target)"
+        return 0
     fi
 
-    rm -rf build sdkconfig
-    mkdir -p "$(dirname "$stamp_file")"
-    printf '%s\n' "$stamp" > "$stamp_file"
+    if [ -f "$BUILD_STAMP_FILE" ]; then
+        previous_target=$(sed -n 's/^target=//p' "$BUILD_STAMP_FILE")
+    fi
+
+    if [ "$KEEP_BUILD" != "1" ] || [ "$FORCE_CLEAN" = "1" ] || [ "$previous_target" != "$target" ]; then
+        rm -rf build sdkconfig
+        echo "* Cleaning build directory ($target)"
+    else
+        rm -f sdkconfig
+        echo "* Reconfiguring build directory ($target: $configs)"
+    fi
+
+    rm -f "$BUILD_STAMP_FILE"
+    return 1
+}
+
+# Mark build/ reusable. Called only after the task that produced it succeeded.
+function mark_build_dir_ready() {
+    build_inputs_stamp "$1" "$2" > "$BUILD_STAMP_FILE"
 }
 
 while getopts ":A:I:i:c:t:b:D:sdef" opt; do
@@ -243,7 +271,10 @@ function harvest_matter_libs() {
     echo "* Harvest configs: $harvest_configs"
     export HARVEST_ONLY=matter
     export MATTER_LIB_SUFFIX="$harvest_suffix"
+    # A harvest publishes an archive built with a different Matter
+    # configuration, so it must not inherit the archive from the previous pass.
     rm -rf build sdkconfig
+    rm -f "$BUILD_STAMP_FILE"
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$harvest_configs" idf-libs
     local rc=$?
     unset HARVEST_ONLY
@@ -251,6 +282,7 @@ function harvest_matter_libs() {
     if [ $rc -ne 0 ]; then
         exit 1
     fi
+    mark_build_dir_ready "$target" "$harvest_configs"
 
     if [ ! -f "$primary_a" ] || [ ! -f "$harvest_a" ]; then
         echo "ERROR: $CHIP_VARIANT Matter harvest must leave both archives:"
@@ -404,6 +436,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
         prepare_build_dir "$target" "$configs"
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$configs" $BUILD_TYPE
         if [ $? -ne 0 ]; then exit 1; fi
+        mark_build_dir_ready "$target" "$configs"
 
         if [ "$BUILD_TYPE" == "idf-libs" ]; then
             harvest_matter_libs "$target_json" "$target" "$configs"
@@ -424,6 +457,7 @@ if [ "$BUILD_TYPE" != "all" ]; then
 fi
 
 rm -rf build sdkconfig out
+rm -f "$BUILD_STAMP_FILE"
 mkdir -p "$AR_TOOLS/esp32-arduino-libs"
 
 #targets_count=`jq -c '.targets[] | length' configs/builds.json`
@@ -477,6 +511,7 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
     prepare_build_dir "$target" "$idf_libs_configs"
     idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$idf_libs_configs" idf-libs
     if [ $? -ne 0 ]; then exit 1; fi
+    mark_build_dir_ready "$target" "$idf_libs_configs"
 
     harvest_matter_libs "$target_json" "$target" "$idf_libs_configs"
     harvest_bt_matter_libs "$target_json" "$target" "$idf_libs_configs"
@@ -508,9 +543,10 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         done
 
         echo "* Build BootLoader: $bootloader_configs"
-        rm -rf build sdkconfig
+        prepare_build_dir "$target" "$bootloader_configs"
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$bootloader_configs" copy-bootloader
         if [ $? -ne 0 ]; then exit 1; fi
+        mark_build_dir_ready "$target" "$bootloader_configs"
     done
 
     # Build Memory Variants
@@ -521,9 +557,10 @@ for target_json in `jq -c '.targets[]' configs/builds.json`; do
         done
 
         echo "* Build Memory Variant: $mem_configs"
-        rm -rf build sdkconfig
+        prepare_build_dir "$target" "$mem_configs"
         idf.py -DIDF_TARGET="$target" -DSDKCONFIG_DEFAULTS="$mem_configs" mem-variant
         if [ $? -ne 0 ]; then exit 1; fi
+        mark_build_dir_ready "$target" "$mem_configs"
     done
 done
 
