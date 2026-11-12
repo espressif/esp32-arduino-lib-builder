@@ -11,6 +11,10 @@
 # Transient Bluedroid overlay promoted from
 # configs/defconfig.esp32s31_bluedroid.disabled by tools/select-ble-backend.sh.
 /configs/defconfig.bluedroid
+# Reuse stamp for build.sh's incremental build (see prepare_build_dir).
+/.build_stamp
+# CI ccache (restored/saved by actions/cache in the workflows).
+/.ccache
 /build
 /dist
 /env.sh
