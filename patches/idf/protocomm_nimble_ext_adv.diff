@@ -1,5 +1,5 @@
 diff --git a/components/protocomm/src/transports/protocomm_nimble.c b/components/protocomm/src/transports/protocomm_nimble.c
-index 2f46b6d01a5..2eb8bd15468 100644
+index 2f46b6d01a5..a8b1a7eb00f 100644
 --- a/components/protocomm/src/transports/protocomm_nimble.c
 +++ b/components/protocomm/src/transports/protocomm_nimble.c
 @@ -19,8 +19,11 @@
@@ -14,13 +14,14 @@ index 2f46b6d01a5..2eb8bd15468 100644
  #include "services/gap/ble_svc_gap.h"
  #include "services/gatt/ble_svc_gatt.h"
  
-@@ -197,6 +200,65 @@ static int simple_ble_gatts_get_attr_value(uint16_t attr_handle, ssize_t
+@@ -197,6 +200,66 @@ static int simple_ble_gatts_get_attr_value(uint16_t attr_handle, ssize_t
  /*****************************************************************************************/
  /*                             SIMPLE BLE INTEGRATION                                    */
  /*****************************************************************************************/
 +#if MYNEWT_VAL(BLE_EXT_ADV)
-+/* Legacy-PDU advertising must use the last extended advertising instance,
-+ * matching the Arduino BLE library's legacy advertising path. */
++/* Use the highest configured advertising instance so provisioning stays clear
++ * of application extended-advertising sets allocated from 0 upward (resolves
++ * to 0 when BLE_MULTI_ADV_INSTANCES is 0). */
 +#define PROTOCOMM_BLE_EXT_ADV_INSTANCE (BLE_ADV_INSTANCES - 1)
 +
 +static int
@@ -80,7 +81,7 @@ index 2f46b6d01a5..2eb8bd15468 100644
  static void
  simple_ble_advertise(void)
  {
-@@ -211,6 +273,9 @@ simple_ble_advertise(void)
+@@ -211,6 +274,9 @@ simple_ble_advertise(void)
      adv_data.num_uuids128 = 1;
      adv_data.uuids128_is_complete = 1;
  
@@ -90,7 +91,7 @@ index 2f46b6d01a5..2eb8bd15468 100644
      rc = ble_gap_adv_set_fields(&adv_data);
      if (rc != 0) {
          ESP_LOGE(TAG, "Error setting advertisement data; rc = %d", rc);
-@@ -230,6 +295,7 @@ simple_ble_advertise(void)
+@@ -230,6 +296,7 @@ simple_ble_advertise(void)
  
      rc = ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER,
                             &adv_params, simple_ble_gap_event, NULL);
@@ -98,7 +99,7 @@ index 2f46b6d01a5..2eb8bd15468 100644
      if (rc != 0) {
          /* If BLE Host is disabled, it probably means device is already
           * provisioned in previous session. Avoid error prints for this case.*/
-@@ -1240,7 +1306,14 @@ esp_err_t protocomm_ble_stop(protocomm_t *pc)
+@@ -1240,7 +1307,14 @@ esp_err_t protocomm_ble_stop(protocomm_t *pc)
  
      esp_err_t ret = ESP_OK;
      bool ble_callbacks_active = true;

@@ -1,7 +1,25 @@
 diff --git a/components/bt/esp_ble_audio/host/adapter/bluedroid/include/bluedroid/server.h b/components/bt/esp_ble_audio/host/adapter/bluedroid/include/bluedroid/server.h
-index 833d8d2778c..ef91aa4f127 100644
+index 833d8d2778c..2f79f661b7c 100644
 --- a/components/bt/esp_ble_audio/host/adapter/bluedroid/include/bluedroid/server.h
 +++ b/components/bt/esp_ble_audio/host/adapter/bluedroid/include/bluedroid/server.h
+@@ -17,7 +17,7 @@
+ extern "C" {
+ #endif
+ 
+-static inline char *audio_svc_uuid_to_str(uint16_t uuid)
++static inline const char *audio_svc_uuid_to_str(uint16_t uuid)
+ {
+     switch (uuid) {
+     case BT_UUID_AICS_VAL:          return "AICS";
+@@ -43,7 +43,7 @@ static inline char *audio_svc_uuid_to_str(uint16_t uuid)
+     }
+ }
+ 
+-static inline char *audio_chrc_uuid_to_str(uint16_t uuid)
++static inline const char *audio_chrc_uuid_to_str(uint16_t uuid)
+ {
+     switch (uuid) {
+     case BT_UUID_OTS_FEATURE_VAL:               return "OTS_FEATURE";
 @@ -172,6 +172,11 @@ int bt_le_bluedroid_svc_deinit(struct bt_gatt_service *svc);
  
  int bt_le_bluedroid_svc_start(struct bt_gatt_service *svc);
@@ -60,7 +78,7 @@ index 364bb3bae58..ccba6433764 100644
  
      return 0;
 diff --git a/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c b/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
-index 4676ce7faa2..12bead5d10d 100644
+index 4676ce7faa2..7335633c45b 100644
 --- a/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
 +++ b/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
 @@ -28,6 +28,10 @@
@@ -129,9 +147,9 @@ index 4676ce7faa2..12bead5d10d 100644
      gatt_conn->peer.type = event->peer.type;
      memcpy(gatt_conn->peer.val, event->peer.val, BT_ADDR_SIZE);
 +
-+    /* ISO uses the physical ACL, not this app's later GATT OPEN. Another
-+     * application (e.g. Arduino BLEClient) may own the GATT client interface
-+     * and never generate OPEN for the ISO adapter's interface. */
++    /* ISO uses the physical ACL, not this GATTC app's later OPEN event:
++     * another registered GATTC client interface may have initiated the link
++     * and never generate BTA_GATTC_OPEN_EVT on the ISO adapter's gattc_if. */
 +    post_acl_connect_app_event(gatt_conn);
  }
  
@@ -221,6 +239,23 @@ index a75d71a7026..5262d03930b 100644
  
      uint8_t  status;
      uint8_t  gatt_if;
+diff --git a/components/bt/esp_ble_iso/host/adapter/bluedroid/iso.c b/components/bt/esp_ble_iso/host/adapter/bluedroid/iso.c
+index 2caf350613c..0b7e3703697 100644
+--- a/components/bt/esp_ble_iso/host/adapter/bluedroid/iso.c
++++ b/components/bt/esp_ble_iso/host/adapter/bluedroid/iso.c
+@@ -1333,9 +1333,10 @@ void bt_le_bluedroid_iso_deinit(void)
+ {
+ #if CONFIG_BT_ISO_UNICAST
+     /* Core 6.0 Vol 4 Part E 7.8.115: LE Set Host Feature is Command Disallowed
+-     * while any connection exists, and the ACL outlives ISO deinit. Skip - a
++     * while any connection exists, and the ACL outlives ISO deinit (including
++     * ACLs owned by another GATTC app or still tearing down in BTM). Skip - a
+      * stale host-support bit is harmless and the next init sets it again. */
+-    if (bt_le_acl_conn_count() == 0) {
++    if (bt_le_acl_conn_count() == 0 && BTM_GetNumAclLinks() == 0) {
+         iso_disable_cis();
+     }
+ #endif /* CONFIG_BT_ISO_UNICAST */
 diff --git a/components/bt/esp_ble_iso/host/common/app/gap.c b/components/bt/esp_ble_iso/host/common/app/gap.c
 index c4bdbb82dfe..fa986001fc6 100644
 --- a/components/bt/esp_ble_iso/host/common/app/gap.c
@@ -247,21 +282,26 @@ index c4bdbb82dfe..fa986001fc6 100644
  end:
      bt_le_host_unlock();
 diff --git a/components/bt/esp_ble_iso/host/common/include/common/iso.h b/components/bt/esp_ble_iso/host/common/include/common/iso.h
-index ea45348a3f1..eba0b0511b1 100644
+index ea45348a3f1..be76bff4402 100644
 --- a/components/bt/esp_ble_iso/host/common/include/common/iso.h
 +++ b/components/bt/esp_ble_iso/host/common/include/common/iso.h
-@@ -75,6 +75,9 @@ int bt_le_iso_rx(const uint8_t *data, uint16_t len, void *arg);
+@@ -75,6 +75,14 @@ int bt_le_iso_rx(const uint8_t *data, uint16_t len, void *arg);
  
  int bt_le_iso_disconnect(uint16_t conn_handle, uint8_t reason);
  
 +/* Complete any CIS channels still attached when their parent ACL is gone. */
 +void bt_iso_acl_disconnected(uint16_t acl_handle, uint8_t reason);
 +
++#if defined(CONFIG_BT_ISO_BROADCAST)
++/* Return the most recently registered BIG callback node (NULL if empty). */
++struct bt_iso_big_cb *bt_iso_big_tail_cb(void);
++#endif /* CONFIG_BT_ISO_BROADCAST */
++
  void bt_le_iso_state_reset(void);
  
  size_t bt_le_iso_report_busy(void);
 diff --git a/components/bt/esp_ble_iso/host/iso/iso.c b/components/bt/esp_ble_iso/host/iso/iso.c
-index 460ba37ae68..69658871c4e 100644
+index 460ba37ae68..3183d5192b5 100644
 --- a/components/bt/esp_ble_iso/host/iso/iso.c
 +++ b/components/bt/esp_ble_iso/host/iso/iso.c
 @@ -448,6 +448,11 @@ static void bt_iso_chan_disconnected(struct bt_iso_chan *chan, uint8_t reason)
@@ -319,3 +359,49 @@ index 460ba37ae68..69658871c4e 100644
  static void store_cis_info(const struct bt_hci_evt_le_cis_established *evt, struct bt_conn *iso)
  {
      struct bt_conn_iso *iso_conn = &iso->iso;
+@@ -2462,6 +2503,13 @@ int bt_iso_big_unregister_cb(struct bt_iso_big_cb *cb)
+     return 0;
+ }
+ 
++struct bt_iso_big_cb *bt_iso_big_tail_cb(void)
++{
++    sys_snode_t *tail = sys_slist_peek_tail(&iso_big_cbs);
++
++    return tail ? CONTAINER_OF(tail, struct bt_iso_big_cb, _node) : NULL;
++}
++
+ #if defined(CONFIG_BT_ISO_BROADCASTER)
+ static int hci_le_create_big(struct bt_le_ext_adv *padv, struct bt_iso_big *big,
+                              struct bt_iso_big_create_param *param)
+diff --git a/components/bt/host/bluedroid/stack/gatt/gatt_utils.c b/components/bt/host/bluedroid/stack/gatt/gatt_utils.c
+index 82dc639f584..8e709f30078 100644
+--- a/components/bt/host/bluedroid/stack/gatt/gatt_utils.c
++++ b/components/bt/host/bluedroid/stack/gatt/gatt_utils.c
+@@ -1580,7 +1580,7 @@ UINT8 gatt_sr_find_i_rcb_by_app_id(tBT_UUID *p_app_uuid128, tBT_UUID *p_svc_uuid
+                     gatt_uuid_compare (*p_app_uuid128, p_sreg->app_uuid ) &&
+                     gatt_uuid_compare (*p_svc_uuid, *p_this_uuid) &&
+                     (svc_inst == p_sreg->service_instance)) {
+-                GATT_TRACE_ERROR ("Active Service Found ");
++                GATT_TRACE_DEBUG ("Active Service Found ");
+                 gatt_dbg_display_uuid(*p_svc_uuid);
+ 
+                 break;
+diff --git a/components/bt/porting_btdm/transport/src/hci_transport.c b/components/bt/porting_btdm/transport/src/hci_transport.c
+index 686b94be869..5f1c6e8b1c1 100644
+--- a/components/bt/porting_btdm/transport/src/hci_transport.c
++++ b/components/bt/porting_btdm/transport/src/hci_transport.c
+@@ -139,10 +139,11 @@ static ble_host_rx_iso_data_fn *ble_host_iso_rx_cb = NULL;
+ 
+ void ble_host_register_rx_iso_data_cb(void *cb)
+ {
+-    /* If the iso rx cb is already registered, we will give
+-     * a warning log here, and the cb will still be updated.
++    /* Only warn when replacing an active callback with a different non-NULL
++     * callback; clearing with NULL on deinit or re-registering the same
++     * callback is normal lifecycle traffic.
+      */
+-    if (ble_host_iso_rx_cb) {
++    if (cb != NULL && ble_host_iso_rx_cb != NULL && ble_host_iso_rx_cb != cb) {
+         printf("iso rx cb %p already registered\n", ble_host_iso_rx_cb);
+     }
+ 

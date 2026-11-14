@@ -1,8 +1,35 @@
 diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
-index 324fff1981c..5fa87bd7551 100644
+index 324fff1981c..77e6a6546b3 100644
 --- a/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
 +++ b/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
-@@ -175,6 +175,12 @@ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
+@@ -90,6 +90,7 @@ esp_err_t esp_ble_audio_common_init(esp_ble_audio_init_info_t *info)
+ {
+     bool gap_cb_registered = false;
+     bool gatt_cb_registered = false;
++    esp_err_t ret = ESP_FAIL;
+     int err;
+ 
+     if (info) {
+@@ -131,6 +132,9 @@ esp_err_t esp_ble_audio_common_init(esp_ble_audio_init_info_t *info)
+     bt_le_host_unlock();
+ 
+     if (err) {
++        if (err == -EBUSY) {
++            ret = -EBUSY;
++        }
+         bt_le_host_deinit();
+         goto unregister_gatt;
+     }
+@@ -145,7 +149,7 @@ unregister_gap:
+     if (gap_cb_registered) {
+         bt_le_gap_app_cb_unregister();
+     }
+-    return ESP_FAIL;
++    return ret;
+ }
+ 
+ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
+@@ -175,6 +179,12 @@ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
  
      bt_le_audio_deinit();
  
@@ -135,10 +162,40 @@ index 68425997934..7d8c68ade50 100644
  }
  #endif /* CONFIG_BT_PACS */
 diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/init.c b/components/bt/esp_ble_audio/host/adapter/nimble/init.c
-index be7be8e4310..3424b80b16d 100644
+index be7be8e4310..0d9d3896350 100644
 --- a/components/bt/esp_ble_audio/host/adapter/nimble/init.c
 +++ b/components/bt/esp_ble_audio/host/adapter/nimble/init.c
-@@ -469,8 +469,15 @@ void bt_le_nimble_audio_deinit(void)
+@@ -14,6 +14,7 @@
+ #include <zephyr/logging/log.h>
+ #include <zephyr/bluetooth/audio/vcp.h>
+ 
++#include "host/ble_hs.h"
+ #include "host/ble_gatt.h"
+ #include "services/gap/ble_svc_gap.h"
+ #include "services/gatt/ble_svc_gatt.h"
+@@ -190,6 +191,21 @@ int bt_le_nimble_audio_init(void)
+         return 0;
+     }
+ 
++    /* Reset any started NimBLE GATT table from an earlier session on a live
++     * host before ble_svc_gap_init() runs (which asserts on BLE_HS_EBUSY). */
++    err = ble_gatts_reset();
++    if (err) {
++        /* EBUSY is the expected Busy-guard path (GAP/ACL active); warn only. */
++        if (err == BLE_HS_EBUSY) {
++            LOG_WRN("[N]GattsResetFail[%d]", err);
++        } else {
++            LOG_ERR("[N]GattsResetFail[%d]", err);
++        }
++        return err == BLE_HS_EBUSY ? -EBUSY : -EIO;
++    }
++
++    ble_gatts_free_svcs();
++
+     ble_svc_gap_init();
+ 
+     ble_svc_gatt_init();
+@@ -469,8 +480,15 @@ void bt_le_nimble_audio_deinit(void)
  {
      LOG_DBG("[N]AudioDeinit");
  
@@ -513,7 +570,7 @@ index 9af7d2d6300..d0f1e038009 100644
  
      /* Last: iso_task has exited and the callbacks above are gone, so nothing
 diff --git a/components/bt/esp_ble_iso/host/common/include/common/gatt.h b/components/bt/esp_ble_iso/host/common/include/common/gatt.h
-index d48aa3c2506..39d33732d25 100644
+index d48aa3c2506..bd01346335c 100644
 --- a/components/bt/esp_ble_iso/host/common/include/common/gatt.h
 +++ b/components/bt/esp_ble_iso/host/common/include/common/gatt.h
 @@ -310,6 +310,12 @@ int bt_gattc_disc_start(uint16_t conn_handle);
@@ -521,9 +578,9 @@ index d48aa3c2506..39d33732d25 100644
  struct gattc_sub *bt_gattc_sub_find(struct bt_conn *conn);
  
 +/* Drop every GATTC subscription slot without touching the params nodes:
-+ * BLE.end() can free the profile-owned bt_gatt_subscribe_params before the
-+ * ACL-disconnect listener runs, leaving a BSS list of dangling pointers.
-+ * Walking that list in a later bt_gatt_subscribe() is a load fault. */
++ * host teardown can run after profile-owned bt_gatt_subscribe_params were
++ * released, leaving a BSS list of dangling pointers that a subsequent
++ * bt_gatt_subscribe() would otherwise walk. */
 +void bt_le_gattc_sub_reset(void);
 +
  void bt_le_acl_conn_disconnected_gatt_listener(uint16_t conn_handle);
@@ -567,3 +624,30 @@ index 960b579ef3a..b9bce5571dc 100644
          return err;
      }
  
+diff --git a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
+index cd78c2aa300..1b0e8a54385 100644
+--- a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
++++ b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
+@@ -883,13 +883,19 @@ int bt_le_nimble_gatt_nrp_remove(struct bt_conn *conn, uint8_t type, void *param
+ 
+     nrp = gatt_nrp_find(conn->handle);
+     if (nrp == NULL) {
+-        LOG_ERR("[N]GattNrpNotFound[%u]", conn->handle);
+-        return -ENODEV;
++        /* Duplicate complete after NRP clear (disconnect / deinit) is a
++         * no-op. conn_handle 0 is a valid live ACL, so this is not an
++         * invalid-handle error — the slot is simply already gone. */
++        LOG_DBG("[N]GattNrpNotFound[%u]", conn->handle);
++        return 0;
+     }
+ 
+     /* Fetch and remove the first node from list */
+     node = sys_slist_get(&nrp->list);
+-    BT_LE_ASSERT(node);
++    if (node == NULL) {
++        LOG_DBG("[N]GattNrpEmpty[%u]", conn->handle);
++        return 0;
++    }
+ 
+     nrp_head = CONTAINER_OF(node, struct gatt_nrp_node, node);
+     BT_LE_ASSERT(nrp_head->type == type);
