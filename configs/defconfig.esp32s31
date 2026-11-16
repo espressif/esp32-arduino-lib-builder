@@ -53,16 +53,15 @@ CONFIG_BT_CSIP_SET_COORDINATOR=y
 CONFIG_BT_VCP_VOL_REND=y
 CONFIG_BT_VCP_VOL_CTLR=y
 CONFIG_BT_VOCS_MAX_INSTANCE_COUNT=1
-CONFIG_BT_VOCS_CLIENT_MAX_INSTANCE_COUNT=1
-# AICS_MAX_INSTANCE_COUNT / AICS_CLIENT_MAX_INSTANCE_COUNT are GLOBAL pools the
-# engine draws from at init (lib_aics_init / lib_aics_client_init). They must be
-# >= the sum of every AICS sub-instance across all profiles, not per-profile:
-# here VCS (VCP_VOL_REND_AICS=1) + MICS (MICP_MIC_DEV_AICS=1) = 2 on the server
-# side and the matching two on the client side. A device that mounts AICS under
-# both VCS and MICS (e.g. a headset with volume + mic gain) needs 2, otherwise
-# the engine fails common_init with AicsPoolUndersized / LibAicsInitFail.
+# Client VOCS / AICS pools are allocated across all connection slots at init
+# (MAX_CONN * per-conn max: 3 on NimBLE, 4 on Bluedroid). Size VOCS client to 4
+# (4 * 1 VCP VOCS) and AICS client to 8 (4 * (1 VCP AICS + 1 MICP AICS)) so VCP
+# and MICP controllers coexist without starving each other's AICS instances.
+CONFIG_BT_VOCS_CLIENT_MAX_INSTANCE_COUNT=4
+# AICS_MAX_INSTANCE_COUNT is a GLOBAL server pool drawn at init (lib_aics_init):
+# VCS (VCP_VOL_REND_AICS=1) + MICS (MICP_MIC_DEV_AICS=1) = 2 on the server side.
 CONFIG_BT_AICS_MAX_INSTANCE_COUNT=2
-CONFIG_BT_AICS_CLIENT_MAX_INSTANCE_COUNT=2
+CONFIG_BT_AICS_CLIENT_MAX_INSTANCE_COUNT=8
 CONFIG_BT_VCP_VOL_REND_VOCS_INSTANCE_COUNT=1
 CONFIG_BT_VCP_VOL_REND_AICS_INSTANCE_COUNT=1
 CONFIG_BT_VCP_VOL_CTLR_MAX_VOCS_INST=1

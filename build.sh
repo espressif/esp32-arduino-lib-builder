@@ -380,7 +380,12 @@ fi
 
 # Fixes we cannot wait for upstream on, see patches/idf/README.md.
 # --3way makes a rebuild that already carries them a no-op.
-git -C "$IDF_PATH" apply --3way -q "$AR_PATCHES"/idf/*.diff
+# Fail loudly on conflict: silently continuing would build (and validate)
+# a mix of patched and pristine sources.
+if ! git -C "$IDF_PATH" apply --3way -q "$AR_PATCHES"/idf/*.diff; then
+    echo "ERROR: IDF patches do not apply cleanly (check for conflict markers in $IDF_PATH); resolve them before building."
+    exit 1
+fi
 
 # Normalise paths for ccache so entries survive build-directory wipes and
 # differently-named checkouts. Target/config differences still produce
