@@ -1,0 +1,24 @@
+diff --git a/components/bt/host/bluedroid/stack/btm/btm_dev.c b/components/bt/host/bluedroid/stack/btm/btm_dev.c
+--- a/components/bt/host/bluedroid/stack/btm/btm_dev.c
++++ b/components/bt/host/bluedroid/stack/btm/btm_dev.c
+@@ -493,8 +493,20 @@ void btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec, tBT_TRANSPORT transport)
+ #if BLE_INCLUDED == TRUE
+         /* Clear out any saved BLE keys */
+         btm_sec_clear_ble_keys (p_dev_rec);
+ #endif
+     }
++    /* Requirements are per-bond/per-session state: drop them together with
++     * the bond. btm_ble_io_capabilities_req() ORs BTM_SEC_IN_MITM from this
++     * field into every pairing request/response, so a record that is reused
++     * for the same peer (deferred bond delete racing a fast reconnect, or a
++     * lingering record the list removal skipped) would otherwise force MITM
++     * on a re-pairing whose application explicitly asked for none, and the
++     * peer would authenticate a link the app left unauthenticated.
++     * btm_ble_set_encryption() re-arms whatever each new pairing or
++     * encryption actually needs, and no live connection depends on the old
++     * value here: callers only free the record when no connection uses it
++     * (bond deleted, duplicate dropped, or idle with no keys). */
++    p_dev_rec->security_required = BTM_SEC_NONE;
+ #if (SMP_INCLUDED == TRUE)
+     if (p_dev_rec == btm_cb.p_collided_dev_rec) {
+         btm_cb.p_collided_dev_rec = NULL;
