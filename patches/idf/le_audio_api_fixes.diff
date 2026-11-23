@@ -1,0 +1,1333 @@
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_bap_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_bap_api.c
+index 29350b1339f..8217abd8e46 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_bap_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_bap_api.c
+@@ -7,8 +7,13 @@
+  */
+ 
+ #include <errno.h>
++#include <stdbool.h>
++#include <stddef.h>
++#include <string.h>
+ 
+ #include "esp_ble_audio_bap_api.h"
++#include "common/init.h"
++#include "common/iso.h"
+ 
+ #if CONFIG_BT_BAP_UNICAST_SERVER
+ esp_err_t esp_ble_audio_bap_unicast_server_register(const esp_ble_audio_bap_unicast_server_register_param_t *param)
+@@ -69,6 +74,8 @@
+     return ret;
+ }
+ 
++static const esp_ble_audio_bap_unicast_server_cb_t *s_bap_uc_srv_cb;
++
+ esp_err_t esp_ble_audio_bap_unicast_server_register_cb(const esp_ble_audio_bap_unicast_server_cb_t *cb)
+ {
+     int err;
+@@ -80,6 +87,9 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_bap_unicast_server_register_cb(cb);
++    if (err == 0) {
++        s_bap_uc_srv_cb = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -101,6 +111,9 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_bap_unicast_server_unregister_cb(cb);
++    if (err == 0 && s_bap_uc_srv_cb == cb) {
++        s_bap_uc_srv_cb = NULL;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -249,6 +262,9 @@
+     return ESP_OK;
+ }
+ 
++#define BAP_UC_CLI_MAX_TRACKED_CBS 4
++static esp_ble_audio_bap_unicast_client_cb_t *s_bap_uc_cli_cbs[BAP_UC_CLI_MAX_TRACKED_CBS];
++
+ esp_err_t esp_ble_audio_bap_unicast_client_register_cb(esp_ble_audio_bap_unicast_client_cb_t *cb)
+ {
+     int err;
+@@ -259,7 +275,24 @@
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = lib_bap_unicast_client_register_cb(cb);
++    /* Reserve a tracking slot before calling the lib: registering and
++     * then finding no free slot would leave an untracked lib registration
++     * that deinit cannot clean up. */
++    size_t free_idx = BAP_UC_CLI_MAX_TRACKED_CBS;
++    for (size_t i = 0; i < BAP_UC_CLI_MAX_TRACKED_CBS; i++) {
++        if (s_bap_uc_cli_cbs[i] == NULL) {
++            free_idx = i;
++            break;
++        }
++    }
++    if (free_idx == BAP_UC_CLI_MAX_TRACKED_CBS) {
++        err = -ENOMEM;
++    } else {
++        err = lib_bap_unicast_client_register_cb(cb);
++    }
++    if (err == 0) {
++        s_bap_uc_cli_cbs[free_idx] = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -281,6 +314,14 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_bap_unicast_client_unregister_cb(cb);
++    if (err == 0) {
++        for (size_t i = 0; i < BAP_UC_CLI_MAX_TRACKED_CBS; i++) {
++            if (s_bap_uc_cli_cbs[i] == cb) {
++                s_bap_uc_cli_cbs[i] = NULL;
++                break;
++            }
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -553,6 +594,9 @@
+ #endif /* CONFIG_BT_BAP_UNICAST */
+ 
+ #if CONFIG_BT_BAP_BROADCAST_SOURCE
++#define BAP_BSRC_MAX_TRACKED_CBS 4
++static esp_ble_audio_bap_broadcast_source_cb_t *s_bap_bsrc_cbs[BAP_BSRC_MAX_TRACKED_CBS];
++
+ esp_err_t esp_ble_audio_bap_broadcast_source_register_cb(esp_ble_audio_bap_broadcast_source_cb_t *cb)
+ {
+     int err;
+@@ -563,7 +607,24 @@
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_bap_broadcast_source_register_cb(cb);
++    /* Reserve a tracking slot before calling the lib: registering and
++     * then finding no free slot would leave an untracked lib registration
++     * that deinit cannot clean up. */
++    size_t free_idx = BAP_BSRC_MAX_TRACKED_CBS;
++    for (size_t i = 0; i < BAP_BSRC_MAX_TRACKED_CBS; i++) {
++        if (s_bap_bsrc_cbs[i] == NULL) {
++            free_idx = i;
++            break;
++        }
++    }
++    if (free_idx == BAP_BSRC_MAX_TRACKED_CBS) {
++        err = -ENOMEM;
++    } else {
++        err = bt_bap_broadcast_source_register_cb(cb);
++    }
++    if (err == 0) {
++        s_bap_bsrc_cbs[free_idx] = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -585,6 +646,14 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_bap_broadcast_source_unregister_cb(cb);
++    if (err == 0) {
++        for (size_t i = 0; i < BAP_BSRC_MAX_TRACKED_CBS; i++) {
++            if (s_bap_bsrc_cbs[i] == cb) {
++                s_bap_bsrc_cbs[i] = NULL;
++                break;
++            }
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -774,9 +843,21 @@
+ #endif /* CONFIG_BT_BAP_BROADCAST_SOURCE */
+ 
+ #if CONFIG_BT_BAP_BROADCAST_SINK
++/* lib_bap_broadcast_sink_deinit() in prebuilt libble_audio.a unregisters its
++ * internal ISO BIG callback without clearing sink_cbs, and exposes no
++ * broadcast-sink callback unregister API. Keep mutable slots in sink_cbs
++ * across sessions and re-arm the captured BIG callback on re-init. */
++#define BAP_BSNK_MAX_CBS 4
++static struct bt_bap_broadcast_sink_cb s_bap_bsnk_cb_slots[BAP_BSNK_MAX_CBS];
++static const esp_ble_audio_bap_broadcast_sink_cb_t *s_bap_bsnk_callers[BAP_BSNK_MAX_CBS];
++static bool s_bap_bsnk_cb_linked[BAP_BSNK_MAX_CBS];
++static struct bt_iso_big_cb *s_bap_bsnk_lib_big_cb;
++
+ esp_err_t esp_ble_audio_bap_broadcast_sink_register_cb(esp_ble_audio_bap_broadcast_sink_cb_t *cb)
+ {
+-    int err;
++    const size_t fn_bytes = offsetof(struct bt_bap_broadcast_sink_cb, _node);
++    size_t free_idx = BAP_BSNK_MAX_CBS;
++    int err = 0;
+ 
+     if (cb == NULL) {
+         return ESP_ERR_INVALID_ARG;
+@@ -784,7 +865,50 @@
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_bap_broadcast_sink_register_cb(cb);
++    for (size_t i = 0; i < BAP_BSNK_MAX_CBS; i++) {
++        if (s_bap_bsnk_callers[i] == cb) {
++            err = -EEXIST;
++            break;
++        }
++        if (s_bap_bsnk_callers[i] == NULL && free_idx == BAP_BSNK_MAX_CBS) {
++            free_idx = i;
++        }
++    }
++
++    if (err == 0 && free_idx == BAP_BSNK_MAX_CBS) {
++        err = -ENOMEM;
++    }
++
++    if (err == 0) {
++        memcpy(&s_bap_bsnk_cb_slots[free_idx], cb, fn_bytes);
++        if (!s_bap_bsnk_cb_linked[free_idx]) {
++            struct bt_iso_big_cb *prev_tail = bt_iso_big_tail_cb();
++
++            err = bt_bap_broadcast_sink_register_cb(&s_bap_bsnk_cb_slots[free_idx]);
++            if (err == 0) {
++                struct bt_iso_big_cb *new_tail = bt_iso_big_tail_cb();
++
++                if (new_tail != prev_tail) {
++                    s_bap_bsnk_lib_big_cb = new_tail;
++                }
++                s_bap_bsnk_cb_linked[free_idx] = true;
++            } else {
++                memset(&s_bap_bsnk_cb_slots[free_idx], 0, fn_bytes);
++            }
++        }
++        if (err == 0 && s_bap_bsnk_lib_big_cb != NULL) {
++            err = bt_iso_big_register_cb(s_bap_bsnk_lib_big_cb);
++            if (err == -EEXIST) {
++                err = 0;
++            }
++            if (err != 0) {
++                memset(&s_bap_bsnk_cb_slots[free_idx], 0, fn_bytes);
++            }
++        }
++        if (err == 0) {
++            s_bap_bsnk_callers[free_idx] = cb;
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -1130,6 +1254,9 @@
+     bt_le_host_unlock();
+     return ret;
+ }
++
++#define BAP_BA_MAX_TRACKED_CBS 4
++static esp_ble_audio_bap_broadcast_assistant_cb_t *s_bap_ba_cbs[BAP_BA_MAX_TRACKED_CBS];
+ 
+ esp_err_t esp_ble_audio_bap_broadcast_assistant_register_cb(esp_ble_audio_bap_broadcast_assistant_cb_t *cb)
+ {
+@@ -1141,7 +1268,24 @@
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_bap_broadcast_assistant_register_cb(cb);
++    /* Reserve a tracking slot before calling the lib: registering and
++     * then finding no free slot would leave an untracked lib registration
++     * that deinit cannot clean up. */
++    size_t free_idx = BAP_BA_MAX_TRACKED_CBS;
++    for (size_t i = 0; i < BAP_BA_MAX_TRACKED_CBS; i++) {
++        if (s_bap_ba_cbs[i] == NULL) {
++            free_idx = i;
++            break;
++        }
++    }
++    if (free_idx == BAP_BA_MAX_TRACKED_CBS) {
++        err = -ENOMEM;
++    } else {
++        err = bt_bap_broadcast_assistant_register_cb(cb);
++    }
++    if (err == 0) {
++        s_bap_ba_cbs[free_idx] = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -1163,6 +1307,14 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_bap_broadcast_assistant_unregister_cb(cb);
++    if (err == 0) {
++        for (size_t i = 0; i < BAP_BA_MAX_TRACKED_CBS; i++) {
++            if (s_bap_ba_cbs[i] == cb) {
++                s_bap_ba_cbs[i] = NULL;
++                break;
++            }
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -1686,3 +1838,43 @@
+     return ESP_OK;
+ }
+ #endif /* CONFIG_BT_BAP_BASE */
++
++void bt_le_audio_bap_api_deinit(void)
++{
++#if CONFIG_BT_BAP_UNICAST_SERVER
++    if (s_bap_uc_srv_cb != NULL) {
++        (void)bt_bap_unicast_server_unregister_cb(s_bap_uc_srv_cb);
++        s_bap_uc_srv_cb = NULL;
++    }
++#endif /* CONFIG_BT_BAP_UNICAST_SERVER */
++#if CONFIG_BT_BAP_UNICAST_CLIENT
++    for (size_t i = 0; i < BAP_UC_CLI_MAX_TRACKED_CBS; i++) {
++        if (s_bap_uc_cli_cbs[i] != NULL) {
++            (void)bt_bap_unicast_client_unregister_cb(s_bap_uc_cli_cbs[i]);
++            s_bap_uc_cli_cbs[i] = NULL;
++        }
++    }
++#endif /* CONFIG_BT_BAP_UNICAST_CLIENT */
++#if CONFIG_BT_BAP_BROADCAST_SOURCE
++    for (size_t i = 0; i < BAP_BSRC_MAX_TRACKED_CBS; i++) {
++        if (s_bap_bsrc_cbs[i] != NULL) {
++            (void)bt_bap_broadcast_source_unregister_cb(s_bap_bsrc_cbs[i]);
++            s_bap_bsrc_cbs[i] = NULL;
++        }
++    }
++#endif /* CONFIG_BT_BAP_BROADCAST_SOURCE */
++#if CONFIG_BT_BAP_BROADCAST_SINK
++    for (size_t i = 0; i < BAP_BSNK_MAX_CBS; i++) {
++        memset(&s_bap_bsnk_cb_slots[i], 0, offsetof(struct bt_bap_broadcast_sink_cb, _node));
++        s_bap_bsnk_callers[i] = NULL;
++    }
++#endif /* CONFIG_BT_BAP_BROADCAST_SINK */
++#if CONFIG_BT_BAP_BROADCAST_ASSISTANT
++    for (size_t i = 0; i < BAP_BA_MAX_TRACKED_CBS; i++) {
++        if (s_bap_ba_cbs[i] != NULL) {
++            (void)bt_bap_broadcast_assistant_unregister_cb(s_bap_ba_cbs[i]);
++            s_bap_ba_cbs[i] = NULL;
++        }
++    }
++#endif /* CONFIG_BT_BAP_BROADCAST_ASSISTANT */
++}
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_cap_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_cap_api.c
+index 9c04216b4e7..f630c4fcb43 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_cap_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_cap_api.c
+@@ -5,6 +5,10 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <errno.h>
++#include <stddef.h>
++
++#include "common/init.h"
+ #include "esp_ble_audio_cap_api.h"
+ 
+ #if CONFIG_BT_CAP_ACCEPTOR_SET_MEMBER
+@@ -243,6 +247,8 @@
+ #endif /* CONFIG_BT_BAP_UNICAST_CLIENT */
+ 
+ #if CONFIG_BT_CAP_INITIATOR
++static const esp_ble_audio_cap_initiator_cb_t *s_cap_init_cb;
++
+ esp_err_t esp_ble_audio_cap_initiator_register_cb(const esp_ble_audio_cap_initiator_cb_t *cb)
+ {
+     int err;
+@@ -254,6 +260,9 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_cap_initiator_register_cb(cb);
++    if (err == 0) {
++        s_cap_init_cb = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -275,6 +284,9 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_cap_initiator_unregister_cb(cb);
++    if (err == 0 && s_cap_init_cb == cb) {
++        s_cap_init_cb = NULL;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -535,6 +547,8 @@
+ #endif /* CONFIG_BT_CAP_INITIATOR */
+ 
+ #if CONFIG_BT_CAP_HANDOVER
++static const esp_ble_audio_cap_handover_cb_t *s_cap_handover_cb;
++
+ esp_err_t esp_ble_audio_cap_handover_register_cb(const esp_ble_audio_cap_handover_cb_t *cb)
+ {
+     int err;
+@@ -546,6 +560,9 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_cap_handover_register_cb(cb);
++    if (err == 0) {
++        s_cap_handover_cb = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -567,6 +584,9 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_cap_handover_unregister_cb(cb);
++    if (err == 0 && s_cap_handover_cb == cb) {
++        s_cap_handover_cb = NULL;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -632,6 +652,9 @@
+ #endif /* CONFIG_BT_CAP_HANDOVER */
+ 
+ #if CONFIG_BT_CAP_COMMANDER
++#define CAP_CMD_MAX_TRACKED_CBS 4
++static const esp_ble_audio_cap_commander_cb_t *s_cap_commander_cbs[CAP_CMD_MAX_TRACKED_CBS];
++
+ esp_err_t esp_ble_audio_cap_commander_register_cb(const esp_ble_audio_cap_commander_cb_t *cb)
+ {
+     int err;
+@@ -642,7 +665,24 @@
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_cap_commander_register_cb(cb);
++    /* Reserve a tracking slot before calling the lib: registering and
++     * then finding no free slot would leave an untracked lib registration
++     * that deinit cannot clean up. */
++    size_t free_idx = CAP_CMD_MAX_TRACKED_CBS;
++    for (size_t i = 0; i < CAP_CMD_MAX_TRACKED_CBS; i++) {
++        if (s_cap_commander_cbs[i] == NULL) {
++            free_idx = i;
++            break;
++        }
++    }
++    if (free_idx == CAP_CMD_MAX_TRACKED_CBS) {
++        err = -ENOMEM;
++    } else {
++        err = bt_cap_commander_register_cb(cb);
++    }
++    if (err == 0) {
++        s_cap_commander_cbs[free_idx] = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -664,6 +704,14 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_cap_commander_unregister_cb(cb);
++    if (err == 0) {
++        for (size_t i = 0; i < CAP_CMD_MAX_TRACKED_CBS; i++) {
++            if (s_cap_commander_cbs[i] == cb) {
++                s_cap_commander_cbs[i] = NULL;
++                break;
++            }
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -908,4 +956,28 @@
+ }
+ #endif /* CONFIG_BT_MICP_MIC_CTLR_AICS */
+ #endif /* CONFIG_BT_MICP_MIC_CTLR */
++#endif /* CONFIG_BT_CAP_COMMANDER */
++
++void bt_le_audio_cap_api_deinit(void)
++{
++#if CONFIG_BT_CAP_INITIATOR
++    if (s_cap_init_cb != NULL) {
++        (void)bt_cap_initiator_unregister_cb(s_cap_init_cb);
++        s_cap_init_cb = NULL;
++    }
++#endif /* CONFIG_BT_CAP_INITIATOR */
++#if CONFIG_BT_CAP_HANDOVER
++    if (s_cap_handover_cb != NULL) {
++        (void)bt_cap_handover_unregister_cb(s_cap_handover_cb);
++        s_cap_handover_cb = NULL;
++    }
++#endif /* CONFIG_BT_CAP_HANDOVER */
++#if CONFIG_BT_CAP_COMMANDER
++    for (size_t i = 0; i < CAP_CMD_MAX_TRACKED_CBS; i++) {
++        if (s_cap_commander_cbs[i] != NULL) {
++            (void)bt_cap_commander_unregister_cb(s_cap_commander_cbs[i]);
++            s_cap_commander_cbs[i] = NULL;
++        }
++    }
+ #endif /* CONFIG_BT_CAP_COMMANDER */
++}
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_ccp_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_ccp_api.c
+index 302a0ce1ffd..583cc4246d2 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_ccp_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_ccp_api.c
+@@ -5,6 +5,11 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <errno.h>
++#include <stddef.h>
++#include <string.h>
++
++#include "common/init.h"
+ #include "esp_ble_audio_ccp_api.h"
+ 
+ #if CONFIG_BT_CCP_CALL_CONTROL_SERVER
+@@ -12,15 +17,29 @@
+     const esp_ble_audio_tbs_register_param_t *param,
+     esp_ble_audio_ccp_call_control_server_bearer_t **bearer)
+ {
++    char schemes_buf[CONFIG_BT_TBS_MAX_SCHEME_LIST_LENGTH + 2];
++    esp_ble_audio_tbs_register_param_t norm_param;
+     esp_err_t err;
+ 
+     if (param == NULL || bearer == NULL) {
+         return ESP_ERR_INVALID_ARG;
+     }
+ 
++    norm_param = *param;
++    if (param->uri_schemes_supported != NULL) {
++        size_t len = strlen(param->uri_schemes_supported);
++        if (len > 0 && param->uri_schemes_supported[len - 1] != ',' &&
++                len <= CONFIG_BT_TBS_MAX_SCHEME_LIST_LENGTH) {
++            memcpy(schemes_buf, param->uri_schemes_supported, len);
++            schemes_buf[len] = ',';
++            schemes_buf[len + 1] = '\0';
++            norm_param.uri_schemes_supported = schemes_buf;
++        }
++    }
++
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_ccp_call_control_server_register_bearer(param, bearer);
++    err = bt_ccp_call_control_server_register_bearer(&norm_param, bearer);
+ 
+     bt_le_host_unlock();
+ 
+@@ -162,6 +181,9 @@
+     return ESP_OK;
+ }
+ 
++#define CCP_MAX_TRACKED_CBS 4
++static esp_ble_audio_ccp_call_control_client_cb_t *s_ccp_client_cbs[CCP_MAX_TRACKED_CBS];
++
+ esp_err_t esp_ble_audio_ccp_call_control_client_register_cb(
+     esp_ble_audio_ccp_call_control_client_cb_t *cb)
+ {
+@@ -173,7 +195,24 @@
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_ccp_call_control_client_register_cb(cb);
++    /* Reserve a tracking slot before calling the lib: registering and
++     * then finding no free slot would leave an untracked lib registration
++     * that deinit cannot clean up. */
++    size_t free_idx = CCP_MAX_TRACKED_CBS;
++    for (size_t i = 0; i < CCP_MAX_TRACKED_CBS; i++) {
++        if (s_ccp_client_cbs[i] == NULL) {
++            free_idx = i;
++            break;
++        }
++    }
++    if (free_idx == CCP_MAX_TRACKED_CBS) {
++        err = -ENOMEM;
++    } else {
++        err = bt_ccp_call_control_client_register_cb(cb);
++    }
++    if (err == 0) {
++        s_ccp_client_cbs[free_idx] = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -196,6 +235,14 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_ccp_call_control_client_unregister_cb(cb);
++    if (err == 0) {
++        for (size_t i = 0; i < CCP_MAX_TRACKED_CBS; i++) {
++            if (s_ccp_client_cbs[i] == cb) {
++                s_ccp_client_cbs[i] = NULL;
++                break;
++            }
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -253,3 +300,15 @@
+     return ESP_OK;
+ }
+ #endif /* CONFIG_BT_TBS_CLIENT_BEARER_PROVIDER_NAME */
++
++void bt_le_audio_ccp_api_deinit(void)
++{
++#if CONFIG_BT_CCP_CALL_CONTROL_CLIENT
++    for (size_t i = 0; i < CCP_MAX_TRACKED_CBS; i++) {
++        if (s_ccp_client_cbs[i] != NULL) {
++            (void)bt_ccp_call_control_client_unregister_cb(s_ccp_client_cbs[i]);
++            s_ccp_client_cbs[i] = NULL;
++        }
++    }
++#endif /* CONFIG_BT_CCP_CALL_CONTROL_CLIENT */
++}
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_csip_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_csip_api.c
+index e3a236fa8a4..6d084339b3b 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_csip_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_csip_api.c
+@@ -5,6 +5,12 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <errno.h>
++#include <stdbool.h>
++#include <stddef.h>
++#include <string.h>
++
++#include "common/init.h"
+ #include "esp_ble_audio_csip_api.h"
+ 
+ #if CONFIG_BT_CSIP_SET_MEMBER
+@@ -292,9 +298,16 @@ bool esp_ble_audio_csip_set_coordinator_is_set_member(const uint8_t sirk[ESP_BLE
+     return is_member;
+ }
+ 
++#define CSIP_COORD_MAX_CBS 4
++static struct bt_csip_set_coordinator_cb s_csip_coord_cb_slots[CSIP_COORD_MAX_CBS];
++static const esp_ble_audio_csip_set_coordinator_cb_t *s_csip_coord_callers[CSIP_COORD_MAX_CBS];
++static bool s_csip_coord_cb_linked[CSIP_COORD_MAX_CBS];
++
+ esp_err_t esp_ble_audio_csip_set_coordinator_register_cb(esp_ble_audio_csip_set_coordinator_cb_t *cb)
+ {
+-    int err;
++    const size_t fn_bytes = offsetof(struct bt_csip_set_coordinator_cb, _node);
++    size_t free_idx = CSIP_COORD_MAX_CBS;
++    int err = 0;
+ 
+     if (cb == NULL) {
+         return ESP_ERR_INVALID_ARG;
+@@ -302,7 +315,34 @@ esp_err_t esp_ble_audio_csip_set_coordinator_register_cb(esp_ble_audio_csip_set_
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_csip_set_coordinator_register_cb(cb);
++    for (size_t i = 0; i < CSIP_COORD_MAX_CBS; i++) {
++        if (s_csip_coord_callers[i] == cb) {
++            err = -EALREADY;
++            break;
++        }
++        if (s_csip_coord_callers[i] == NULL && free_idx == CSIP_COORD_MAX_CBS) {
++            free_idx = i;
++        }
++    }
++
++    if (err == 0 && free_idx == CSIP_COORD_MAX_CBS) {
++        err = -ENOMEM;
++    }
++
++    if (err == 0) {
++        memcpy(&s_csip_coord_cb_slots[free_idx], cb, fn_bytes);
++        if (!s_csip_coord_cb_linked[free_idx]) {
++            err = bt_csip_set_coordinator_register_cb(&s_csip_coord_cb_slots[free_idx]);
++            if (err == 0) {
++                s_csip_coord_cb_linked[free_idx] = true;
++            } else {
++                memset(&s_csip_coord_cb_slots[free_idx], 0, fn_bytes);
++            }
++        }
++        if (err == 0) {
++            s_csip_coord_callers[free_idx] = cb;
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -385,3 +425,13 @@ esp_err_t esp_ble_audio_csip_set_coordinator_release(const esp_ble_audio_csip_se
+     return ESP_OK;
+ }
+ #endif /* CONFIG_BT_CSIP_SET_COORDINATOR */
++
++void bt_le_audio_csip_api_deinit(void)
++{
++#if CONFIG_BT_CSIP_SET_COORDINATOR
++    for (size_t i = 0; i < CSIP_COORD_MAX_CBS; i++) {
++        memset(&s_csip_coord_cb_slots[i], 0, offsetof(struct bt_csip_set_coordinator_cb, _node));
++        s_csip_coord_callers[i] = NULL;
++    }
++#endif /* CONFIG_BT_CSIP_SET_COORDINATOR */
++}
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_gmap_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_gmap_api.c
+index fb7475e12a1..dc330461357 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_gmap_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_gmap_api.c
+@@ -5,12 +5,21 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <errno.h>
++#include <stdbool.h>
++#include <string.h>
++
++#include "common/init.h"
+ #include "esp_ble_audio_gmap_api.h"
+ 
+ #if CONFIG_BT_GMAP
++static struct bt_gmap_cb s_gmap_cb_slot;
++static bool s_gmap_cb_linked;
++static bool s_gmap_cb_active;
++
+ esp_err_t esp_ble_audio_gmap_cb_register(const esp_ble_audio_gmap_cb_t *cb)
+ {
+-    int err;
++    int err = 0;
+ 
+     if (cb == NULL) {
+         return ESP_ERR_INVALID_ARG;
+@@ -18,7 +27,22 @@ esp_err_t esp_ble_audio_gmap_cb_register(const esp_ble_audio_gmap_cb_t *cb)
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_gmap_cb_register(cb);
++    if (s_gmap_cb_active) {
++        err = -EALREADY;
++    } else {
++        s_gmap_cb_slot = *cb;
++        if (!s_gmap_cb_linked) {
++            err = bt_gmap_cb_register(&s_gmap_cb_slot);
++            if (err == 0) {
++                s_gmap_cb_linked = true;
++            } else {
++                memset(&s_gmap_cb_slot, 0, sizeof(s_gmap_cb_slot));
++            }
++        }
++        if (err == 0) {
++            s_gmap_cb_active = true;
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -284,3 +308,15 @@ esp_err_t esp_ble_audio_gmap_set_role(esp_ble_audio_gmap_role_t role,
+     return ESP_OK;
+ }
+ #endif /* CONFIG_BT_GMAP */
++
++void bt_le_audio_gmap_api_deinit(void)
++{
++#if CONFIG_BT_GMAP
++    /* lib_gmap_client_deinit zeroes lib's gmap_cb, so drop our link too:
++     * keeping linked=true would skip re-registration on the next init,
++     * leaving the lib with a NULL callback (dead discover callbacks). */
++    s_gmap_cb_linked = false;
++    memset(&s_gmap_cb_slot, 0, sizeof(s_gmap_cb_slot));
++    s_gmap_cb_active = false;
++#endif /* CONFIG_BT_GMAP */
++}
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_has_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_has_api.c
+index f84decbd8ac..027d639019f 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_has_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_has_api.c
+@@ -6,12 +6,21 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <errno.h>
++#include <stdbool.h>
++#include <string.h>
++
++#include "common/init.h"
+ #include "esp_ble_audio_has_api.h"
+ 
+ #if CONFIG_BT_HAS_CLIENT
++static struct bt_has_client_cb s_has_client_cb_slot;
++static bool s_has_client_cb_linked;
++static bool s_has_client_cb_active;
++
+ esp_err_t esp_ble_audio_has_client_cb_register(const esp_ble_audio_has_client_cb_t *cb)
+ {
+-    int err;
++    int err = 0;
+ 
+     if (cb == NULL) {
+         return ESP_ERR_INVALID_ARG;
+@@ -19,7 +28,22 @@ esp_err_t esp_ble_audio_has_client_cb_register(const esp_ble_audio_has_client_cb
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_has_client_cb_register(cb);
++    if (s_has_client_cb_active) {
++        err = -EALREADY;
++    } else {
++        s_has_client_cb_slot = *cb;
++        if (!s_has_client_cb_linked) {
++            err = bt_has_client_cb_register(&s_has_client_cb_slot);
++            if (err == 0) {
++                s_has_client_cb_linked = true;
++            } else {
++                memset(&s_has_client_cb_slot, 0, sizeof(s_has_client_cb_slot));
++            }
++        }
++        if (err == 0) {
++            s_has_client_cb_active = true;
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -380,3 +404,13 @@ esp_err_t esp_ble_audio_has_features_set(const esp_ble_audio_has_features_param_
+     return ESP_OK;
+ }
+ #endif /* CONFIG_BT_HAS */
++
++void bt_le_audio_has_api_deinit(void)
++{
++#if CONFIG_BT_HAS_CLIENT
++    /* lib_has_client_deinit zeroes lib's client_cb: see gmap note above. */
++    s_has_client_cb_linked = false;
++    memset(&s_has_client_cb_slot, 0, sizeof(s_has_client_cb_slot));
++    s_has_client_cb_active = false;
++#endif /* CONFIG_BT_HAS_CLIENT */
++}
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_micp_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_micp_api.c
+index ddab082a39b..6effd434a0a 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_micp_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_micp_api.c
+@@ -5,6 +5,12 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <errno.h>
++#include <stdbool.h>
++#include <stddef.h>
++#include <string.h>
++
++#include "common/init.h"
+ #include "esp_ble_audio_micp_api.h"
+ 
+ #if CONFIG_BT_MICP_MIC_DEV
+@@ -268,9 +274,16 @@ esp_err_t esp_ble_audio_micp_mic_ctlr_mute_get(esp_ble_audio_micp_mic_ctlr_t *mi
+     return ESP_OK;
+ }
+ 
++#define MICP_CTLR_MAX_CBS 4
++static struct bt_micp_mic_ctlr_cb s_micp_ctlr_cb_slots[MICP_CTLR_MAX_CBS];
++static const esp_ble_audio_micp_mic_ctlr_cb_t *s_micp_ctlr_callers[MICP_CTLR_MAX_CBS];
++static bool s_micp_ctlr_cb_linked[MICP_CTLR_MAX_CBS];
++
+ esp_err_t esp_ble_audio_micp_mic_ctlr_cb_register(esp_ble_audio_micp_mic_ctlr_cb_t *cb)
+ {
+-    int err;
++    const size_t fn_bytes = offsetof(struct bt_micp_mic_ctlr_cb, _node);
++    size_t free_idx = MICP_CTLR_MAX_CBS;
++    int err = 0;
+ 
+     if (cb == NULL) {
+         return ESP_ERR_INVALID_ARG;
+@@ -278,7 +291,34 @@ esp_err_t esp_ble_audio_micp_mic_ctlr_cb_register(esp_ble_audio_micp_mic_ctlr_cb
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_micp_mic_ctlr_cb_register(cb);
++    for (size_t i = 0; i < MICP_CTLR_MAX_CBS; i++) {
++        if (s_micp_ctlr_callers[i] == cb) {
++            err = -EALREADY;
++            break;
++        }
++        if (s_micp_ctlr_callers[i] == NULL && free_idx == MICP_CTLR_MAX_CBS) {
++            free_idx = i;
++        }
++    }
++
++    if (err == 0 && free_idx == MICP_CTLR_MAX_CBS) {
++        err = -ENOMEM;
++    }
++
++    if (err == 0) {
++        memcpy(&s_micp_ctlr_cb_slots[free_idx], cb, fn_bytes);
++        if (!s_micp_ctlr_cb_linked[free_idx]) {
++            err = bt_micp_mic_ctlr_cb_register(&s_micp_ctlr_cb_slots[free_idx]);
++            if (err == 0) {
++                s_micp_ctlr_cb_linked[free_idx] = true;
++            } else {
++                memset(&s_micp_ctlr_cb_slots[free_idx], 0, fn_bytes);
++            }
++        }
++        if (err == 0) {
++            s_micp_ctlr_callers[free_idx] = cb;
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -289,3 +329,13 @@ esp_err_t esp_ble_audio_micp_mic_ctlr_cb_register(esp_ble_audio_micp_mic_ctlr_cb
+     return ESP_OK;
+ }
+ #endif /* CONFIG_BT_MICP_MIC_CTLR */
++
++void bt_le_audio_micp_api_deinit(void)
++{
++#if CONFIG_BT_MICP_MIC_CTLR
++    for (size_t i = 0; i < MICP_CTLR_MAX_CBS; i++) {
++        memset(&s_micp_ctlr_cb_slots[i], 0, offsetof(struct bt_micp_mic_ctlr_cb, _node));
++        s_micp_ctlr_callers[i] = NULL;
++    }
++#endif /* CONFIG_BT_MICP_MIC_CTLR */
++}
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_tbs_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_tbs_api.c
+index 156cfedc678..6867fe18b88 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_tbs_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_tbs_api.c
+@@ -6,6 +6,12 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <errno.h>
++#include <stdbool.h>
++#include <stddef.h>
++#include <string.h>
++
++#include "common/init.h"
+ #include "esp_ble_audio_tbs_api.h"
+ 
+ #if CONFIG_BT_TBS
+@@ -362,14 +368,40 @@ esp_err_t esp_ble_audio_tbs_set_status_flags(uint8_t bearer_index, uint16_t stat
+     return ESP_OK;
+ }
+ 
++/* uri_scheme_in_list() in prebuilt libble_audio.a only matches scheme tokens
++ * followed by ','. Append an internal trailing ',' (stripped on GATT Read /
++ * Notify in init.c so over-the-air 0x2BB6 PDUs conform to TBS v1.0 sec. 3.4). */
++static const char *tbs_normalize_uri_schemes(const char *schemes,
++                                             char buf[CONFIG_BT_TBS_MAX_SCHEME_LIST_LENGTH + 2])
++{
++    size_t len;
++
++    if (schemes == NULL) {
++        return NULL;
++    }
++
++    len = strlen(schemes);
++    if (len > 0 && schemes[len - 1] != ',' && len <= CONFIG_BT_TBS_MAX_SCHEME_LIST_LENGTH) {
++        memcpy(buf, schemes, len);
++        buf[len] = ',';
++        buf[len + 1] = '\0';
++        return buf;
++    }
++
++    return schemes;
++}
++
+ esp_err_t esp_ble_audio_tbs_set_uri_scheme_list(uint8_t bearer_index, const char *uri_scheme_list)
+ {
++    char schemes_buf[CONFIG_BT_TBS_MAX_SCHEME_LIST_LENGTH + 2];
+     int err;
+ 
+     if (uri_scheme_list == NULL) {
+         return ESP_ERR_INVALID_ARG;
+     }
+ 
++    uri_scheme_list = tbs_normalize_uri_schemes(uri_scheme_list, schemes_buf);
++
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_tbs_set_uri_scheme_list(bearer_index, uri_scheme_list);
+@@ -438,6 +470,8 @@ static bool valid_register_param(const esp_ble_audio_tbs_register_param_t *param
+ esp_err_t esp_ble_audio_tbs_register_bearer(const esp_ble_audio_tbs_register_param_t *param,
+                                             uint8_t *bearer_index)
+ {
++    char schemes_buf[CONFIG_BT_TBS_MAX_SCHEME_LIST_LENGTH + 2];
++    esp_ble_audio_tbs_register_param_t norm_param;
+     esp_err_t ret = ESP_OK;
+     int err;
+ 
+@@ -445,9 +479,13 @@ esp_err_t esp_ble_audio_tbs_register_bearer(const esp_ble_audio_tbs_register_par
+         return ESP_ERR_INVALID_ARG;
+     }
+ 
++    norm_param = *param;
++    norm_param.uri_schemes_supported = (char *)tbs_normalize_uri_schemes(
++        param->uri_schemes_supported, schemes_buf);
++
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_tbs_register_bearer(param);
++    err = bt_tbs_register_bearer(&norm_param);
+     if (err < 0) {
+         ret = ESP_FAIL;
+         goto end;
+@@ -1114,9 +1152,16 @@ unlock:
+ }
+ #endif /* CONFIG_BT_TBS_CLIENT_OPTIONAL_OPCODES */
+ 
++#define TBS_CLIENT_MAX_CBS 4
++static struct bt_tbs_client_cb s_tbs_client_cb_slots[TBS_CLIENT_MAX_CBS];
++static const esp_ble_audio_tbs_client_cb_t *s_tbs_client_callers[TBS_CLIENT_MAX_CBS];
++static bool s_tbs_client_cb_linked[TBS_CLIENT_MAX_CBS];
++
+ esp_err_t esp_ble_audio_tbs_client_register_cb(esp_ble_audio_tbs_client_cb_t *cbs)
+ {
+-    int err;
++    const size_t fn_bytes = offsetof(struct bt_tbs_client_cb, _node);
++    size_t free_idx = TBS_CLIENT_MAX_CBS;
++    int err = 0;
+ 
+     if (cbs == NULL) {
+         return ESP_ERR_INVALID_ARG;
+@@ -1124,7 +1169,34 @@ esp_err_t esp_ble_audio_tbs_client_register_cb(esp_ble_audio_tbs_client_cb_t *cb
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_tbs_client_register_cb(cbs);
++    for (size_t i = 0; i < TBS_CLIENT_MAX_CBS; i++) {
++        if (s_tbs_client_callers[i] == cbs) {
++            err = -EEXIST;
++            break;
++        }
++        if (s_tbs_client_callers[i] == NULL && free_idx == TBS_CLIENT_MAX_CBS) {
++            free_idx = i;
++        }
++    }
++
++    if (err == 0 && free_idx == TBS_CLIENT_MAX_CBS) {
++        err = -ENOMEM;
++    }
++
++    if (err == 0) {
++        memcpy(&s_tbs_client_cb_slots[free_idx], cbs, fn_bytes);
++        if (!s_tbs_client_cb_linked[free_idx]) {
++            err = bt_tbs_client_register_cb(&s_tbs_client_cb_slots[free_idx]);
++            if (err == 0) {
++                s_tbs_client_cb_linked[free_idx] = true;
++            } else {
++                memset(&s_tbs_client_cb_slots[free_idx], 0, fn_bytes);
++            }
++        }
++        if (err == 0) {
++            s_tbs_client_callers[free_idx] = cbs;
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -1175,3 +1247,13 @@ unlock:
+     return ret;
+ }
+ #endif /* CONFIG_BT_TBS_CLIENT */
++
++void bt_le_audio_tbs_api_deinit(void)
++{
++#if CONFIG_BT_TBS_CLIENT
++    for (size_t i = 0; i < TBS_CLIENT_MAX_CBS; i++) {
++        memset(&s_tbs_client_cb_slots[i], 0, offsetof(struct bt_tbs_client_cb, _node));
++        s_tbs_client_callers[i] = NULL;
++    }
++#endif /* CONFIG_BT_TBS_CLIENT */
++}
+diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_vcp_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_vcp_api.c
+index ecbfab0b5d4..cb791366f9f 100644
+--- a/components/bt/esp_ble_audio/api/esp_ble_audio_vcp_api.c
++++ b/components/bt/esp_ble_audio/api/esp_ble_audio_vcp_api.c
+@@ -5,6 +5,10 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
++#include <errno.h>
++#include <stddef.h>
++
++#include "common/init.h"
+ #include "esp_ble_audio_vcp_api.h"
+ 
+ #if CONFIG_BT_VCP_VOL_REND
+@@ -271,6 +275,9 @@
+ #endif /* CONFIG_BT_VCP_VOL_REND */
+ 
+ #if CONFIG_BT_VCP_VOL_CTLR
++#define VCP_MAX_TRACKED_CBS 4
++static esp_ble_audio_vcp_vol_ctlr_cb_t *s_vcp_ctlr_cbs[VCP_MAX_TRACKED_CBS];
++
+ esp_err_t esp_ble_audio_vcp_vol_ctlr_cb_register(esp_ble_audio_vcp_vol_ctlr_cb_t *cb)
+ {
+     int err;
+@@ -281,7 +288,24 @@
+ 
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+-    err = bt_vcp_vol_ctlr_cb_register(cb);
++    /* Reserve a tracking slot before calling the lib: registering and
++     * then finding no free slot would leave an untracked lib registration
++     * that deinit cannot clean up. */
++    size_t free_idx = VCP_MAX_TRACKED_CBS;
++    for (size_t i = 0; i < VCP_MAX_TRACKED_CBS; i++) {
++        if (s_vcp_ctlr_cbs[i] == NULL) {
++            free_idx = i;
++            break;
++        }
++    }
++    if (free_idx == VCP_MAX_TRACKED_CBS) {
++        err = -ENOMEM;
++    } else {
++        err = bt_vcp_vol_ctlr_cb_register(cb);
++    }
++    if (err == 0) {
++        s_vcp_ctlr_cbs[free_idx] = cb;
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -303,6 +327,14 @@
+     BT_LE_HOST_LOCK_OR_RETURN(ESP_ERR_TIMEOUT);
+ 
+     err = bt_vcp_vol_ctlr_cb_unregister(cb);
++    if (err == 0) {
++        for (size_t i = 0; i < VCP_MAX_TRACKED_CBS; i++) {
++            if (s_vcp_ctlr_cbs[i] == cb) {
++                s_vcp_ctlr_cbs[i] = NULL;
++                break;
++            }
++        }
++    }
+ 
+     bt_le_host_unlock();
+ 
+@@ -573,4 +605,16 @@
+ 
+     return ESP_OK;
+ }
++#endif /* CONFIG_BT_VCP_VOL_CTLR */
++
++void bt_le_audio_vcp_api_deinit(void)
++{
++#if CONFIG_BT_VCP_VOL_CTLR
++    for (size_t i = 0; i < VCP_MAX_TRACKED_CBS; i++) {
++        if (s_vcp_ctlr_cbs[i] != NULL) {
++            (void)bt_vcp_vol_ctlr_cb_unregister(s_vcp_ctlr_cbs[i]);
++            s_vcp_ctlr_cbs[i] = NULL;
++        }
++    }
+ #endif /* CONFIG_BT_VCP_VOL_CTLR */
++}
+diff --git a/components/bt/esp_ble_audio/host/common/include/common/init.h b/components/bt/esp_ble_audio/host/common/include/common/init.h
+index 4b572bad5e3..0f62d0dcd55 100644
+--- a/components/bt/esp_ble_audio/host/common/include/common/init.h
++++ b/components/bt/esp_ble_audio/host/common/include/common/init.h
+@@ -79,6 +79,16 @@ int bt_le_micp_mic_dev_init(void);
+ 
+ int bt_le_audio_start(void *info);
+ 
++void bt_le_audio_bap_api_deinit(void);
++void bt_le_audio_cap_api_deinit(void);
++void bt_le_audio_ccp_api_deinit(void);
++void bt_le_audio_csip_api_deinit(void);
++void bt_le_audio_gmap_api_deinit(void);
++void bt_le_audio_has_api_deinit(void);
++void bt_le_audio_micp_api_deinit(void);
++void bt_le_audio_tbs_api_deinit(void);
++void bt_le_audio_vcp_api_deinit(void);
++
+ void bt_le_audio_lib_compressed_out(uint8_t log_level, uint32_t log_index, size_t arg_cnt, ...);
+ 
+ void bt_le_audio_lib_compressed_buf_out(uint8_t log_level, uint32_t log_index, uint8_t buf_idx,
+diff --git a/components/bt/esp_ble_audio/host/common/init.c b/components/bt/esp_ble_audio/host/common/init.c
+index 39266de50d7..fe7f42edcb6 100644
+--- a/components/bt/esp_ble_audio/host/common/init.c
++++ b/components/bt/esp_ble_audio/host/common/init.c
+@@ -344,9 +344,9 @@ struct lib_ext_cfgs {
+ 
+     /* MPL (Media player) */
+     bool     config_mpl;
+-    char    *config_mpl_media_player_name;
++    const char *config_mpl_media_player_name;
+     uint8_t  config_mpl_media_player_name_max;
+-    char    *config_mpl_icon_url;
++    const char *config_mpl_icon_url;
+     uint8_t  config_mpl_icon_url_max;
+     uint8_t  config_mpl_track_title_max;
+     uint8_t  config_mpl_segment_name_max;
+@@ -825,7 +825,9 @@ static const struct lib_ext_cfgs ext_cfgs = {
+     .config_tbs_supported_features = CONFIG_BT_TBS_SUPPORTED_FEATURES,
+     .config_tbs_max_calls = CONFIG_BT_TBS_MAX_CALLS,
+     .config_tbs_bearer_count = CONFIG_BT_TBS_BEARER_COUNT,
+-    .config_tbs_max_scheme_list_length = CONFIG_BT_TBS_MAX_SCHEME_LIST_LENGTH,
++    /* Reserve 1 extra byte for the internal trailing ',' delimiter required by
++     * prebuilt libble_audio.a's uri_scheme_in_list(). */
++    .config_tbs_max_scheme_list_length = CONFIG_BT_TBS_MAX_SCHEME_LIST_LENGTH + 1,
+ #endif /* CONFIG_BT_TBS */
+ #if CONFIG_BT_TBS_CLIENT
+     .config_tbs_client = CONFIG_BT_TBS_CLIENT,
+@@ -1214,6 +1216,58 @@ static void log_error(const char *format, ...)
+ #endif /* (CONFIG_BT_AUDIO_LOG_LEVEL >= BT_ISO_LOG_ERROR) */
+ }
+ 
++/* Strip the synthetic trailing ',' stored for libble_audio.a's
++ * uri_scheme_in_list() so over-the-air ATT Read / Notify values of Bearer URI
++ * Schemes Supported List (0x2BB6) conform to Bluetooth TBS v1.0 sec. 3.4. */
++static ssize_t audio_gatts_attr_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
++                                     void *buf, uint16_t buf_len, uint16_t offset,
++                                     const void *value, uint16_t value_len)
++{
++#if CONFIG_BT_TBS
++    if (attr != NULL && attr->uuid != NULL &&
++            attr->uuid->type == BT_UUID_TYPE_16 &&
++            BT_UUID_16(attr->uuid)->val == BT_UUID_TBS_URI_LIST_VAL &&
++            value != NULL && value_len > 0 &&
++            ((const char *)value)[value_len - 1] == ',') {
++        value_len--;
++    }
++#endif /* CONFIG_BT_TBS */
++    return bt_gatt_attr_read(conn, attr, buf, buf_len, offset, value, value_len);
++}
++
++static int audio_gatts_notify_uuid(struct bt_conn *conn, const struct bt_uuid *uuid,
++                                   const struct bt_gatt_attr *attr,
++                                   const void *data, uint16_t len)
++{
++#if CONFIG_BT_TBS
++    if (uuid != NULL && uuid->type == BT_UUID_TYPE_16 &&
++            BT_UUID_16(uuid)->val == BT_UUID_TBS_URI_LIST_VAL &&
++            data != NULL && len > 0 &&
++            ((const char *)data)[len - 1] == ',') {
++        len--;
++    }
++#endif /* CONFIG_BT_TBS */
++    return bt_gatt_notify_uuid(conn, uuid, attr, data, len);
++}
++
++/* Notify-by-handle takes no UUID, so derive it from the attribute: the TBS
++ * server notifies 0x2BB6 by handle, which would otherwise leak the internal
++ * trailing ',' on air (TBS v1.0 sec. 3.4). */
++static int audio_gatts_notify(struct bt_conn *conn, const struct bt_gatt_attr *attr,
++                              const void *data, uint16_t len)
++{
++#if CONFIG_BT_TBS
++    if (attr != NULL && attr->uuid != NULL &&
++            attr->uuid->type == BT_UUID_TYPE_16 &&
++            BT_UUID_16(attr->uuid)->val == BT_UUID_TBS_URI_LIST_VAL &&
++            data != NULL && len > 0 &&
++            ((const char *)data)[len - 1] == ',') {
++        len--;
++    }
++#endif /* CONFIG_BT_TBS */
++    return bt_gatt_notify(conn, attr, data, len);
++}
++
+ static const struct lib_ext_funcs ext_funcs = {
+     ._log_dbg = (void *)log_debug,
+     ._log_inf = (void *)log_info,
+@@ -1324,10 +1360,10 @@ static const struct lib_ext_funcs ext_funcs = {
+     ._gatt_attr_value_handle = (void *)bt_gatt_attr_value_handle,
+     ._gatt_foreach_attr_type = (void *)bt_gatt_foreach_attr_type,
+     ._gatt_find_by_uuid = (void *)bt_gatt_find_by_uuid,
+-    ._gatts_attr_read = (void *)bt_gatt_attr_read,
++    ._gatts_attr_read = (void *)audio_gatts_attr_read,
+     ._gatts_notify_cb = (void *)bt_gatt_notify_cb,
+-    ._gatts_notify = (void *)bt_gatt_notify,
++    ._gatts_notify = (void *)audio_gatts_notify,
+-    ._gatts_notify_uuid = (void *)bt_gatt_notify_uuid,
++    ._gatts_notify_uuid = (void *)audio_gatts_notify_uuid,
+     ._gatts_indicate = (void *)bt_gatt_indicate,
+     ._gatts_is_subscribed = (void *)bt_gatt_is_subscribed,
+     ._gattc_discover = (void *)bt_gatt_discover,
+@@ -2404,8 +2440,23 @@ deinit_lib:
+     return err;
+ }
+ 
++static void audio_api_cbs_deinit(void)
++{
++    bt_le_audio_bap_api_deinit();
++    bt_le_audio_cap_api_deinit();
++    bt_le_audio_ccp_api_deinit();
++    bt_le_audio_csip_api_deinit();
++    bt_le_audio_gmap_api_deinit();
++    bt_le_audio_has_api_deinit();
++    bt_le_audio_micp_api_deinit();
++    bt_le_audio_tbs_api_deinit();
++    bt_le_audio_vcp_api_deinit();
++}
++
+ void bt_le_audio_deinit(void)
+ {
++    audio_api_cbs_deinit();
++
+ #if CONFIG_BT_BLUEDROID_ENABLED
+     bt_le_bluedroid_audio_deinit();
+ #else
+diff --git a/components/bt/esp_ble_audio/include/zephyr/bluetooth/audio/audio.h b/components/bt/esp_ble_audio/include/zephyr/bluetooth/audio/audio.h
+index e09930c8523..66cfdac0e1f 100644
+--- a/components/bt/esp_ble_audio/include/zephyr/bluetooth/audio/audio.h
++++ b/components/bt/esp_ble_audio/include/zephyr/bluetooth/audio/audio.h
+@@ -1608,7 +1608,7 @@ int bt_audio_codec_cap_meta_set_vendor(struct bt_audio_codec_cap *codec_cap,
+  *
+  * @return String representation of the supplied bit
+  */
+-static inline char *bt_audio_context_bit_to_str(enum bt_audio_context context)
++static inline const char *bt_audio_context_bit_to_str(enum bt_audio_context context)
+ {
+     switch (context) {
+     case BT_AUDIO_CONTEXT_TYPE_NONE:
+@@ -1649,7 +1649,7 @@ static inline char *bt_audio_context_bit_to_str(enum bt_audio_context context)
+  *
+  * @return String representation of the supplied parental rating value
+  */
+-static inline char *bt_audio_parental_rating_to_str(enum bt_audio_parental_rating parental_rating)
++static inline const char *bt_audio_parental_rating_to_str(enum bt_audio_parental_rating parental_rating)
+ {
+     switch (parental_rating) {
+     case BT_AUDIO_PARENTAL_RATING_NO_RATING:
+@@ -1696,7 +1696,7 @@ static inline char *bt_audio_parental_rating_to_str(enum bt_audio_parental_ratin
+  *
+  * @return String representation of the supplied active state value
+  */
+-static inline char *bt_audio_active_state_to_str(enum bt_audio_active_state state)
++static inline const char *bt_audio_active_state_to_str(enum bt_audio_active_state state)
+ {
+     switch (state) {
+     case BT_AUDIO_ACTIVE_STATE_DISABLED:
+@@ -1717,7 +1717,7 @@ static inline char *bt_audio_active_state_to_str(enum bt_audio_active_state stat
+  *
+  * @return String representation of the supplied bit
+  */
+-static inline char *bt_audio_codec_cap_freq_bit_to_str(enum bt_audio_codec_cap_freq freq)
++static inline const char *bt_audio_codec_cap_freq_bit_to_str(enum bt_audio_codec_cap_freq freq)
+ {
+     switch (freq) {
+     case BT_AUDIO_CODEC_CAP_FREQ_8KHZ:
+@@ -1760,7 +1760,7 @@ static inline char *bt_audio_codec_cap_freq_bit_to_str(enum bt_audio_codec_cap_f
+  *
+  * @return String representation of the supplied bit
+  */
+-static inline char *
++static inline const char *
+ bt_audio_codec_cap_frame_dur_bit_to_str(enum bt_audio_codec_cap_frame_dur frame_dur)
+ {
+     switch (frame_dur) {
+@@ -1786,7 +1786,7 @@ bt_audio_codec_cap_frame_dur_bit_to_str(enum bt_audio_codec_cap_frame_dur frame_
+  *
+  * @return String representation of the supplied bit
+  */
+-static inline char *
++static inline const char *
+ bt_audio_codec_cap_chan_count_bit_to_str(enum bt_audio_codec_cap_chan_count chan_count)
+ {
+     switch (chan_count) {
+@@ -1820,7 +1820,7 @@ bt_audio_codec_cap_chan_count_bit_to_str(enum bt_audio_codec_cap_chan_count chan
+  *
+  * @return String representation of the supplied bit
+  */
+-static inline char *bt_audio_location_bit_to_str(enum bt_audio_location location)
++static inline const char *bt_audio_location_bit_to_str(enum bt_audio_location location)
+ {
+     switch (location) {
+     case BT_AUDIO_LOCATION_MONO_AUDIO:
