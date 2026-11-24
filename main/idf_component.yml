@@ -6,7 +6,7 @@ dependencies:
     git: https://github.com/espressif/esp32-camera.git
     require: public
     rules:
-      - if: "target in [esp32, esp32s2, esp32s3]"
+      - if: "target in [esp32, esp32s2, esp32s3, esp32s31]"
   espressif/esp_matter:
     version: "1.6"
     require: public
