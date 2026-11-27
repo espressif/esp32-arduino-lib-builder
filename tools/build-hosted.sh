@@ -37,6 +37,10 @@ cd "$SLAVE_DIR"
 OUTPUT_DIR="$AR_TOOLS/esp32-arduino-libs/hosted"
 mkdir -p "$OUTPUT_DIR"
 
+# The slave's own defaults, then Arduino's additions. ESP-IDF still applies
+# sdkconfig.defaults.<target> after sdkconfig.defaults.
+SDKCONFIG_DEFAULTS="sdkconfig.defaults;$AR_ROOT/configs/defconfig.hosted"
+
 TARGETS=(
     "esp32c5"
     "esp32c6"
@@ -44,9 +48,9 @@ TARGETS=(
 
 for target in "${TARGETS[@]}"; do
     echo "Building for target: $target"
-    idf.py set-target "$target"
+    idf.py -DSDKCONFIG_DEFAULTS="$SDKCONFIG_DEFAULTS" set-target "$target"
     idf.py clean
-    idf.py build
+    idf.py -DSDKCONFIG_DEFAULTS="$SDKCONFIG_DEFAULTS" build
     cp "$SLAVE_DIR/build/network_adapter.bin" "$OUTPUT_DIR/$target-v$VERSION.bin"
     echo "Build completed: $target-v$VERSION.bin"
 done

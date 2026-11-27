@@ -1,0 +1,7 @@
+# Applied on top of the ESP-Hosted slave's own sdkconfig.defaults when building
+# the co-processor firmware (tools/build-hosted.sh), not to the Arduino libs.
+
+# WPA2/WPA3-Enterprise (e.g. eduroam) through the co-processor. The slave disables
+# it by default, so the host's esp_eap_client_* and esp_wifi_sta_enterprise_enable()
+# calls (WiFi.begin(ssid, WPA2_AUTH_PEAP, ...)) fail with ESP_ERR_NOT_SUPPORTED.
+CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=y

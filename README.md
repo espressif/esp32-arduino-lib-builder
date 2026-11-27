@@ -62,6 +62,12 @@ Published link flags: **`flags/ld_libs`** only (includes **`-lbt`**). Harvest ta
 1. If `{build.path}/libraries/Matter` exists **and** **`lib/libbt.matter.a`** exists → copy **`flags/ld_libs`** to `link_libs.rsp` with **`-lbt`** replaced by **`-lbt.matter`** (token match; does not affect **`-lbtbb`**, etc.).
 2. Else → **`flags/ld_libs`** unchanged (Matter on S3/C6/S31 keeps **`-lbt`** / **`libbt.a`**).
 
+### ESP-Hosted co-processor firmware
+
+ESP32-P4 builds also run `tools/build-hosted.sh` (or `-b hosted` on its own). It builds the ESP-Hosted slave app (`slave/` of the `espressif/esp_hosted` component) for the Wi-Fi co-processors, **esp32c5** and **esp32c6**, and publishes it as `hosted/<target>-v<version>.bin`, the image the core installs on the co-processor.
+
+The slave's own `sdkconfig.defaults` and `sdkconfig.defaults.<target>` apply first, then **`configs/defconfig.hosted`**. That file enables Wi-Fi Enterprise (`CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT`), which the slave turns off by default, so `WiFi.begin()` with WPA2-Enterprise works on the ESP32-P4.
+
 ### Documentation
 
 For more information about how to use the Library builder, please refer to this [Documentation page](https://docs.espressif.com/projects/arduino-esp32/en/latest/lib_builder.html?highlight=lib%20builder)
