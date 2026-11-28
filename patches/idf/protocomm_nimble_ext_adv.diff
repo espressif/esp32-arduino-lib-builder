@@ -1,5 +1,5 @@
 diff --git a/components/protocomm/src/transports/protocomm_nimble.c b/components/protocomm/src/transports/protocomm_nimble.c
-index 2f46b6d01a5..a8b1a7eb00f 100644
+index 2f46b6d01a5..63b74e56764 100644
 --- a/components/protocomm/src/transports/protocomm_nimble.c
 +++ b/components/protocomm/src/transports/protocomm_nimble.c
 @@ -19,8 +19,11 @@
@@ -99,13 +99,15 @@ index 2f46b6d01a5..a8b1a7eb00f 100644
      if (rc != 0) {
          /* If BLE Host is disabled, it probably means device is already
           * provisioned in previous session. Avoid error prints for this case.*/
-@@ -1240,7 +1307,14 @@ esp_err_t protocomm_ble_stop(protocomm_t *pc)
+@@ -1240,7 +1307,16 @@ esp_err_t protocomm_ble_stop(protocomm_t *pc)
  
      esp_err_t ret = ESP_OK;
      bool ble_callbacks_active = true;
 +#if MYNEWT_VAL(BLE_EXT_ADV)
 +    esp_err_t rc = ble_gap_ext_adv_stop(PROTOCOMM_BLE_EXT_ADV_INSTANCE);
-+    if (rc == 0) {
++    /* A client connection already stops advertising (BLE_HS_EALREADY) while
++     * leaving the advertising set configured in host and controller. */
++    if (rc == 0 || rc == BLE_HS_EALREADY) {
 +        rc = ble_gap_ext_adv_remove(PROTOCOMM_BLE_EXT_ADV_INSTANCE);
 +    }
 +#else

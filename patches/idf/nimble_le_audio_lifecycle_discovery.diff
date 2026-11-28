@@ -1,5 +1,5 @@
 diff --git a/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c b/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
-index 324fff1981c..77e6a6546b3 100644
+index 324fff1981c..807d5615507 100644
 --- a/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
 +++ b/components/bt/esp_ble_audio/api/esp_ble_audio_common_api.c
 @@ -90,6 +90,7 @@ esp_err_t esp_ble_audio_common_init(esp_ble_audio_init_info_t *info)
@@ -10,7 +10,17 @@ index 324fff1981c..77e6a6546b3 100644
      int err;
  
      if (info) {
-@@ -131,6 +132,9 @@ esp_err_t esp_ble_audio_common_init(esp_ble_audio_init_info_t *info)
+@@ -114,6 +115,9 @@ esp_err_t esp_ble_audio_common_init(esp_ble_audio_init_info_t *info)
+ 
+     err = bt_le_host_init();
+     if (err) {
++        if (err == -EBUSY) {
++            ret = -EBUSY;
++        }
+         goto unregister_gatt;
+     }
+ 
+@@ -131,6 +135,9 @@ esp_err_t esp_ble_audio_common_init(esp_ble_audio_init_info_t *info)
      bt_le_host_unlock();
  
      if (err) {
@@ -20,7 +30,7 @@ index 324fff1981c..77e6a6546b3 100644
          bt_le_host_deinit();
          goto unregister_gatt;
      }
-@@ -145,7 +149,7 @@ unregister_gap:
+@@ -145,7 +152,7 @@ unregister_gap:
      if (gap_cb_registered) {
          bt_le_gap_app_cb_unregister();
      }
@@ -29,7 +39,7 @@ index 324fff1981c..77e6a6546b3 100644
  }
  
  esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
-@@ -175,6 +179,12 @@ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
+@@ -175,6 +182,12 @@ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
  
      bt_le_audio_deinit();
  
@@ -42,7 +52,7 @@ index 324fff1981c..77e6a6546b3 100644
      err = bt_le_host_deinit();
      if (err) {
          return ESP_ERR_TIMEOUT;
-@@ -188,9 +194,6 @@ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
+@@ -188,9 +201,6 @@ esp_err_t esp_ble_audio_common_deinit(const esp_ble_iso_deinit_info_t *info)
          bt_le_per_adv_sync_state_reset();
      }
  
@@ -161,8 +171,73 @@ index 68425997934..7d8c68ade50 100644
 +    return err;
  }
  #endif /* CONFIG_BT_PACS */
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/ascs.h b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/ascs.h
+index 122c57d2946..5f7f81ce9c6 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/ascs.h
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/ascs.h
+@@ -16,6 +16,8 @@ extern "C" {
+ 
+ int bt_le_nimble_ascs_attr_handle_set(void);
+ 
++void bt_le_nimble_ascs_state_reset(void);
++
+ int bt_le_nimble_ascs_init(void);
+ 
+ int bt_le_nimble_ascs_deinit(void);
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/bass.h b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/bass.h
+index ed154da387f..d804483ab64 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/bass.h
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/bass.h
+@@ -16,6 +16,8 @@ extern "C" {
+ 
+ int bt_le_nimble_bass_attr_handle_set(void);
+ 
++void bt_le_nimble_bass_state_reset(void);
++
+ int bt_le_nimble_bass_init(void);
+ 
+ int bt_le_nimble_bass_deinit(void);
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/cas.h b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/cas.h
+index 55ede2ddba1..c642395e7a6 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/cas.h
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/cas.h
+@@ -16,6 +16,8 @@ extern "C" {
+ 
+ int bt_le_nimble_cas_attr_handle_set(void);
+ 
++void bt_le_nimble_cas_state_reset(void);
++
+ int bt_le_nimble_cas_init(void *csis_svc);
+ 
+ #ifdef __cplusplus
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/has.h b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/has.h
+index 8c6cca72a9d..3630733b514 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/has.h
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/has.h
+@@ -18,6 +18,8 @@ extern "C" {
+ 
+ int bt_le_nimble_has_attr_handle_set(void);
+ 
++void bt_le_nimble_has_state_reset(void);
++
+ int bt_le_nimble_has_init(void);
+ 
+ #ifdef __cplusplus
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/tbs.h b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/tbs.h
+index e1690641325..dabf192651c 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/tbs.h
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/include/nimble/profiles/tbs.h
+@@ -22,6 +22,8 @@ int bt_le_nimble_gtbs_deinit(void);
+ 
+ int bt_le_nimble_tbs_attr_handle_set(void);
+ 
++void bt_le_nimble_tbs_state_reset(void);
++
+ int bt_le_nimble_tbs_init(void);
+ 
+ int bt_le_nimble_tbs_deinit(uint8_t bearer_index);
 diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/init.c b/components/bt/esp_ble_audio/host/adapter/nimble/init.c
-index be7be8e4310..0d9d3896350 100644
+index 7eff7f8d17a..90707377eba 100644
 --- a/components/bt/esp_ble_audio/host/adapter/nimble/init.c
 +++ b/components/bt/esp_ble_audio/host/adapter/nimble/init.c
 @@ -14,6 +14,7 @@
@@ -173,10 +248,14 @@ index be7be8e4310..0d9d3896350 100644
  #include "host/ble_gatt.h"
  #include "services/gap/ble_svc_gap.h"
  #include "services/gatt/ble_svc_gatt.h"
-@@ -190,6 +191,21 @@ int bt_le_nimble_audio_init(void)
-         return 0;
+@@ -174,6 +175,36 @@ int bt_le_nimble_audio_init(void)
+         return err;
      }
  
++    if (nimble_svcs_registered) {
++        return 0;
++    }
++
 +    /* Reset any started NimBLE GATT table from an earlier session on a live
 +     * host before ble_svc_gap_init() runs (which asserts on BLE_HS_EBUSY). */
 +    err = ble_gatts_reset();
@@ -192,42 +271,408 @@ index be7be8e4310..0d9d3896350 100644
 +
 +    ble_gatts_free_svcs();
 +
++    /* Free and zero prior session profile GATT tables only AFTER
++     * ble_gatts_free_svcs() has dropped NimBLE's references to them. */
++#if CONFIG_BT_ASCS
++    bt_le_nimble_ascs_state_reset();
++#endif /* CONFIG_BT_ASCS */
++#if CONFIG_BT_BAP_SCAN_DELEGATOR
++    bt_le_nimble_bass_state_reset();
++#endif /* CONFIG_BT_BAP_SCAN_DELEGATOR */
++#if CONFIG_BT_CAP_ACCEPTOR
++    bt_le_nimble_cas_state_reset();
++#endif /* CONFIG_BT_CAP_ACCEPTOR */
+ #if CONFIG_BT_CSIP_SET_MEMBER
+     bt_le_nimble_csis_state_reset();
+ #endif /* CONFIG_BT_CSIP_SET_MEMBER */
+@@ -186,10 +217,12 @@ int bt_le_nimble_audio_init(void)
+ #if CONFIG_BT_MCS
+     bt_le_nimble_mcs_state_reset();
+ #endif /* CONFIG_BT_MCS */
+-
+-    if (nimble_svcs_registered) {
+-        return 0;
+-    }
++#if CONFIG_BT_TBS
++    bt_le_nimble_tbs_state_reset();
++#endif /* CONFIG_BT_TBS */
++#if CONFIG_BT_HAS
++    bt_le_nimble_has_state_reset();
++#endif /* CONFIG_BT_HAS */
+ 
      ble_svc_gap_init();
  
-     ble_svc_gatt_init();
-@@ -469,8 +480,15 @@ void bt_le_nimble_audio_deinit(void)
+@@ -470,8 +503,12 @@ void bt_le_nimble_audio_deinit(void)
  {
      LOG_DBG("[N]AudioDeinit");
  
 -    /* Nothing to release: the services added here are boot-scoped and the defs
 -     * NimBLE holds reference no lib memory, so resources_deinit() is safe. */
 +    /* These BSS flags survive nimble_port_deinit()/init(). After the host is
-+     * torn down the GATT table is gone, so the next audio_init/start must
-+     * re-add services and call ble_gatts_start again. Leaving them set makes
-+     * the second cycle a no-op against an empty stack. */
-+#if CONFIG_BT_CSIP_SET_MEMBER
-+    (void)bt_le_nimble_csis_deinit(NULL);
-+#endif /* CONFIG_BT_CSIP_SET_MEMBER */
++     * torn down or GATT is reset on the next audio_init, services and
++     * ble_gatts_start must run again. Keep profile svc_defs intact here while
++     * an active ACL may still reference them until ble_gatts_reset(). */
 +    nimble_svcs_registered = false;
 +    nimble_gatts_started = false;
  }
  
  int bt_le_nimble_audio_start(void *info)
-diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
-index 4d015430eb0..8d59eff69f4 100644
---- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
-+++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
-@@ -388,5 +388,8 @@ int bt_le_nimble_csis_deinit(void *csis_svc)
-     ARG_UNUSED(csis_svc);
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/ascs.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/ascs.c
+index 6a5c51fdba2..0f46d678045 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/ascs.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/ascs.c
+@@ -9,6 +9,7 @@
+ #include <stdbool.h>
+ #include <errno.h>
+ #include <stdlib.h>
++#include <string.h>
  
-     LOG_DBG("[N]CsisDeinit");
-+    csis_svc_count = 0;
-+    csis_reg_count = 0;
-+    csis_registered = false;
+ #include <zephyr/autoconf.h>
+ #include <zephyr/logging/log.h>
+@@ -200,6 +201,19 @@ static int ascs_svc_check(void)
      return 0;
  }
+ 
++void bt_le_nimble_ascs_state_reset(void)
++{
++    free((void *)gatt_svc_ascs[0].characteristics);
++    gatt_svc_ascs[0].characteristics = NULL;
++    ase_control_point_handle = 0;
++#if CONFIG_BT_ASCS_MAX_ASE_SNK_COUNT > 0
++    memset(ase_snk_handle, 0, sizeof(ase_snk_handle));
++#endif /* CONFIG_BT_ASCS_MAX_ASE_SNK_COUNT > 0 */
++#if CONFIG_BT_ASCS_MAX_ASE_SRC_COUNT > 0
++    memset(ase_src_handle, 0, sizeof(ase_src_handle));
++#endif /* CONFIG_BT_ASCS_MAX_ASE_SRC_COUNT > 0 */
++}
++
+ int bt_le_nimble_ascs_init(void)
+ {
+     bool ascs_added = false;
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/bass.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/bass.c
+index 95b2995897a..7be680afc75 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/bass.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/bass.c
+@@ -9,6 +9,7 @@
+ #include <stdbool.h>
+ #include <errno.h>
+ #include <stdlib.h>
++#include <string.h>
+ 
+ #include <zephyr/autoconf.h>
+ #include <zephyr/logging/log.h>
+@@ -170,6 +171,14 @@ static int bass_svc_check(void)
+     return 0;
+ }
+ 
++void bt_le_nimble_bass_state_reset(void)
++{
++    free((void *)gatt_svc_bass[0].characteristics);
++    gatt_svc_bass[0].characteristics = NULL;
++    bass_control_point_handle = 0;
++    memset(bass_recv_state_handle, 0, sizeof(bass_recv_state_handle));
++}
++
+ int bt_le_nimble_bass_init(void)
+ {
+     bool bass_added = false;
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/cas.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/cas.c
+index 0acf7036ff9..8debcfc7be4 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/cas.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/cas.c
+@@ -75,6 +75,16 @@ int bt_le_nimble_cas_attr_handle_set(void)
+     return 0;
+ }
+ 
++void bt_le_nimble_cas_state_reset(void)
++{
++#if CONFIG_BT_CAP_ACCEPTOR_SET_MEMBER
++    cas_inc_svcs[0] = NULL;
++    cas_inc_svcs[1] = NULL;
++    inc_csis_svc = NULL;
++#endif /* CONFIG_BT_CAP_ACCEPTOR_SET_MEMBER */
++    gatt_svc_cas[0].includes = NULL;
++}
++
+ int bt_le_nimble_cas_init(void *csis_svc_p)
+ {
+     int rc;
+@@ -96,6 +106,10 @@ int bt_le_nimble_cas_init(void *csis_svc_p)
+         gatt_svc_cas[0].includes = (const struct ble_gatt_svc_def **)cas_inc_svcs;
+ 
+         inc_csis_svc = csis_svc_p;
++    } else {
++        cas_inc_svcs[0] = NULL;
++        gatt_svc_cas[0].includes = NULL;
++        inc_csis_svc = NULL;
+     }
+ #else /* CONFIG_BT_CAP_ACCEPTOR_SET_MEMBER */
+     ARG_UNUSED(csis_svc_p);
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
+index f7cd3af61c5..2c614241c14 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/csis.c
+@@ -9,6 +9,7 @@
+ #include <stdbool.h>
+ #include <errno.h>
+ #include <stdlib.h>
++#include <string.h>
+ 
+ #include <zephyr/autoconf.h>
+ #include <zephyr/logging/log.h>
+@@ -307,7 +308,14 @@ static void csis_svc_init(struct csis_inst *inst,
+ 
+ void bt_le_nimble_csis_state_reset(void)
+ {
++    for (size_t i = 0; i < CSIS_SVC_COUNT; i++) {
++        free((void *)gatt_svc_csis[i].characteristics);
++    }
++    memset(gatt_svc_csis, 0, sizeof(gatt_svc_csis));
++    memset(csis_insts, 0, sizeof(csis_insts));
+     csis_svc_count = 0;
++    csis_reg_count = 0;
++    csis_registered = false;
+ }
+ 
+ int bt_le_nimble_csis_init(void *svc, uint8_t count)
+@@ -342,6 +350,12 @@ int bt_le_nimble_csis_init(void *svc, uint8_t count)
+         return 0;
+     }
+ 
++    if (csis_svc_count == 0) {
++        csis_reg_count = 0;
++        csis_registered = true;
++        return 0;
++    }
++
+     for (size_t i = 0; i < csis_svc_count; i++) {
+         csis_svc_init(&csis_insts[i], &gatt_svc_csis[i], csis_insts[i].svc_p);
+     }
+@@ -376,8 +390,9 @@ free:
+     if (!csis_added) {
+         for (size_t i = 0; i < csis_svc_count; i++) {
+             free((void *)gatt_svc_csis[i].characteristics);
+-            gatt_svc_csis[i].characteristics = NULL;
+         }
++        memset(gatt_svc_csis, 0, sizeof(gatt_svc_csis));
++        memset(csis_insts, 0, sizeof(csis_insts));
+     }
+     csis_svc_count = 0;
+     return rc;
+@@ -385,8 +400,15 @@ free:
+ 
+ int bt_le_nimble_csis_deinit(void *csis_svc)
+ {
+-    ARG_UNUSED(csis_svc);
+-
+     LOG_DBG("[N]CsisDeinit");
++    if (csis_svc != NULL) {
++        for (size_t i = 0; i < csis_svc_count; i++) {
++            if (csis_insts[i].svc_p == csis_svc) {
++                csis_insts[i].svc_p = NULL;
++            }
++        }
++    } else {
++        csis_svc_count = 0;
++    }
+     return 0;
+ }
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/has.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/has.c
+index c960d34b5d4..cb8a3a483dc 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/has.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/has.c
+@@ -213,6 +213,19 @@ static int has_svc_check(void)
+     return 0;
+ }
+ 
++void bt_le_nimble_has_state_reset(void)
++{
++    free((void *)gatt_svc_has[0].characteristics);
++    gatt_svc_has[0].characteristics = NULL;
++    has_features_handle = 0;
++#if CONFIG_BT_HAS_PRESET_SUPPORT
++    has_control_point_handle = 0;
++#endif /* CONFIG_BT_HAS_PRESET_SUPPORT */
++#if CONFIG_BT_HAS_ACTIVE_PRESET_INDEX
++    has_preset_index_handle = 0;
++#endif /* CONFIG_BT_HAS_ACTIVE_PRESET_INDEX */
++}
++
+ int bt_le_nimble_has_init(void)
+ {
+     bool has_added = false;
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/mcs.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/mcs.c
+index 928fdd84cc4..2ad4e62a0d0 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/mcs.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/mcs.c
+@@ -633,8 +633,19 @@ static int inc_ots_svc_init(void)
+ void bt_le_nimble_mcs_state_reset(void)
+ {
+ #if CONFIG_BT_OTS
++    if (gatt_svc_inc_ots) {
++        free((void *)gatt_svc_inc_ots[0].characteristics);
++        free(gatt_svc_inc_ots);
++        gatt_svc_inc_ots = NULL;
++    }
++    free(gmcs_inc_svcs);
++    gmcs_inc_svcs = NULL;
++    ots = NULL;
+     inc_ots_svc_count = 0;
+ #endif /* CONFIG_BT_OTS */
++    free(gatt_svc_mcs);
++    gatt_svc_mcs = NULL;
++    gatt_svc_gmcs[0].includes = NULL;
+ }
+ 
+ int bt_le_nimble_gmcs_init(bool ots_included)
+@@ -688,6 +699,9 @@ int bt_le_nimble_gmcs_init(bool ots_included)
+ 
+         /* Terminate the included service array with NULL */
+         gmcs_inc_svcs[1] = NULL;
++    } else {
++        free(gmcs_inc_svcs);
++        gmcs_inc_svcs = NULL;
+     }
+ 
+     gatt_svc_gmcs[0].includes = (const struct ble_gatt_svc_def **)gmcs_inc_svcs;
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/mics.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/mics.c
+index 8866267d253..705dbedae19 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/mics.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/mics.c
+@@ -348,6 +348,19 @@ static void inc_aics_svc_init(struct inc_aics_inst *inst,
+ 
+ void bt_le_nimble_mics_state_reset(void)
+ {
++    if (gatt_svc_inc_aics) {
++        for (size_t i = 0; gatt_svc_inc_aics[i].type != 0; i++) {
++            free((void *)gatt_svc_inc_aics[i].characteristics);
++        }
++        free(gatt_svc_inc_aics);
++        gatt_svc_inc_aics = NULL;
++    }
++    free(inc_aics_insts);
++    inc_aics_insts = NULL;
++    free(mics_inc_svcs);
++    mics_inc_svcs = NULL;
++    gatt_svc_mics[0].includes = NULL;
++    mics_mute_handle = 0;
+     inc_aics_svc_count = 0;
+ }
+ 
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/tbs.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/tbs.c
+index 9a72c350c97..478f524fb5a 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/tbs.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/tbs.c
+@@ -347,14 +347,12 @@ int bt_le_nimble_tbs_attr_handle_set(void)
+ }
+ 
+ #if CONFIG_BT_TBS_BEARER_COUNT > 0
+-static int tbs_svc_check(void)
++static int tbs_svc_check(const struct bt_gatt_service *tbs_svc)
+ {
+-    struct bt_gatt_service *tbs_list;
+     const struct bt_uuid_16 *uuid;
+     bool chr_found;
+ 
+-    tbs_list = lib_tbs_server_list_get();
+-    if (!tbs_list) {
++    if (!tbs_svc || tbs_svc->attr_count == 0) {
+         LOG_ERR("[N]TbsSvcListGetFail");
+         return -ENODEV;
+     }
+@@ -368,8 +366,8 @@ static int tbs_svc_check(void)
+ 
+         chr_found = false;
+ 
+-        for (size_t i = 0; i < tbs_list[0].attr_count; i++) {
+-            uuid = (const struct bt_uuid_16 *)(tbs_list[0].attrs + i)->uuid;
++        for (size_t i = 0; i < tbs_svc->attr_count; i++) {
++            uuid = (const struct bt_uuid_16 *)(tbs_svc->attrs + i)->uuid;
+ 
+             if (uuid && uuid->uuid.type == BT_LE_NIMBLE_GATT_UUID_TO_Z(check->u.type) &&
+                     uuid->val == check->value) {
+@@ -388,6 +386,20 @@ static int tbs_svc_check(void)
+ }
+ #endif /* CONFIG_BT_TBS_BEARER_COUNT > 0 */
+ 
++void bt_le_nimble_tbs_state_reset(void)
++{
++#if CONFIG_BT_TBS_BEARER_COUNT > 0
++    for (int i = 0; i < CONFIG_BT_TBS_BEARER_COUNT; i++) {
++        if (tbs_svc_defs[i]) {
++            free((void *)tbs_svc_defs[i]->characteristics);
++            free(tbs_svc_defs[i]);
++            tbs_svc_defs[i] = NULL;
++        }
++        tbs_anchor_handle[i] = 0;
++    }
++#endif /* CONFIG_BT_TBS_BEARER_COUNT > 0 */
++}
++
+ int bt_le_nimble_tbs_init(void)
+ {
+ #if CONFIG_BT_TBS_BEARER_COUNT > 0
+@@ -426,13 +438,18 @@ int bt_le_nimble_tbs_init(void)
+             LOG_ERR("[N]TbsAddSvcsFail[%d]", rc);
+             goto free;
+         }
++
++        rc = tbs_svc_check(&tbs_list[i]);
++        if (rc) {
++            return rc;
++        }
+     }
+ 
+-    return tbs_svc_check();
++    return 0;
+ 
+ free:
+     /* Only reachable before ble_gatts_add_svcs() succeeded; after that NimBLE
+-     * holds the def and it must be leaked instead. */
++     * holds the def and it must be leaked until ble_gatts_free_svcs(). */
+     free((void *)tbs_svc_defs[i]->characteristics);
+     free(tbs_svc_defs[i]);
+     tbs_svc_defs[i] = NULL;
+diff --git a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/vcs.c b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/vcs.c
+index 70ffec45a4f..c0d770fe3bc 100644
+--- a/components/bt/esp_ble_audio/host/adapter/nimble/profiles/vcs.c
++++ b/components/bt/esp_ble_audio/host/adapter/nimble/profiles/vcs.c
+@@ -8,6 +8,7 @@
+ #include <stdbool.h>
+ #include <errno.h>
+ #include <stdlib.h>
++#include <string.h>
+ 
+ #include <zephyr/autoconf.h>
+ #include <zephyr/logging/log.h>
+@@ -544,6 +545,25 @@ static void inc_aics_svc_init(struct inc_aics_inst *inst,
+ 
+ void bt_le_nimble_vcs_state_reset(void)
+ {
++    if (gatt_svc_inc_vocs) {
++        for (size_t i = 0; gatt_svc_inc_vocs[i].type != 0; i++) {
++            free((void *)gatt_svc_inc_vocs[i].characteristics);
++        }
++        free(gatt_svc_inc_vocs);
++        gatt_svc_inc_vocs = NULL;
++    }
++    if (gatt_svc_inc_aics) {
++        for (size_t i = 0; gatt_svc_inc_aics[i].type != 0; i++) {
++            free((void *)gatt_svc_inc_aics[i].characteristics);
++        }
++        free(gatt_svc_inc_aics);
++        gatt_svc_inc_aics = NULL;
++    }
++    free(vcs_inc_svcs);
++    vcs_inc_svcs = NULL;
++    gatt_svc_vcs[0].includes = NULL;
++    memset(inc_vocs_insts, 0, sizeof(inc_vocs_insts));
++    memset(inc_aics_insts, 0, sizeof(inc_aics_insts));
+     inc_vocs_svc_count = 0;
+     inc_aics_svc_count = 0;
+ }
 diff --git a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.db.c b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.db.c
-index 13f6e114f2d..9332c9ac8c2 100644
+index d365f03fae1..b2524d794df 100644
 --- a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.db.c
 +++ b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.db.c
 @@ -259,6 +259,53 @@ static void gattc_db_dsc_cccd_store(sys_slist_t *chrc_list,
@@ -386,7 +831,7 @@ index 13f6e114f2d..9332c9ac8c2 100644
      }
  
      params->func(conn, found, params);
-@@ -1498,11 +1512,10 @@ void bt_le_nimble_gattc_db_remove(uint16_t conn_handle)
+@@ -1543,11 +1557,10 @@ void bt_le_nimble_gattc_db_remove(uint16_t conn_handle)
   * valid handle, so the free marker is UINT16_MAX. */
  void bt_le_nimble_gattc_db_init(void)
  {
@@ -402,8 +847,35 @@ index 13f6e114f2d..9332c9ac8c2 100644
  }
  
  /* Free each slot's discovery nodes on deinit so an init/deinit/re-init cycle stays
+diff --git a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
+index 298362c365d..65e3dbfeab6 100644
+--- a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
++++ b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
+@@ -888,13 +888,19 @@ int bt_le_nimble_gatt_nrp_remove(struct bt_conn *conn, uint8_t type, void *param
+ 
+     nrp = gatt_nrp_find(conn->handle);
+     if (nrp == NULL) {
+-        LOG_ERR("[N]GattNrpNotFound[%u]", conn->handle);
+-        return -ENODEV;
++        /* Duplicate complete after NRP clear (disconnect / deinit) is a
++         * no-op. conn_handle 0 is a valid live ACL, so this is not an
++         * invalid-handle error — the slot is simply already gone. */
++        LOG_DBG("[N]GattNrpNotFound[%u]", conn->handle);
++        return 0;
+     }
+ 
+     /* Fetch and remove the first node from list */
+     node = sys_slist_get(&nrp->list);
+-    BT_LE_ASSERT(node);
++    if (node == NULL) {
++        LOG_DBG("[N]GattNrpEmpty[%u]", conn->handle);
++        return 0;
++    }
+ 
+     nrp_head = CONTAINER_OF(node, struct gatt_nrp_node, node);
+     BT_LE_ASSERT(nrp_head->type == type);
 diff --git a/components/bt/esp_ble_iso/host/adapter/nimble/iso.c b/components/bt/esp_ble_iso/host/adapter/nimble/iso.c
-index 9d28ba32d75..3e5115ac9d0 100644
+index 9d28ba32d75..9ee8f15de7e 100644
 --- a/components/bt/esp_ble_iso/host/adapter/nimble/iso.c
 +++ b/components/bt/esp_ble_iso/host/adapter/nimble/iso.c
 @@ -19,6 +19,7 @@
@@ -430,7 +902,42 @@ index 9d28ba32d75..3e5115ac9d0 100644
      }
  
      qdata_len = len + 2;
-@@ -861,10 +868,10 @@ int bt_le_nimble_iso_init(void)
+@@ -823,7 +830,13 @@ static int iso_enable_cis(void)
+     ble_hs_lock();
+ 
+     err = ble_hs_hci_set_host_feature(32, 1);
+-    if (err) {
++    if (err == BLE_HS_HCI_ERR(BLE_ERR_CMD_DISALLOWED)) {
++        /* Core 6.0 Vol 4 Part E 7.8.115: Command Disallowed while any ACL is
++         * still active or tearing down in the controller; report retryable
++         * -EBUSY so audio/ISO init callers can wait for link teardown. */
++        LOG_WRN("[N]IsoEnableCisBusy[%d]", err);
++        err = -EBUSY;
++    } else if (err) {
+         LOG_ERR("[N]IsoEnableCisFail[%d]", err);
+     }
+ 
+@@ -834,13 +847,15 @@ static int iso_enable_cis(void)
+ 
+ static int iso_disable_cis(void)
+ {
+-    int err;
++    int err = 0;
+ 
+     ble_hs_lock();
+ 
+-    err = ble_hs_hci_set_host_feature(32, 0);
+-    if (err) {
+-        LOG_ERR("[N]IsoDisableCisFail[%d]", err);
++    if (ble_hs_conn_first() == NULL) {
++        err = ble_hs_hci_set_host_feature(32, 0);
++        if (err && err != BLE_HS_HCI_ERR(BLE_ERR_CMD_DISALLOWED)) {
++            LOG_ERR("[N]IsoDisableCisFail[%d]", err);
++        }
+     }
+ 
+     ble_hs_unlock();
+@@ -861,10 +876,10 @@ int bt_le_nimble_iso_init(void)
      /* nimble's setters reject NULL and refuse re-registration (EALREADY), and
       * expose no unregister path — so deinit cannot clear these. On a host
       * re-enable the callback is still our own iso_evt_rx / bt_le_iso_rx, so
@@ -444,7 +951,7 @@ index 9d28ba32d75..3e5115ac9d0 100644
          LOG_ERR("[N]IsoEvtRxCbSetFail[%d]", err);
          return err;
      }
-@@ -896,6 +903,13 @@ void bt_le_nimble_iso_deinit(void)
+@@ -896,6 +911,13 @@ void bt_le_nimble_iso_deinit(void)
       * setters reject NULL); they harmlessly persist until the next init,
       * which tolerates the resulting EALREADY. */
  #if CONFIG_BT_ISO_UNICAST
@@ -460,10 +967,10 @@ index 9d28ba32d75..3e5115ac9d0 100644
  #endif /* CONFIG_BT_ISO_UNICAST */
  }
 diff --git a/components/bt/esp_ble_iso/host/common/gatt.c b/components/bt/esp_ble_iso/host/common/gatt.c
-index ac5800da056..fecb45c5a54 100644
+index 0cc12463f11..32be318fca1 100644
 --- a/components/bt/esp_ble_iso/host/common/gatt.c
 +++ b/components/bt/esp_ble_iso/host/common/gatt.c
-@@ -1207,6 +1207,17 @@ static void gattc_sub_clear(struct bt_conn *conn)
+@@ -1280,6 +1280,17 @@ static void gattc_sub_clear(struct bt_conn *conn)
      bt_addr_le_copy(&sub->peer, BT_ADDR_LE_ANY);
  }
  
@@ -481,7 +988,7 @@ index ac5800da056..fecb45c5a54 100644
  _IDF_ONLY
  struct gattc_sub *bt_gattc_sub_find(struct bt_conn *conn)
  {
-@@ -1344,12 +1355,21 @@ int bt_gatt_subscribe(struct bt_conn *conn, struct bt_gatt_subscribe_params *par
+@@ -1424,12 +1435,21 @@ int bt_gatt_subscribe(struct bt_conn *conn, struct bt_gatt_subscribe_params *par
                  return err;
              }
  
@@ -491,15 +998,15 @@ index ac5800da056..fecb45c5a54 100644
 -                LOG_ERR("GattcSubCccUnresolved[%u]", params->value_handle);
 -                params->value_handle = 0;
 -                return -ENOENT;
-+            /* The NimBLE adapter resolves this discovery synchronously from
-+             * the GATT client cache: the cb ran inline and consumed
-+             * disc_params. An answer of attr==NULL with ccc unresolved means
-+             * the peer publishes no CCCD in this range (e.g. a read-only VCS
-+             * Volume Flags characteristic). Zephyr treats that as a normal
-+             * end-of-discovery: the NULL notify already ran, so do not
-+             * append the node and let the caller see a normal return. An
-+             * asynchronous discovery (Bluedroid) keeps upstream behavior:
-+             * the node appends now and the CCC resolves later. */
++            /* Both NimBLE and Bluedroid adapters resolve this discovery
++             * synchronously from the GATT client cache: the cb ran inline and
++             * consumed disc_params. An answer of attr==NULL with ccc unresolved
++             * means the peer publishes no CCCD in this range (e.g. a read-only
++             * VCS Volume Flags characteristic). Zephyr treats that as a normal
++             * end-of-discovery: the NULL notify already ran, so do not append
++             * the node and let the caller see a normal return. Any future
++             * asynchronous discovery path keeps upstream behavior: the node
++             * appends now and the CCC resolves later. */
 +            if (params->ccc_handle == BT_GATT_AUTO_DISCOVER_CCC_HANDLE &&
 +                    params->disc_params->start_handle == 0 &&
 +                    params->disc_params->sub_params == NULL) {
@@ -570,10 +1077,10 @@ index 9af7d2d6300..d0f1e038009 100644
  
      /* Last: iso_task has exited and the callbacks above are gone, so nothing
 diff --git a/components/bt/esp_ble_iso/host/common/include/common/gatt.h b/components/bt/esp_ble_iso/host/common/include/common/gatt.h
-index d48aa3c2506..bd01346335c 100644
+index dfb1874fe2c..eaabefc9ead 100644
 --- a/components/bt/esp_ble_iso/host/common/include/common/gatt.h
 +++ b/components/bt/esp_ble_iso/host/common/include/common/gatt.h
-@@ -310,6 +310,12 @@ int bt_gattc_disc_start(uint16_t conn_handle);
+@@ -333,6 +333,12 @@ int bt_gattc_disc_start(uint16_t conn_handle);
  
  struct gattc_sub *bt_gattc_sub_find(struct bt_conn *conn);
  
@@ -611,10 +1118,10 @@ index d41a74c9cc4..ea21e6f6356 100644
   * acquire, or bail out with the caller's failure value so a task holding a lock
   * of its own never waits here indefinitely - that is the AB-BA edge that
 diff --git a/components/bt/esp_ble_iso/host/common/iso.c b/components/bt/esp_ble_iso/host/common/iso.c
-index 960b579ef3a..b9bce5571dc 100644
+index 526210bde07..9669ca8c87e 100644
 --- a/components/bt/esp_ble_iso/host/common/iso.c
 +++ b/components/bt/esp_ble_iso/host/common/iso.c
-@@ -904,6 +904,9 @@ int bt_le_iso_init(void)
+@@ -957,6 +957,9 @@ int bt_le_iso_init(void)
      err = bt_le_nimble_iso_init();
  #endif
      if (err) {
@@ -624,30 +1131,3 @@ index 960b579ef3a..b9bce5571dc 100644
          return err;
      }
  
-diff --git a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
-index cd78c2aa300..1b0e8a54385 100644
---- a/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
-+++ b/components/bt/esp_ble_iso/host/adapter/nimble/gatt/gatt.nrp.c
-@@ -883,13 +883,19 @@ int bt_le_nimble_gatt_nrp_remove(struct bt_conn *conn, uint8_t type, void *param
- 
-     nrp = gatt_nrp_find(conn->handle);
-     if (nrp == NULL) {
--        LOG_ERR("[N]GattNrpNotFound[%u]", conn->handle);
--        return -ENODEV;
-+        /* Duplicate complete after NRP clear (disconnect / deinit) is a
-+         * no-op. conn_handle 0 is a valid live ACL, so this is not an
-+         * invalid-handle error — the slot is simply already gone. */
-+        LOG_DBG("[N]GattNrpNotFound[%u]", conn->handle);
-+        return 0;
-     }
- 
-     /* Fetch and remove the first node from list */
-     node = sys_slist_get(&nrp->list);
--    BT_LE_ASSERT(node);
-+    if (node == NULL) {
-+        LOG_DBG("[N]GattNrpEmpty[%u]", conn->handle);
-+        return 0;
-+    }
- 
-     nrp_head = CONTAINER_OF(node, struct gatt_nrp_node, node);
-     BT_LE_ASSERT(nrp_head->type == type);

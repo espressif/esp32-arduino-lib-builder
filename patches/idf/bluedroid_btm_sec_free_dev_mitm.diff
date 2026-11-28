@@ -1,9 +1,8 @@
 diff --git a/components/bt/host/bluedroid/stack/btm/btm_dev.c b/components/bt/host/bluedroid/stack/btm/btm_dev.c
+index 27c23a48d4d..321bfef9f7d 100644
 --- a/components/bt/host/bluedroid/stack/btm/btm_dev.c
 +++ b/components/bt/host/bluedroid/stack/btm/btm_dev.c
-@@ -493,8 +493,20 @@ void btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec, tBT_TRANSPORT transport)
- #if BLE_INCLUDED == TRUE
-         /* Clear out any saved BLE keys */
+@@ -495,6 +495,18 @@ void btm_sec_free_dev (tBTM_SEC_DEV_REC *p_dev_rec, tBT_TRANSPORT transport)
          btm_sec_clear_ble_keys (p_dev_rec);
  #endif
      }

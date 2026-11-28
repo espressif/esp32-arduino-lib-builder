@@ -379,13 +379,22 @@ else
 fi
 
 # Fixes we cannot wait for upstream on, see patches/idf/README.md.
-# --3way makes a rebuild that already carries them a no-op.
-# Fail loudly on conflict: silently continuing would build (and validate)
+# Skip patches already present in the tree (--reverse --check works even on
+# shallow clones or when base blobs are absent), and use --3way for new/drifted
+# ones. Fail loudly on conflict: silently continuing would build (and validate)
 # a mix of patched and pristine sources.
-if ! git -C "$IDF_PATH" apply --3way -q "$AR_PATCHES"/idf/*.diff; then
-    echo "ERROR: IDF patches do not apply cleanly (check for conflict markers in $IDF_PATH); resolve them before building."
-    exit 1
-fi
+for patch in "$AR_PATCHES"/idf/*.diff; do
+    [ -e "$patch" ] || continue
+    if git -C "$IDF_PATH" apply --reverse --check -q "$patch" 2>/dev/null; then
+        echo "Skipping $(basename "$patch"), already applied in $IDF_PATH..."
+        continue
+    fi
+    echo "Applying $(basename "$patch") to $IDF_PATH..."
+    if ! git -C "$IDF_PATH" apply --3way "$patch"; then
+        echo "ERROR: IDF patch $(basename "$patch") does not apply cleanly (check for conflict markers in $IDF_PATH); resolve them before building."
+        exit 1
+    fi
+done
 
 # Normalise paths for ccache so entries survive build-directory wipes and
 # differently-named checkouts. Target/config differences still produce

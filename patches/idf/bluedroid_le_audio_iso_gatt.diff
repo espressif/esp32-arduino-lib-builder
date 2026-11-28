@@ -33,7 +33,7 @@ index 833d8d2778c..2f79f661b7c 100644
  }
  #endif
 diff --git a/components/bt/esp_ble_audio/host/adapter/bluedroid/server.c b/components/bt/esp_ble_audio/host/adapter/bluedroid/server.c
-index 364bb3bae58..ccba6433764 100644
+index 55b6977f8c9..745f481075f 100644
 --- a/components/bt/esp_ble_audio/host/adapter/bluedroid/server.c
 +++ b/components/bt/esp_ble_audio/host/adapter/bluedroid/server.c
 @@ -287,6 +287,25 @@ void bt_le_bluedroid_audio_gatts_init(void)
@@ -61,8 +61,8 @@ index 364bb3bae58..ccba6433764 100644
 +
  int bt_le_bluedroid_svc_deinit(struct bt_gatt_service *svc)
  {
-     if (svc == NULL || svc->attrs == NULL) {
-@@ -301,7 +320,14 @@ int bt_le_bluedroid_svc_deinit(struct bt_gatt_service *svc)
+     if (svc == NULL) {
+@@ -307,7 +326,14 @@ int bt_le_bluedroid_svc_deinit(struct bt_gatt_service *svc)
  
      LOG_DBG("[B]SvcDeinit[0x%04x]", svc->attrs[0].handle);
  
@@ -78,10 +78,10 @@ index 364bb3bae58..ccba6433764 100644
  
      return 0;
 diff --git a/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c b/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
-index 4676ce7faa2..7335633c45b 100644
+index dee5b15ed3f..89c8df02cf4 100644
 --- a/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
 +++ b/components/bt/esp_ble_iso/host/adapter/bluedroid/gatt/gatt.c
-@@ -28,6 +28,10 @@
+@@ -29,6 +29,10 @@
  #include "common/app/gap.h"
  #include "common/app/gatt.h"
  
@@ -92,7 +92,7 @@ index 4676ce7faa2..7335633c45b 100644
  LOG_MODULE_REGISTER(ISO_BGAT, CONFIG_BT_ISO_LOG_LEVEL);
  
  /* Use UUID with a fixed pattern 0x98 for ISO & LE Audio GATT Server.
-@@ -922,6 +926,14 @@ static void gatts_app_cb(tBTA_GATTS_EVT event, tBTA_GATTS *p_data)
+@@ -950,6 +954,14 @@ static void gatts_app_cb(tBTA_GATTS_EVT event, tBTA_GATTS *p_data)
          LOG_DBG("[B]GattsDeleteEvt[%u][%u][%u]",
                  p_data->srvc_oper.status, p_data->srvc_oper.server_if,
                  p_data->srvc_oper.service_id);
@@ -107,7 +107,7 @@ index 4676ce7faa2..7335633c45b 100644
          break;
  
      case BTA_GATTS_START_EVT:
-@@ -1396,6 +1408,10 @@ static void post_acl_connect_app_event(struct gatt_conn *gatt_conn)
+@@ -1426,6 +1438,10 @@ static void post_acl_connect_app_event(struct gatt_conn *gatt_conn)
      struct bt_le_gap_app_param *qev;
      int err;
  
@@ -118,7 +118,7 @@ index 4676ce7faa2..7335633c45b 100644
      qev = bt_le_ext_calloc(1, sizeof(*qev));
      BT_LE_ASSERT(qev);
  
-@@ -1416,7 +1432,9 @@ static void post_acl_connect_app_event(struct gatt_conn *gatt_conn)
+@@ -1446,7 +1462,9 @@ static void post_acl_connect_app_event(struct gatt_conn *gatt_conn)
      if (err) {
          ISO_POST_FAIL_LOG(err, "[B]AclConnPostFail[%d]", err);
          free(qev);
@@ -128,7 +128,7 @@ index 4676ce7faa2..7335633c45b 100644
  }
  
  /* A connect that never reached the link layer gets no CONNECT_EVT, so nothing
-@@ -1509,9 +1527,10 @@ static void handle_gattc_connect_event(struct bt_le_gattc_connect_event *event)
+@@ -1539,9 +1557,10 @@ static void handle_gattc_connect_event(struct bt_le_gattc_connect_event *event)
          reset_gatt_conn(gatt_conn);
      }
  
@@ -142,7 +142,7 @@ index 4676ce7faa2..7335633c45b 100644
      gatt_conn = bt_le_bluedroid_find_free_gatt_conn();
      if (gatt_conn == NULL) {
          LOG_ERR("[B]NoFreeConnInfo");
-@@ -1527,6 +1546,11 @@ static void handle_gattc_connect_event(struct bt_le_gattc_connect_event *event)
+@@ -1557,6 +1576,11 @@ static void handle_gattc_connect_event(struct bt_le_gattc_connect_event *event)
      gatt_conn->role = event->role;
      gatt_conn->peer.type = event->peer.type;
      memcpy(gatt_conn->peer.val, event->peer.val, BT_ADDR_SIZE);
@@ -154,7 +154,7 @@ index 4676ce7faa2..7335633c45b 100644
  }
  
  static void handle_gattc_disconnect_event(struct bt_le_gattc_disconnect_event *event)
-@@ -1584,7 +1608,12 @@ static void handle_gattc_open_event(struct bt_le_gattc_open_event *event)
+@@ -1614,7 +1638,12 @@ static void handle_gattc_open_event(struct bt_le_gattc_open_event *event)
          post_acl_connect_app_event(gatt_conn);
  
          if (gatt_conn->status) {
@@ -168,7 +168,7 @@ index 4676ce7faa2..7335633c45b 100644
              return;
          }
      } else {
-@@ -2051,6 +2080,13 @@ static void handle_gatts_read_event(struct bt_le_gatts_read_event *event)
+@@ -2082,6 +2111,13 @@ static void handle_gatts_read_event(struct bt_le_gatts_read_event *event)
      }
  
      attr = bt_gatts_find_attr_by_handle(event->attr_handle);
@@ -182,7 +182,7 @@ index 4676ce7faa2..7335633c45b 100644
      if (attr == NULL) {
          LOG_ERR("[B]GattsRdAttrNotFound[%u]", event->attr_handle);
          status = GATT_INVALID_HANDLE;
-@@ -2215,6 +2251,11 @@ static void handle_gatts_write_event(struct bt_le_gatts_write_event *event)
+@@ -2246,6 +2282,11 @@ static void handle_gatts_write_event(struct bt_le_gatts_write_event *event)
      }
  
      attr = bt_gatts_find_attr_by_handle(event->attr_handle);
@@ -194,7 +194,7 @@ index 4676ce7faa2..7335633c45b 100644
      if (attr == NULL) {
          LOG_ERR("[B]GattsWrAttrNotFound[%u]", event->attr_handle);
          status = GATT_INVALID_HANDLE;
-@@ -2319,6 +2360,11 @@ static void handle_gatts_exec_write_event(struct bt_le_gatts_exec_write_event *e
+@@ -2350,6 +2391,11 @@ static void handle_gatts_exec_write_event(struct bt_le_gatts_exec_write_event *e
              status = GATT_INSUF_RESOURCE;
          } else {
              attr = bt_gatts_find_attr_by_handle(gatt_conn->prep_attr_handle);
@@ -206,7 +206,7 @@ index 4676ce7faa2..7335633c45b 100644
              if (attr == NULL) {
                  status = GATT_INVALID_HANDLE;
              } else if (attr->write == NULL) {
-@@ -3200,9 +3246,18 @@ static int gattc_disc_chrc_desc(struct bt_conn *conn, uint16_t conn_id,
+@@ -3238,9 +3284,18 @@ static int gattc_disc_chrc_desc(struct bt_conn *conn, uint16_t conn_id,
              count, chrc_handle, params->end_handle);
  
      if (db == NULL || count == 0) {
@@ -240,10 +240,20 @@ index a75d71a7026..5262d03930b 100644
      uint8_t  status;
      uint8_t  gatt_if;
 diff --git a/components/bt/esp_ble_iso/host/adapter/bluedroid/iso.c b/components/bt/esp_ble_iso/host/adapter/bluedroid/iso.c
-index 2caf350613c..0b7e3703697 100644
+index 2caf350613c..6749b90fae5 100644
 --- a/components/bt/esp_ble_iso/host/adapter/bluedroid/iso.c
 +++ b/components/bt/esp_ble_iso/host/adapter/bluedroid/iso.c
-@@ -1333,9 +1333,10 @@ void bt_le_bluedroid_iso_deinit(void)
+@@ -1241,6 +1241,9 @@ static int iso_enable_cis(void)
+     status = bt_le_bluedroid_hci_send_sync(HCI_BLE_SET_HOST_FEATURE,
+                                            cmd_params, sizeof(cmd_params),
+                                            NULL, 0);
++    if (status == (BTM_HCI_ERROR | HCI_ERR_COMMAND_DISALLOWED)) {
++        return -EBUSY;
++    }
+ #else /* USE_DIRECT_HCI */
+     status = BTM_BleSetHostFeature(32, 1);
+ #endif /* USE_DIRECT_HCI */
+@@ -1333,9 +1336,10 @@ void bt_le_bluedroid_iso_deinit(void)
  {
  #if CONFIG_BT_ISO_UNICAST
      /* Core 6.0 Vol 4 Part E 7.8.115: LE Set Host Feature is Command Disallowed
@@ -257,10 +267,10 @@ index 2caf350613c..0b7e3703697 100644
      }
  #endif /* CONFIG_BT_ISO_UNICAST */
 diff --git a/components/bt/esp_ble_iso/host/common/app/gap.c b/components/bt/esp_ble_iso/host/common/app/gap.c
-index c4bdbb82dfe..fa986001fc6 100644
+index e3ece4cf2ab..ae1a584dd7c 100644
 --- a/components/bt/esp_ble_iso/host/common/app/gap.c
 +++ b/components/bt/esp_ble_iso/host/common/app/gap.c
-@@ -370,8 +370,18 @@ static void handle_acl_disconnect_event_safe(struct bt_le_gap_app_param *param)
+@@ -371,8 +371,18 @@ static void handle_acl_disconnect_event_safe(struct bt_le_gap_app_param *param)
          goto end;
      }
  
@@ -282,29 +292,24 @@ index c4bdbb82dfe..fa986001fc6 100644
  end:
      bt_le_host_unlock();
 diff --git a/components/bt/esp_ble_iso/host/common/include/common/iso.h b/components/bt/esp_ble_iso/host/common/include/common/iso.h
-index ea45348a3f1..be76bff4402 100644
+index 8c873fb491a..470bfbd2919 100644
 --- a/components/bt/esp_ble_iso/host/common/include/common/iso.h
 +++ b/components/bt/esp_ble_iso/host/common/include/common/iso.h
-@@ -75,6 +75,14 @@ int bt_le_iso_rx(const uint8_t *data, uint16_t len, void *arg);
+@@ -111,6 +111,9 @@ int bt_le_iso_rx(const uint8_t *data, uint16_t len, void *arg);
  
  int bt_le_iso_disconnect(uint16_t conn_handle, uint8_t reason);
  
 +/* Complete any CIS channels still attached when their parent ACL is gone. */
 +void bt_iso_acl_disconnected(uint16_t acl_handle, uint8_t reason);
 +
-+#if defined(CONFIG_BT_ISO_BROADCAST)
-+/* Return the most recently registered BIG callback node (NULL if empty). */
-+struct bt_iso_big_cb *bt_iso_big_tail_cb(void);
-+#endif /* CONFIG_BT_ISO_BROADCAST */
-+
  void bt_le_iso_state_reset(void);
  
  size_t bt_le_iso_report_busy(void);
 diff --git a/components/bt/esp_ble_iso/host/iso/iso.c b/components/bt/esp_ble_iso/host/iso/iso.c
-index 460ba37ae68..3183d5192b5 100644
+index ffbfc427765..a441d762a4e 100644
 --- a/components/bt/esp_ble_iso/host/iso/iso.c
 +++ b/components/bt/esp_ble_iso/host/iso/iso.c
-@@ -448,6 +448,11 @@ static void bt_iso_chan_disconnected(struct bt_iso_chan *chan, uint8_t reason)
+@@ -454,6 +454,11 @@ static void bt_iso_chan_disconnected(struct bt_iso_chan *chan, uint8_t reason)
  {
      BT_LE_ASSERT(chan->iso != NULL && "NullConnForIsoChan");
  
@@ -316,7 +321,7 @@ index 460ba37ae68..3183d5192b5 100644
      const uint8_t conn_type = chan->iso->iso.info.type;
  
      LOG_INF("IsoChanDisconnected[%02x]", reason);
-@@ -878,6 +883,42 @@ void bt_iso_cleanup_acl(struct bt_conn *iso)
+@@ -899,6 +904,42 @@ void bt_iso_cleanup_acl(struct bt_conn *iso)
  #endif /* CONFIG_BT_ISO_UNICAST */
  }
  
@@ -356,23 +361,9 @@ index 460ba37ae68..3183d5192b5 100644
 +#endif /* CONFIG_BT_ISO_UNICAST */
 +}
 +
- static void store_cis_info(const struct bt_hci_evt_le_cis_established *evt, struct bt_conn *iso)
+ static void log_cis_info(const struct bt_conn_iso *iso_conn)
  {
-     struct bt_conn_iso *iso_conn = &iso->iso;
-@@ -2462,6 +2503,13 @@ int bt_iso_big_unregister_cb(struct bt_iso_big_cb *cb)
-     return 0;
- }
- 
-+struct bt_iso_big_cb *bt_iso_big_tail_cb(void)
-+{
-+    sys_snode_t *tail = sys_slist_peek_tail(&iso_big_cbs);
-+
-+    return tail ? CONTAINER_OF(tail, struct bt_iso_big_cb, _node) : NULL;
-+}
-+
- #if defined(CONFIG_BT_ISO_BROADCASTER)
- static int hci_le_create_big(struct bt_le_ext_adv *padv, struct bt_iso_big *big,
-                              struct bt_iso_big_create_param *param)
+     /* No locals: LOG_INF compiles to nothing below the info level */
 diff --git a/components/bt/host/bluedroid/stack/gatt/gatt_utils.c b/components/bt/host/bluedroid/stack/gatt/gatt_utils.c
 index 82dc639f584..8e709f30078 100644
 --- a/components/bt/host/bluedroid/stack/gatt/gatt_utils.c
